@@ -3369,7 +3369,25 @@ export default function Dispatches() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.1fr 0.7fr', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.1fr 1.2fr', gap: '0.75rem' }}>
+              <div>
+                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 예정일</label>
+                <Input 
+                  type="date" 
+                  value={formData.settleDate}
+                  onChange={e => handleInputChange('settleDate', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
+                <Input 
+                  type="text" 
+                  placeholder="예: 30,000" 
+                  disabled={formData.settleMethod === '인수증'}
+                  value={formData.settleMethod === '인수증' ? '' : formData.commission}
+                  onChange={e => handleInputChange('commission', e.target.value)}
+                />
+              </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -3407,29 +3425,19 @@ export default function Dispatches() {
                   }}
                 />
               </div>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
-                <Input 
-                  type="text" 
-                  placeholder="예: 30,000" 
-                  disabled={formData.settleMethod === '인수증'}
-                  value={formData.settleMethod === '인수증' ? '' : formData.commission}
-                  onChange={e => handleInputChange('commission', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 예정일</label>
-                <Input 
-                  type="date" 
-                  value={formData.settleDate}
-                  onChange={e => handleInputChange('settleDate', e.target.value)}
-                />
-              </div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label className="text-sm font-bold text-secondary mb-1 block">메모</label>
+                <Input 
+                  placeholder="추가 요청 사항 입력"
+                  value={formData.memo}
+                  onChange={e => handleInputChange('memo', e.target.value)}
+                />
+              </div>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">화물품목</label>
@@ -3443,14 +3451,6 @@ export default function Dispatches() {
                   placeholder="예: 철강, 기계부품 등"
                   value={formData.cargoItem}
                   onChange={e => handleInputChange('cargoItem', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block">메모</label>
-                <Input 
-                  placeholder="추가 요청 사항 입력"
-                  value={formData.memo}
-                  onChange={e => handleInputChange('memo', e.target.value)}
                 />
               </div>
             </div>
