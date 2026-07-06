@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
-import { Plus, Search, MoreVertical, Check, Trash2, Edit, X, Truck } from 'lucide-react'
+import { Plus, Search, MoreVertical, Check, Trash2, Edit, Truck } from 'lucide-react'
 
 interface Driver {
   id: number

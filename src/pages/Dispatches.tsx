@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
-import { Plus, Search, MapPin, Truck, Save, Check, Route, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Search, MapPin, Check, Route, ChevronDown, ChevronUp } from 'lucide-react'
 
 // Rich historical dispatch data for calculating recommendations
 const initialHistoricalDispatches = [
@@ -2178,38 +2178,7 @@ export default function Dispatches() {
     setErrors(prev => ({ ...prev, origin: false, destination: false }))
   }
 
-  const openPostcodeSearch = (onComplete: (address: string) => void) => {
-    const daum = (window as any).daum;
-    if (daum && daum.Postcode) {
-      new daum.Postcode({
-        oncomplete: (data: any) => {
-          onComplete(data.roadAddress || data.address);
-        }
-      }).open();
-    } else {
-      const script = document.createElement('script');
-      script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-      script.async = true;
-      script.onload = () => {
-        const loadedDaum = (window as any).daum;
-        if (loadedDaum && loadedDaum.Postcode) {
-          new loadedDaum.Postcode({
-            oncomplete: (data: any) => {
-              onComplete(data.roadAddress || data.address);
-            }
-          }).open();
-        }
-      };
-      document.body.appendChild(script);
-    }
-  };
 
-  const handleSearchAddress = (field: 'origin' | 'destination') => {
-    openPostcodeSearch((address) => {
-      setFormData(prev => ({ ...prev, [field]: address }));
-      setErrors(prev => ({ ...prev, [field]: false }));
-    });
-  };
 
   const handleDateShortcut = (field: 'originDate' | 'destinationDate', shortcut: string) => {
     const now = new Date()
@@ -2248,18 +2217,7 @@ export default function Dispatches() {
     setTimeout(() => setNotification(null), 3000)
   }
 
-  const openSaveClientModal = () => {
-    setClientModalData({
-      name: formData.clientName,
-      phone: formData.clientPhone,
-      address: '',
-      businessNo: '',
-      ceoName: '',
-      contactName: formData.clientContact,
-      contactPhone: ''
-    })
-    setShowClientModal(true)
-  }
+
 
   const handleSaveClient = (e: React.FormEvent) => {
     e.preventDefault()
@@ -3663,14 +3621,14 @@ export default function Dispatches() {
                           }
                         }
                         if (list.length === 0) {
-                          const counts = {}
+                          const counts: Record<string, number> = {}
                           historyPool.forEach(item => {
                             if (item.origin) counts[item.origin] = (counts[item.origin] || 0) + 1
                           })
                           list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
                         }
 
-                        return list.map((loc, idx) => {
+                        return list.map((loc: string, idx: number) => {
                           const isSelected = formData.origin === loc
                           return (
                             <div 
@@ -3727,14 +3685,14 @@ export default function Dispatches() {
                           }
                         }
                         if (list.length === 0) {
-                          const counts = {}
+                          const counts: Record<string, number> = {}
                           historyPool.forEach(item => {
                             if (item.destination) counts[item.destination] = (counts[item.destination] || 0) + 1
                           })
                           list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
                         }
 
-                        return list.map((loc, idx) => {
+                        return list.map((loc: string, idx: number) => {
                           const isSelected = formData.destination === loc
                           return (
                             <div 

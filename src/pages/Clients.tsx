@@ -291,43 +291,7 @@ export default function Clients() {
     return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5, 10)}`;
   }
 
-  const openPostcodeSearch = (onComplete: (address: string) => void) => {
-    const daum = (window as any).daum;
-    if (daum && daum.Postcode) {
-      new daum.Postcode({
-        oncomplete: (data: any) => {
-          onComplete(data.roadAddress || data.address);
-        }
-      }).open();
-    } else {
-      const script = document.createElement('script');
-      script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-      script.async = true;
-      script.onload = () => {
-        const loadedDaum = (window as any).daum;
-        if (loadedDaum && loadedDaum.Postcode) {
-          new loadedDaum.Postcode({
-            oncomplete: (data: any) => {
-              onComplete(data.roadAddress || data.address);
-            }
-          }).open();
-        }
-      };
-      document.body.appendChild(script);
-    }
-  };
 
-  const handleSearchAddress = () => {
-    openPostcodeSearch((address) => {
-      setModalData(prev => ({ ...prev, address }));
-    });
-  };
-
-  const handleSearchLocationInput = () => {
-    openPostcodeSearch((address) => {
-      setLocationInput(address);
-    });
-  };
 
   const handleOpenAddModal = () => {
     setEditingClient(null)
