@@ -2295,6 +2295,7 @@ export default function Dispatches() {
       memo: ''
     })
     setErrors({})
+    setActiveLocationListField(null)
   }
 
   const handleDispatchSubmit = (e: React.MouseEvent) => {
