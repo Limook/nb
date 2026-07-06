@@ -2390,6 +2390,25 @@ export default function Dispatches() {
       return
     }
 
+    // If setting to cancelled (resets everything and changes status)
+    if (status === 'cancelled') {
+      setDispatches(prev => prev.map(d => {
+        if (d.id === dispatchId) {
+          return {
+            ...d,
+            status,
+            carNumber: '',
+            driverName: '',
+            driverPhone: ''
+          }
+        }
+        return d
+      }))
+      setDriverInput({ carNumber: '', driverName: '', driverPhone: '' })
+      triggerNotification('배차가 취소 상태로 변경되고 차주 정보가 초기화되었습니다.')
+      return
+    }
+
     // Otherwise require driver details
     if (!driverInput.carNumber.trim() || !driverInput.driverName.trim() || !driverInput.driverPhone.trim()) {
       alert('배차/운행 처리를 위해 차량번호, 차주명, 차주 연락처를 모두 입력해야 합니다.')
