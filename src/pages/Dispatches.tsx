@@ -2082,6 +2082,7 @@ export default function Dispatches() {
     const topSpecs = Object.values(specsMap)
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
+      .reverse()
 
     return { topRoutes, topOrigins, topDestinations, topSpecs }
   }
@@ -2128,6 +2129,7 @@ export default function Dispatches() {
   }
 
   const { recentFee, frequentFee } = getFeeRecommendations()
+  const hasOtherInfo = !!(formData.clientName.trim() || formData.origin.trim() || formData.destination.trim())
 
   const formatPhone = (val: string) => {
     const digits = val.replace(/\D/g, '');
@@ -3416,7 +3418,7 @@ export default function Dispatches() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {recentFee && (
+                    {hasOtherInfo && recentFee && (
                       <button 
                         type="button" 
                         onClick={() => handleInputChange('fee', String(recentFee))} 
@@ -3426,7 +3428,7 @@ export default function Dispatches() {
                         최근: {(recentFee / 10000).toFixed(0)}만
                       </button>
                     )}
-                    {frequentFee && (
+                    {hasOtherInfo && frequentFee && (
                       <button 
                         type="button" 
                         onClick={() => handleInputChange('fee', String(frequentFee))} 
