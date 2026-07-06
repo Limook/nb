@@ -4465,47 +4465,130 @@ export default function Dispatches() {
 
                                     {/* Action Buttons for Status Setting */}
                                     <div style={{ display: 'flex', flexDirection: 'row', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                      {/* 배차완료 */}
                                       <Button 
-                                        variant="outline" 
-                                        style={{ flex: 1, padding: '0.45rem 0.25rem', fontSize: '0.74rem', whiteSpace: 'nowrap', minWidth: '60px' }}
-                                        onClick={() => handleUpdateDriverAndStatus(dispatch.id, 'dispatched')}
+                                        variant={dispatch.status === 'dispatched' ? 'primary' : 'outline'}
+                                        style={{ 
+                                          flex: 1, 
+                                          padding: '0.45rem 0.25rem', 
+                                          fontSize: '0.74rem', 
+                                          whiteSpace: 'nowrap', 
+                                          minWidth: '60px',
+                                          fontWeight: dispatch.status === 'dispatched' ? 800 : 500
+                                        }}
+                                        onClick={() => {
+                                          const next = dispatch.status === 'dispatched' ? 'dispatching' : 'dispatched';
+                                          handleUpdateDriverAndStatus(dispatch.id, next);
+                                        }}
                                       >
-                                        배차완료
+                                        배차완료 {dispatch.status === 'dispatched' && '✓'}
                                       </Button>
+
+                                      {/* 상차완료 */}
                                       <Button 
-                                        variant="outline" 
-                                        style={{ flex: 1, padding: '0.45rem 0.25rem', fontSize: '0.74rem', whiteSpace: 'nowrap', minWidth: '60px' }}
-                                        onClick={() => handleUpdateDriverAndStatus(dispatch.id, 'loaded')}
+                                        variant={dispatch.status === 'loaded' ? 'primary' : 'outline'}
+                                        style={{ 
+                                          flex: 1, 
+                                          padding: '0.45rem 0.25rem', 
+                                          fontSize: '0.74rem', 
+                                          whiteSpace: 'nowrap', 
+                                          minWidth: '60px',
+                                          backgroundColor: dispatch.status === 'loaded' ? '#10B981' : undefined,
+                                          borderColor: dispatch.status === 'loaded' ? '#10B981' : undefined,
+                                          color: dispatch.status === 'loaded' ? '#ffffff' : undefined,
+                                          fontWeight: dispatch.status === 'loaded' ? 800 : 500
+                                        }}
+                                        onClick={() => {
+                                          const next = dispatch.status === 'loaded' ? 'dispatched' : 'loaded';
+                                          handleUpdateDriverAndStatus(dispatch.id, next);
+                                        }}
                                       >
-                                        상차완료
+                                        상차완료 {dispatch.status === 'loaded' && '✓'}
                                       </Button>
+
+                                      {/* 하차완료 */}
                                       <Button 
-                                        variant="outline" 
-                                        style={{ flex: 1, padding: '0.45rem 0.25rem', fontSize: '0.74rem', whiteSpace: 'nowrap', minWidth: '60px' }}
-                                        onClick={() => handleUpdateDriverAndStatus(dispatch.id, 'unloaded')}
+                                        variant={dispatch.status === 'unloaded' ? 'secondary' : 'outline'}
+                                        style={{ 
+                                          flex: 1, 
+                                          padding: '0.45rem 0.25rem', 
+                                          fontSize: '0.74rem', 
+                                          whiteSpace: 'nowrap', 
+                                          minWidth: '60px',
+                                          backgroundColor: dispatch.status === 'unloaded' ? 'var(--text-secondary)' : undefined,
+                                          borderColor: dispatch.status === 'unloaded' ? 'var(--text-secondary)' : undefined,
+                                          color: dispatch.status === 'unloaded' ? '#ffffff' : undefined,
+                                          fontWeight: dispatch.status === 'unloaded' ? 800 : 500
+                                        }}
+                                        onClick={() => {
+                                          const next = dispatch.status === 'unloaded' ? 'loaded' : 'unloaded';
+                                          handleUpdateDriverAndStatus(dispatch.id, next);
+                                        }}
                                       >
-                                        하차완료
+                                        하차완료 {dispatch.status === 'unloaded' && '✓'}
                                       </Button>
+
+                                      {/* 운행완료 */}
                                       <Button 
-                                        variant="primary" 
-                                        style={{ flex: 1, padding: '0.45rem 0.25rem', fontSize: '0.74rem', whiteSpace: 'nowrap', minWidth: '60px' }}
-                                        onClick={() => handleUpdateDriverAndStatus(dispatch.id, 'completed')}
+                                        variant={dispatch.status === 'completed' ? 'primary' : 'outline'}
+                                        style={{ 
+                                          flex: 1, 
+                                          padding: '0.45rem 0.25rem', 
+                                          fontSize: '0.74rem', 
+                                          whiteSpace: 'nowrap', 
+                                          minWidth: '60px',
+                                          backgroundColor: dispatch.status === 'completed' ? '#10B981' : undefined,
+                                          borderColor: dispatch.status === 'completed' ? '#10B981' : undefined,
+                                          color: dispatch.status === 'completed' ? '#ffffff' : undefined,
+                                          fontWeight: dispatch.status === 'completed' ? 800 : 500
+                                        }}
+                                        onClick={() => {
+                                          const next = dispatch.status === 'completed' ? 'unloaded' : 'completed';
+                                          handleUpdateDriverAndStatus(dispatch.id, next);
+                                        }}
                                       >
-                                        운행완료
+                                        운행완료 {dispatch.status === 'completed' && '✓'}
                                       </Button>
+
+                                      {/* 배차취소 */}
                                       <Button 
-                                        variant="danger" 
-                                        style={{ flex: 1, padding: '0.45rem 0.25rem', fontSize: '0.74rem', whiteSpace: 'nowrap', minWidth: '60px' }}
-                                        onClick={() => handleUpdateDriverAndStatus(dispatch.id, 'cancelled')}
+                                        variant={dispatch.status === 'cancelled' ? 'danger' : 'outline'}
+                                        style={{ 
+                                          flex: 1, 
+                                          padding: '0.45rem 0.25rem', 
+                                          fontSize: '0.74rem', 
+                                          whiteSpace: 'nowrap', 
+                                          minWidth: '60px',
+                                          fontWeight: dispatch.status === 'cancelled' ? 800 : 500
+                                        }}
+                                        onClick={() => {
+                                          const next = dispatch.status === 'cancelled' ? 'dispatching' : 'cancelled';
+                                          handleUpdateDriverAndStatus(dispatch.id, next);
+                                        }}
                                       >
-                                        배차취소
+                                        배차취소 {dispatch.status === 'cancelled' && '✓'}
                                       </Button>
+
+                                      {/* 대기(초기화) */}
                                       <Button 
-                                        variant="secondary" 
-                                        style={{ flex: 1, padding: '0.45rem 0.25rem', fontSize: '0.74rem', whiteSpace: 'nowrap', minWidth: '60px' }}
-                                        onClick={() => handleUpdateDriverAndStatus(dispatch.id, 'dispatching')}
+                                        variant={dispatch.status === 'dispatching' ? 'secondary' : 'outline'}
+                                        style={{ 
+                                          flex: 1, 
+                                          padding: '0.45rem 0.25rem', 
+                                          fontSize: '0.74rem', 
+                                          whiteSpace: 'nowrap', 
+                                          minWidth: '60px',
+                                          backgroundColor: dispatch.status === 'dispatching' ? '#F59E0B' : undefined,
+                                          borderColor: dispatch.status === 'dispatching' ? '#F59E0B' : undefined,
+                                          color: dispatch.status === 'dispatching' ? '#ffffff' : undefined,
+                                          fontWeight: dispatch.status === 'dispatching' ? 800 : 500
+                                        }}
+                                        onClick={() => {
+                                          const next = dispatch.status === 'dispatching' ? 'dispatched' : 'dispatching';
+                                          handleUpdateDriverAndStatus(dispatch.id, next);
+                                        }}
                                       >
-                                        대기(초기화)
+                                        대기(초기화) {dispatch.status === 'dispatching' && '✓'}
                                       </Button>
 
                                     </div>
