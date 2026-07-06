@@ -4479,8 +4479,8 @@ export default function Dispatches() {
                                           { key: 'loaded', label: '상차완료', activeColor: '#10B981' },
                                           { key: 'unloaded', label: '하차완료', activeColor: 'var(--text-secondary)' },
                                           { key: 'completed', label: '운행완료', activeColor: '#10B981' },
-                                          { key: 'cancelled', label: '배차취소', activeColor: 'var(--danger)' },
-                                          { key: 'dispatching', label: '배차대기', activeColor: '#F59E0B' }
+                                          { key: 'dispatching', label: '배차대기', activeColor: '#F59E0B' },
+                                          { key: 'cancelled', label: '배차취소', activeColor: '#EF4444' }
                                         ];
 
                                         return statuses.map((item, idx) => {
@@ -4522,11 +4522,11 @@ export default function Dispatches() {
                                                 gap: '0.15rem'
                                               }}
                                             >
-                                              {item.label} {isActive && '✓'}
+                                              {item.label}
                                             </button>
                                           );
                                         });
-                                      })()}
+                                       })()}
                                     </div>
                                   </div>
                                 </div>
