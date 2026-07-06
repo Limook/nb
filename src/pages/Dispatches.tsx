@@ -2340,6 +2340,7 @@ export default function Dispatches() {
 
     triggerNotification('배차가 성공적으로 등록되었습니다!')
     handleResetForm()
+    setActiveLocationListField(null)
   }
 
   // Handle assigning/updating a driver and status
