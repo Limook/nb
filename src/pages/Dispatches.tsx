@@ -3584,9 +3584,9 @@ export default function Dispatches() {
               </div>
             </div>
           ) : activeLocationListField ? (
-            <div className="animate-slide-down" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', overflow: 'hidden' }}>
+            <div className="animate-slide-down" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%', overflow: 'hidden', padding: '1rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
               {/* Location List Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                 <div>
                   <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'block' }}>
                     {formData.clientName.trim() 
@@ -3604,12 +3604,25 @@ export default function Dispatches() {
               </div>
 
               {/* 3-row list view (1: Major Routes, 2: Origins, 3: Destinations) */}
-              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr 1fr', gap: '1rem', flex: 1, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr 1fr', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
                 
                 {/* 1. 운행데이터기반 주요구간 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>운행데이터기반 주요구간 (상하차 동시선택)</span>
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '0.4rem', 
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderLeft: '3.5px solid #8b5cf6',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.65rem 0.75rem',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      ⚡ 운행데이터기반 주요구간 (상하차 동시선택)
+                    </span>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -3652,9 +3665,9 @@ export default function Dispatches() {
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
-                                <Badge color="primary">{idx + 1}</Badge>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px', height: '18px', fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '50%' }}>{idx + 1}</span>
                                 <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                  {route.origin.split(' ').slice(0, 2).join(' ')} <span style={{ color: 'var(--primary)', fontWeight: 800 }}>&rarr;</span> {route.destination.split(' ').slice(0, 2).join(' ')}
+                                  {route.origin.split(' ').slice(0, 2).join(' ')} <span style={{ color: '#8b5cf6', fontWeight: 800 }}>&rarr;</span> {route.destination.split(' ').slice(0, 2).join(' ')}
                                 </div>
                               </div>
                               <Button 
@@ -3672,9 +3685,22 @@ export default function Dispatches() {
                 </div>
 
                 {/* 2. 거래처관리 저장기반 주요상차지 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>거래처관리 저장기반 주요상차지</span>
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '0.4rem', 
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderLeft: '3.5px solid var(--primary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.65rem 0.75rem',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      📍 거래처관리 저장기반 주요상차지
+                    </span>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -3736,9 +3762,22 @@ export default function Dispatches() {
                 </div>
 
                 {/* 3. 주요하차지 목록 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--success)' }}>주요 하차지 목록</span>
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '0.4rem', 
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderLeft: '3.5px solid var(--success)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.65rem 0.75rem',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      🏁 주요 하차지 목록
+                    </span>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
