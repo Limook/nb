@@ -2149,6 +2149,7 @@ export default function Dispatches() {
       clientPhone: formatPhone(phone),
       clientContact: contact
     }))
+    setActiveLocationListField('both')
   }
 
   const handleRecommendSpec = (tonnage: string, type: string, weight: string) => {
@@ -2245,6 +2246,7 @@ export default function Dispatches() {
     }))
     setErrors(prev => ({ ...prev, clientName: false }))
     setShowClientSearch(false)
+    setActiveLocationListField('both')
     triggerNotification(`거래처 [${client.name}]이(가) 선택되었습니다.`)
   }
 
@@ -3601,13 +3603,78 @@ export default function Dispatches() {
                 </Button>
               </div>
 
-              {/* Both list view (Top: Origins, Bottom: Destinations) */}
-              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: '1rem', flex: 1, overflow: 'hidden' }}>
+              {/* 3-row list view (1: Major Routes, 2: Origins, 3: Destinations) */}
+              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr 1fr', gap: '1rem', flex: 1, overflow: 'hidden' }}>
                 
-                {/* Top Half: Origins (상차지) */}
+                {/* 1. 운행데이터기반 주요구간 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>주요 상차지 목록</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>운행데이터기반 주요구간 (상하차 동시선택)</span>
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {(() => {
+                        const routeCounts: Record<string, number> = {};
+                        historyPool.forEach(item => {
+                          if (item.origin && item.destination) {
+                            const key = `${item.origin} === ${item.destination}`;
+                            routeCounts[key] = (routeCounts[key] || 0) + 1;
+                          }
+                        });
+                        const topRoutes = Object.entries(routeCounts)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 5)
+                          .map(([key]) => {
+                            const [origin, destination] = key.split(' === ');
+                            return { origin, destination };
+                          });
+
+                        return topRoutes.map((route: { origin: string, destination: string }, idx: number) => {
+                          const isSelected = formData.origin === route.origin && formData.destination === route.destination;
+                          return (
+                            <div 
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '0.55rem 0.75rem',
+                                backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                                border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)',
+                                cursor: 'pointer',
+                                transition: 'all var(--transition-fast)'
+                              }}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, origin: route.origin, destination: route.destination }))
+                                setErrors(prev => ({ ...prev, origin: false, destination: false }))
+                                triggerNotification(`주요 구간이 선택되었습니다: ${route.origin.split(' ').slice(0, 2).join(' ')} → ${route.destination.split(' ').slice(0, 2).join(' ')}`)
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
+                                <Badge color="primary">{idx + 1}</Badge>
+                                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                  {route.origin.split(' ').slice(0, 2).join(' ')} <span style={{ color: 'var(--primary)', fontWeight: 800 }}>&rarr;</span> {route.destination.split(' ').slice(0, 2).join(' ')}
+                                </div>
+                              </div>
+                              <Button 
+                                variant="secondary" 
+                                style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+                              >
+                                선택
+                              </Button>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. 거래처관리 저장기반 주요상차지 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>거래처관리 저장기반 주요상차지</span>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -3637,7 +3704,7 @@ export default function Dispatches() {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                padding: '0.65rem 0.85rem',
+                                padding: '0.55rem 0.75rem',
                                 backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
                                 border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
                                 borderRadius: 'var(--radius-md)',
@@ -3650,13 +3717,13 @@ export default function Dispatches() {
                                 triggerNotification(`상차지가 선택되었습니다: ${loc}`)
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
                                 <Badge color="primary">{idx + 1}</Badge>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{loc}</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
                               </div>
                               <Button 
                                 variant="secondary" 
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.74rem' }}
+                                style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
                               >
                                 선택
                               </Button>
@@ -3668,7 +3735,7 @@ export default function Dispatches() {
                   </div>
                 </div>
 
-                {/* Bottom Half: Destinations (하차지) */}
+                {/* 3. 주요하차지 목록 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--success)' }}>주요 하차지 목록</span>
@@ -3701,7 +3768,7 @@ export default function Dispatches() {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                padding: '0.65rem 0.85rem',
+                                padding: '0.55rem 0.75rem',
                                 backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
                                 border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
                                 borderRadius: 'var(--radius-md)',
@@ -3714,13 +3781,13 @@ export default function Dispatches() {
                                 triggerNotification(`하차지가 선택되었습니다: ${loc}`)
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
                                 <Badge color="success">{idx + 1}</Badge>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{loc}</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
                               </div>
                               <Button 
                                 variant="secondary" 
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.74rem' }}
+                                style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
                               >
                                 선택
                               </Button>
