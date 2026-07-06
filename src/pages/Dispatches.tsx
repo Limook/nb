@@ -4463,134 +4463,70 @@ export default function Dispatches() {
                                       </div>
                                     </div>
 
-                                    {/* Action Buttons for Status Setting */}
-                                    <div style={{ display: 'flex', flexDirection: 'row', gap: '0.3rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                                      {/* 배차완료 */}
-                                      <Button 
-                                        variant={dispatch.status === 'dispatched' ? 'primary' : 'outline'}
-                                        style={{ 
-                                          flex: 1, 
-                                          padding: '0.45rem 0.25rem', 
-                                          fontSize: '0.74rem', 
-                                          whiteSpace: 'nowrap', 
-                                          minWidth: '60px',
-                                          fontWeight: dispatch.status === 'dispatched' ? 800 : 500
-                                        }}
-                                        onClick={() => {
-                                          const next = dispatch.status === 'dispatched' ? 'dispatching' : 'dispatched';
-                                          handleUpdateDriverAndStatus(dispatch.id, next);
-                                        }}
-                                      >
-                                        배차완료 {dispatch.status === 'dispatched' && '✓'}
-                                      </Button>
+                                    {/* Action Buttons for Status Setting (Segment Control Style) */}
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      width: '100%', 
+                                      border: '1.5px solid var(--border-color)', 
+                                      borderRadius: 'var(--radius-md)', 
+                                      overflow: 'hidden', 
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                      marginTop: '0.5rem'
+                                    }}>
+                                      {(() => {
+                                        const statuses: { key: DispatchStatus; label: string; activeColor: string }[] = [
+                                          { key: 'dispatched', label: '배차완료', activeColor: 'var(--primary)' },
+                                          { key: 'loaded', label: '상차완료', activeColor: '#10B981' },
+                                          { key: 'unloaded', label: '하차완료', activeColor: 'var(--text-secondary)' },
+                                          { key: 'completed', label: '운행완료', activeColor: '#10B981' },
+                                          { key: 'cancelled', label: '배차취소', activeColor: 'var(--danger)' },
+                                          { key: 'dispatching', label: '배차대기', activeColor: '#F59E0B' }
+                                        ];
 
-                                      {/* 상차완료 */}
-                                      <Button 
-                                        variant={dispatch.status === 'loaded' ? 'primary' : 'outline'}
-                                        style={{ 
-                                          flex: 1, 
-                                          padding: '0.45rem 0.25rem', 
-                                          fontSize: '0.74rem', 
-                                          whiteSpace: 'nowrap', 
-                                          minWidth: '60px',
-                                          backgroundColor: dispatch.status === 'loaded' ? '#10B981' : undefined,
-                                          borderColor: dispatch.status === 'loaded' ? '#10B981' : undefined,
-                                          color: dispatch.status === 'loaded' ? '#ffffff' : undefined,
-                                          fontWeight: dispatch.status === 'loaded' ? 800 : 500
-                                        }}
-                                        onClick={() => {
-                                          const next = dispatch.status === 'loaded' ? 'dispatched' : 'loaded';
-                                          handleUpdateDriverAndStatus(dispatch.id, next);
-                                        }}
-                                      >
-                                        상차완료 {dispatch.status === 'loaded' && '✓'}
-                                      </Button>
+                                        return statuses.map((item, idx) => {
+                                          const isActive = dispatch.status === item.key;
+                                          const isLast = idx === statuses.length - 1;
 
-                                      {/* 하차완료 */}
-                                      <Button 
-                                        variant={dispatch.status === 'unloaded' ? 'secondary' : 'outline'}
-                                        style={{ 
-                                          flex: 1, 
-                                          padding: '0.45rem 0.25rem', 
-                                          fontSize: '0.74rem', 
-                                          whiteSpace: 'nowrap', 
-                                          minWidth: '60px',
-                                          backgroundColor: dispatch.status === 'unloaded' ? 'var(--text-secondary)' : undefined,
-                                          borderColor: dispatch.status === 'unloaded' ? 'var(--text-secondary)' : undefined,
-                                          color: dispatch.status === 'unloaded' ? '#ffffff' : undefined,
-                                          fontWeight: dispatch.status === 'unloaded' ? 800 : 500
-                                        }}
-                                        onClick={() => {
-                                          const next = dispatch.status === 'unloaded' ? 'loaded' : 'unloaded';
-                                          handleUpdateDriverAndStatus(dispatch.id, next);
-                                        }}
-                                      >
-                                        하차완료 {dispatch.status === 'unloaded' && '✓'}
-                                      </Button>
-
-                                      {/* 운행완료 */}
-                                      <Button 
-                                        variant={dispatch.status === 'completed' ? 'primary' : 'outline'}
-                                        style={{ 
-                                          flex: 1, 
-                                          padding: '0.45rem 0.25rem', 
-                                          fontSize: '0.74rem', 
-                                          whiteSpace: 'nowrap', 
-                                          minWidth: '60px',
-                                          backgroundColor: dispatch.status === 'completed' ? '#10B981' : undefined,
-                                          borderColor: dispatch.status === 'completed' ? '#10B981' : undefined,
-                                          color: dispatch.status === 'completed' ? '#ffffff' : undefined,
-                                          fontWeight: dispatch.status === 'completed' ? 800 : 500
-                                        }}
-                                        onClick={() => {
-                                          const next = dispatch.status === 'completed' ? 'unloaded' : 'completed';
-                                          handleUpdateDriverAndStatus(dispatch.id, next);
-                                        }}
-                                      >
-                                        운행완료 {dispatch.status === 'completed' && '✓'}
-                                      </Button>
-
-                                      {/* 배차취소 */}
-                                      <Button 
-                                        variant={dispatch.status === 'cancelled' ? 'danger' : 'outline'}
-                                        style={{ 
-                                          flex: 1, 
-                                          padding: '0.45rem 0.25rem', 
-                                          fontSize: '0.74rem', 
-                                          whiteSpace: 'nowrap', 
-                                          minWidth: '60px',
-                                          fontWeight: dispatch.status === 'cancelled' ? 800 : 500
-                                        }}
-                                        onClick={() => {
-                                          const next = dispatch.status === 'cancelled' ? 'dispatching' : 'cancelled';
-                                          handleUpdateDriverAndStatus(dispatch.id, next);
-                                        }}
-                                      >
-                                        배차취소 {dispatch.status === 'cancelled' && '✓'}
-                                      </Button>
-
-                                      {/* 대기(초기화) */}
-                                      <Button 
-                                        variant={dispatch.status === 'dispatching' ? 'secondary' : 'outline'}
-                                        style={{ 
-                                          flex: 1, 
-                                          padding: '0.45rem 0.25rem', 
-                                          fontSize: '0.74rem', 
-                                          whiteSpace: 'nowrap', 
-                                          minWidth: '60px',
-                                          backgroundColor: dispatch.status === 'dispatching' ? '#F59E0B' : undefined,
-                                          borderColor: dispatch.status === 'dispatching' ? '#F59E0B' : undefined,
-                                          color: dispatch.status === 'dispatching' ? '#ffffff' : undefined,
-                                          fontWeight: dispatch.status === 'dispatching' ? 800 : 500
-                                        }}
-                                        onClick={() => {
-                                          const next = dispatch.status === 'dispatching' ? 'dispatched' : 'dispatching';
-                                          handleUpdateDriverAndStatus(dispatch.id, next);
-                                        }}
-                                      >
-                                        대기(초기화) {dispatch.status === 'dispatching' && '✓'}
-                                      </Button>
-
+                                          return (
+                                            <button
+                                              key={item.key}
+                                              type="button"
+                                              onClick={() => {
+                                                let next: DispatchStatus = item.key;
+                                                if (isActive) {
+                                                  if (item.key === 'dispatched') next = 'dispatching';
+                                                  else if (item.key === 'loaded') next = 'dispatched';
+                                                  else if (item.key === 'unloaded') next = 'loaded';
+                                                  else if (item.key === 'completed') next = 'unloaded';
+                                                  else if (item.key === 'cancelled') next = 'dispatching';
+                                                  else if (item.key === 'dispatching') next = 'dispatched';
+                                                }
+                                                handleUpdateDriverAndStatus(dispatch.id, next);
+                                              }}
+                                              style={{
+                                                flex: 1,
+                                                border: 'none',
+                                                borderRight: isLast ? 'none' : '1.5px solid var(--border-color)',
+                                                backgroundColor: isActive ? item.activeColor : 'var(--bg-secondary)',
+                                                color: isActive ? '#ffffff' : 'var(--text-primary)',
+                                                padding: '0.65rem 0.25rem',
+                                                fontSize: '0.74rem',
+                                                fontWeight: isActive ? 800 : 500,
+                                                cursor: 'pointer',
+                                                transition: 'all var(--transition-fast)',
+                                                outline: 'none',
+                                                whiteSpace: 'nowrap',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.15rem'
+                                              }}
+                                            >
+                                              {item.label} {isActive && '✓'}
+                                            </button>
+                                          );
+                                        });
+                                      })()}
                                     </div>
                                   </div>
                                 </div>
