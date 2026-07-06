@@ -4037,7 +4037,7 @@ export default function Dispatches() {
                             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {dispatch.origin.split(' ').slice(0, 2).join(' ')}
                             </span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginLeft: '1.5rem' }}>
                               <span style={{ color: 'var(--primary)', fontWeight: 800, marginRight: '0.25rem' }}>&rarr;</span>
                               {dispatch.destination.split(' ').slice(0, 2).join(' ')}
                             </span>
