@@ -3085,17 +3085,30 @@ export default function Dispatches() {
       <div className="dispatch-left-area" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         {assigningDispatchId !== null ? (
           <div className="animate-fade-slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <h2 className="text-xl font-bold mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>차량/차주 배정</span>
-              <Button 
-                variant="secondary" 
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                onClick={() => setAssigningDispatchId(null)}
-              >
-                닫기
-              </Button>
-            </h2>
             <Card style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: 'none' }}>
+              <h4 style={{ 
+                fontSize: '0.92rem', 
+                fontWeight: 700, 
+                color: 'var(--text-primary)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-color)', 
+                paddingBottom: '0.5rem', 
+                margin: '0 0 -0.25rem 0' 
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                  차량/차주 배정
+                </span>
+                <Button
+                  variant="secondary"
+                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
+                  onClick={() => setAssigningDispatchId(null)}
+                >
+                  닫기
+                </Button>
+              </h4>
               <div>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.4rem', fontWeight: 700 }}>선택된 배차 정보</span>
                 {(() => {
@@ -3420,8 +3433,21 @@ export default function Dispatches() {
           </div>
         ) : (
           <>
-            <h2 className="text-xl font-bold mb-4">운행 등록</h2>
             <Card style={{ flex: 1, padding: '1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.75rem', border: 'none' }}>
+              <h4 style={{ 
+                fontSize: '0.92rem', 
+                fontWeight: 700, 
+                color: 'var(--text-primary)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.35rem', 
+                borderBottom: '1px solid var(--border-color)', 
+                paddingBottom: '0.5rem', 
+                margin: '0 0 -0.25rem 0' 
+              }}>
+                <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                운행 등록
+              </h4>
           
           {/* 1. 거래처 정보 입력 */}
           <div>
@@ -3954,11 +3980,21 @@ export default function Dispatches() {
 
       {/* Right Area: Dispatch History (60% Width) */}
       <div className="dispatch-right-area" style={{ display: 'flex', flexDirection: 'column' }}>
-        <h2 className="text-xl font-bold mb-4">
-          {showClientSearch ? '거래처 검색 및 선택' : activeLocationListField ? '주요 상하차지 목록' : '운행 내역'}
-        </h2>
-        
         <Card style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden', border: 'none' }}>
+          <h4 style={{ 
+            fontSize: '0.92rem', 
+            fontWeight: 700, 
+            color: 'var(--text-primary)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.35rem', 
+            borderBottom: '1px solid var(--border-color)', 
+            paddingBottom: '0.5rem', 
+            margin: '0 0 -0.25rem 0' 
+          }}>
+            <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+            {showClientSearch ? '거래처 검색 및 선택' : activeLocationListField ? '주요 상하차지 목록' : '운행 내역'}
+          </h4>
           {showClientSearch ? (
             <div className="animate-slide-down" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
               {/* Client Search Header & Filters */}
