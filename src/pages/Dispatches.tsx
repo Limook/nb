@@ -4116,6 +4116,7 @@ export default function Dispatches() {
                   <Input 
                     style={{ 
                       fontSize: '0.85rem',
+                      padding: '0.52rem 0.75rem',
                       borderColor: errors.origin ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.origin ? '0 0 0 2px var(--danger-bg)' : 'none',
                       cursor: 'pointer'
@@ -4201,6 +4202,7 @@ export default function Dispatches() {
                   <Input 
                     style={{ 
                       fontSize: '0.85rem',
+                      padding: '0.52rem 0.75rem',
                       borderColor: errors.destination ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.destination ? '0 0 0 2px var(--danger-bg)' : 'none',
                       cursor: 'pointer'
@@ -5059,29 +5061,30 @@ export default function Dispatches() {
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>{dispatch.client}</td>
                         <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', fontSize: '0.86rem', fontWeight: 700 }}>
-                            <span style={{ color: 'var(--text-primary)' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            {/* Line 1: Origin */}
+                            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {dispatch.origin.split(' ').slice(0, 2).join(' ')}
                             </span>
-                            {dispatch.waypoints && dispatch.waypoints.length > 0 && dispatch.waypoints.map((_: string, wIdx: number) => (
-                              <React.Fragment key={wIdx}>
-                                <span style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>&rarr;</span>
+                            {/* Line 2: Waypoint indicator -> Destination */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 700 }}>
+                              {dispatch.waypoints && dispatch.waypoints.length > 0 ? (
                                 <span style={{ 
                                   fontSize: '0.72rem', 
                                   backgroundColor: 'var(--primary-light)', 
                                   color: 'var(--primary)', 
-                                  padding: '0.05rem 0.25rem', 
+                                  padding: '0.05rem 0.35rem', 
                                   borderRadius: '4px',
                                   fontWeight: 700
                                 }}>
-                                  경유지{wIdx + 1}
+                                  경유지{dispatch.waypoints.length}
                                 </span>
-                              </React.Fragment>
-                            ))}
-                            <span style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>&rarr;</span>
-                            <span style={{ color: 'var(--text-secondary)' }}>
-                              {dispatch.destination.split(' ').slice(0, 2).join(' ')}
-                            </span>
+                              ) : null}
+                              <span style={{ color: 'var(--primary)', fontWeight: 800 }}>&rarr;</span>
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                {dispatch.destination.split(' ').slice(0, 2).join(' ')}
+                              </span>
+                            </div>
                           </div>
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{dispatch.spec}</td>
