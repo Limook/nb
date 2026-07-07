@@ -1,11 +1,11 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun, Menu } from 'lucide-react'
+import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun } from 'lucide-react'
 import { useThemeStore } from '../store/useThemeStore'
 import { useState } from 'react'
 
 const MainLayout = () => {
   const { theme, toggleTheme } = useThemeStore()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const navItems = [
     { name: '대시보드', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
@@ -17,22 +17,44 @@ const MainLayout = () => {
 
   return (
     <div className="app-container">
+      {/* Invisible Edge Sensor for Sidebar Auto-open */}
+      <div 
+        onMouseEnter={() => setIsSidebarOpen(true)}
+        onClick={() => setIsSidebarOpen(true)}
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '16px',
+          zIndex: 90,
+          cursor: 'pointer',
+          backgroundColor: 'transparent'
+        }}
+      />
+
       {/* Sidebar Backdrop Overlay on Mobile */}
       {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />}
 
       {/* Sidebar */}
       <aside 
+        onMouseLeave={() => setIsSidebarOpen(false)}
         className={`main-sidebar ${isSidebarOpen ? 'open' : ''}`}
         style={{ 
-          width: isSidebarOpen ? '260px' : '0px', 
-          transition: 'all var(--transition-normal)',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '260px',
+          transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-260px)',
+          transition: 'transform var(--transition-normal), box-shadow var(--transition-normal)',
           borderRight: '1px solid var(--border-color)',
           backgroundColor: 'var(--bg-secondary)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          flexShrink: 0,
-          zIndex: 10,
+          zIndex: 100,
+          boxShadow: isSidebarOpen ? '4px 0 24px rgba(0,0,0,0.15)' : 'none',
         }}
       >
         <div style={{ padding: '2rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -73,6 +95,7 @@ const MainLayout = () => {
                 transition: 'all var(--transition-fast)'
               })}
               className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
+              onClick={() => setIsSidebarOpen(false)}
             >
               {item.icon}
               <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>
@@ -80,6 +103,7 @@ const MainLayout = () => {
           ))}
         </nav>
 
+        {/* User Profile & Theme Toggle */}
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--bg-tertiary)' }}>
           <div style={{ 
             width: '36px', 
@@ -99,67 +123,33 @@ const MainLayout = () => {
             <p className="text-sm font-bold" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>최한별 대표</p>
             <p className="text-sm text-tertiary" style={{ fontSize: '0.75rem', fontWeight: 500 }}>최고관리자</p>
           </div>
+          <button
+            onClick={toggleTheme}
+            style={{
+              background: 'var(--bg-primary)',
+              border: 'none',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all var(--transition-fast)',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-color)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-primary)'}
+            title="다크모드 토글"
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="main-content">
-        {/* Header */}
-        <header style={{ 
-          height: '72px', 
-          borderBottom: '1px solid var(--border-color)',
-          backgroundColor: 'var(--bg-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 2rem',
-          flexShrink: 0
-        }}>
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            style={{ 
-              background: 'var(--bg-primary)', 
-              border: 'none', 
-              color: 'var(--text-secondary)', 
-              padding: '0.6rem', 
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'background var(--transition-fast)'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-color)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-primary)'}
-          >
-            <Menu size={20} />
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <button
-              onClick={toggleTheme}
-              style={{
-                background: 'var(--bg-primary)',
-                border: 'none',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-color)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-primary)'}
-              title="다크모드 토글"
-            >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-          </div>
-        </header>
-
+      <div className="main-content" style={{ width: '100%' }}>
         {/* Page Content */}
         <main className="page-content" style={{ backgroundColor: 'var(--bg-primary)' }}>
           <Outlet />
