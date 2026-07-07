@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Button, Input } from '../components/ui'
 import { Copy, ArrowRight, Search, FileText, CheckCircle2, CloudRain, Calendar, Moon, Sparkles } from 'lucide-react'
@@ -33,6 +33,19 @@ const TONNAGES = [
   { value: 25, label: '25톤', multiplier: 3.85 }
 ]
 
+const INCHEON_DISTRICTS = [
+  { name: '인천 중구', x: -35, y: 0 },
+  { name: '인천 동구', x: -33, y: 2 },
+  { name: '인천 미추홀구', x: -30, y: -3 },
+  { name: '인천 연수구', x: -31, y: -8 },
+  { name: '인천 남동구', x: -26, y: -6 },
+  { name: '인천 부평구', x: -22, y: -1 },
+  { name: '인천 계양구', x: -21, y: 4 },
+  { name: '인천 서구', x: -28, y: 7 },
+  { name: '인천 강화군', x: -50, y: 25 },
+  { name: '인천 옹진군', x: -60, y: -20 }
+]
+
 export default function Quotation() {
   const navigate = useNavigate()
 
@@ -60,6 +73,8 @@ export default function Quotation() {
     fee: number
   } | null>(null)
 
+  const [isIncheonExpanded, setIsIncheonExpanded] = useState(false)
+
   // Notification Toast State
   const [notification, setNotification] = useState<string | null>(null)
   const triggerNotification = (msg: string) => {
@@ -70,6 +85,50 @@ export default function Quotation() {
   // Calculate distance between origin region and dest region
   const getCoordinates = (name: string) => {
     return REGIONS.find(r => r.name === name) || { x: 0, y: 0 }
+  }
+
+  // Calculate distance for any target coordinate
+  const calculateDistance = (originName: string, target: { x: number, y: number }) => {
+    const origin = getCoordinates(originName)
+    const dx = origin.x - target.x
+    const dy = origin.y - target.y
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    return dist === 0 ? 10 : dist
+  }
+
+  // Calculate fare for any target coordinate
+  const calculateFareForCoordinates = (targetX: number, targetY: number, tonnageMultiplier: number) => {
+    const origin = getCoordinates(originRegion)
+    const dx = origin.x - targetX
+    const dy = origin.y - targetY
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    
+    let baseFare = 0
+    if (distance === 0) {
+      baseFare = 60000
+    } else {
+      baseFare = 60000 + distance * 550
+    }
+
+    if (originRegion === '제주') {
+      baseFare += 250000
+    }
+
+    let fare = baseFare * tonnageMultiplier
+
+    if (carType === 'wing_top') {
+      fare *= 1.10
+    } else if (carType === 'refrigerated') {
+      fare *= 1.25
+    }
+
+    if (surchargeWeekend) fare *= 1.10
+    if (surchargeNight) fare *= 1.20
+    if (surchargeWeather) fare *= 1.15
+
+    fare *= demandFactor
+
+    return Math.round(fare / 5000) * 5000
   }
 
   // Generate dynamic calculation logic
@@ -485,55 +544,145 @@ export default function Quotation() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRegions.map(region => (
-                    <tr 
-                      key={region.name} 
-                      style={{ 
-                        borderBottom: '1px solid var(--border-color)',
-                        backgroundColor: region.name === originRegion ? 'rgba(49, 130, 246, 0.03)' : 'transparent',
-                        transition: 'background-color var(--transition-fast)'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = region.name === originRegion ? 'rgba(49, 130, 246, 0.03)' : 'transparent' }}
-                    >
-                      <td style={{ padding: '0.65rem 0.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {region.name}
-                        {region.name === originRegion && (
-                          <span style={{ fontSize: '0.65rem', marginLeft: '0.25rem', padding: '0.05rem 0.35rem', backgroundColor: 'var(--primary)', color: '#ffffff', borderRadius: 'var(--radius-sm)' }}>상차</span>
-                        )}
-                      </td>
-                      {TONNAGES.map(tonnage => {
-                        const calculatedFee = calculateFare(region.name, tonnage.multiplier)
-                        const isSelected = selectedQuote && selectedQuote.destination === region.name && selectedQuote.tonnage === tonnage.value
-                        
-                        return (
+                  {filteredRegions.map(region => {
+                    const isIncheon = region.name === '인천';
+                    return (
+                      <React.Fragment key={region.name}>
+                        <tr 
+                          style={{ 
+                            borderBottom: '1px solid var(--border-color)',
+                            backgroundColor: region.name === originRegion ? 'rgba(49, 130, 246, 0.03)' : 'transparent',
+                            transition: 'background-color var(--transition-fast)'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = region.name === originRegion ? 'rgba(49, 130, 246, 0.03)' : 'transparent' }}
+                        >
                           <td 
-                            key={tonnage.value} 
                             style={{ 
                               padding: '0.65rem 0.5rem', 
-                              textAlign: 'right', 
-                              cursor: 'pointer',
-                              fontWeight: isSelected ? 800 : 500,
-                              color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
-                              backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
-                              borderRadius: isSelected ? 'var(--radius-sm)' : 'none',
-                              transition: 'all var(--transition-fast)'
+                              fontWeight: 700, 
+                              color: 'var(--text-primary)',
+                              cursor: isIncheon ? 'pointer' : 'default'
                             }}
                             onClick={() => {
-                              setSelectedQuote({
-                                destination: region.name,
-                                tonnage: tonnage.value,
-                                tonnageLabel: tonnage.label,
-                                fee: calculatedFee
-                              })
+                              if (isIncheon) {
+                                setIsIncheonExpanded(!isIncheonExpanded)
+                              }
                             }}
                           >
-                            {(calculatedFee / 10000).toFixed(1)}만
+                            {region.name}
+                            {region.name === originRegion && (
+                              <span style={{ fontSize: '0.65rem', marginLeft: '0.25rem', padding: '0.05rem 0.35rem', backgroundColor: 'var(--primary)', color: '#ffffff', borderRadius: 'var(--radius-sm)' }}>상차</span>
+                            )}
+                            {isIncheon && (
+                              <span style={{ 
+                                fontSize: '0.65rem', 
+                                marginLeft: '0.35rem', 
+                                padding: '0.1rem 0.4rem', 
+                                backgroundColor: isIncheonExpanded ? 'var(--primary-light)' : 'var(--bg-primary)', 
+                                color: isIncheonExpanded ? 'var(--primary)' : 'var(--text-secondary)', 
+                                borderRadius: 'var(--radius-sm)',
+                                fontWeight: 700
+                              }}>
+                                {isIncheonExpanded ? '접기 ▲' : '구단위 보기 ▼'}
+                              </span>
+                            )}
                           </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
+                          {TONNAGES.map(tonnage => {
+                            const calculatedFee = calculateFare(region.name, tonnage.multiplier)
+                            const isSelected = selectedQuote && selectedQuote.destination === region.name && selectedQuote.tonnage === tonnage.value
+                            
+                            return (
+                              <td 
+                                key={tonnage.value} 
+                                style={{ 
+                                  padding: '0.65rem 0.5rem', 
+                                  textAlign: 'right', 
+                                  cursor: 'pointer',
+                                  fontWeight: isSelected ? 800 : 500,
+                                  color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
+                                  backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
+                                  borderRadius: isSelected ? 'var(--radius-sm)' : 'none',
+                                  transition: 'all var(--transition-fast)'
+                                }}
+                                onClick={() => {
+                                  setSelectedQuote({
+                                    destination: region.name,
+                                    tonnage: tonnage.value,
+                                    tonnageLabel: tonnage.label,
+                                    fee: calculatedFee
+                                  })
+                                }}
+                              >
+                                {(calculatedFee / 10000).toFixed(1)}만
+                              </td>
+                            )
+                          })}
+                        </tr>
+                        {isIncheon && isIncheonExpanded && (
+                          INCHEON_DISTRICTS.map(district => {
+                            const dist = calculateDistance(originRegion, district)
+                            
+                            return (
+                              <tr 
+                                key={district.name}
+                                style={{ 
+                                  borderBottom: '1px dashed var(--border-color)',
+                                  backgroundColor: 'var(--bg-tertiary)'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-color)' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)' }}
+                              >
+                                <td style={{ padding: '0.55rem 0.5rem 0.55rem 1.5rem', textAlign: 'left' }}>
+                                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--text-tertiary)' }}>↳</span> {district.name.replace('인천 ', '')}
+                                  </div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>
+                                    {dist.toFixed(1)}km
+                                  </div>
+                                </td>
+                                {TONNAGES.map(tonnage => {
+                                  const calculatedFee = calculateFareForCoordinates(district.x, district.y, tonnage.multiplier)
+                                  const isSelected = selectedQuote && selectedQuote.destination === district.name && selectedQuote.tonnage === tonnage.value
+                                  const ratePerKm = Math.round(calculatedFee / dist)
+                                  
+                                  return (
+                                    <td 
+                                      key={tonnage.value} 
+                                      style={{ 
+                                        padding: '0.55rem 0.5rem', 
+                                        textAlign: 'right', 
+                                        cursor: 'pointer',
+                                        fontWeight: isSelected ? 800 : 500,
+                                        color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
+                                        backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
+                                        borderRadius: isSelected ? 'var(--radius-sm)' : 'none',
+                                        transition: 'all var(--transition-fast)'
+                                      }}
+                                      onClick={() => {
+                                        setSelectedQuote({
+                                          destination: district.name,
+                                          tonnage: tonnage.value,
+                                          tonnageLabel: tonnage.label,
+                                          fee: calculatedFee
+                                        })
+                                      }}
+                                      title={`${tonnage.label} 단가: ${ratePerKm.toLocaleString()}원/km`}
+                                    >
+                                      <div>{(calculatedFee / 10000).toFixed(1)}만</div>
+                                      <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '0.1rem', fontWeight: 400 }}>
+                                        {ratePerKm.toLocaleString()}원/km
+                                      </div>
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            )
+                          })
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
                   {filteredRegions.length === 0 && (
                     <tr>
                       <td colSpan={7} style={{ padding: '2rem', textRendering: 'optimizeSpeed', color: 'var(--text-tertiary)', textAlign: 'center' }}>
