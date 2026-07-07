@@ -484,6 +484,101 @@ export default function Quotation() {
     return Math.round(fare / 5000) * 5000
   }
 
+  // Get detailed breakdown of selected quote
+  const getSelectedQuoteBreakdown = () => {
+    if (!selectedQuote) return null;
+    const destName = selectedQuote.destination;
+    const tonnage = TONNAGES.find(t => t.value === selectedQuote.tonnage) || TONNAGES[0];
+    const tonnageMultiplier = tonnage.multiplier;
+
+    let targetX = 0;
+    let targetY = 0;
+    let isDistrict = false;
+    
+    let parentRegionName = "";
+    for (const rName of Object.keys(DISTRICTS_MAP)) {
+      if (destName.startsWith(rName) || destName.includes(rName)) {
+        parentRegionName = rName;
+        break;
+      }
+    }
+
+    if (parentRegionName) {
+      const districts = DISTRICTS_MAP[parentRegionName] || [];
+      const cleanDest = destName.replace(parentRegionName + " ", "");
+      const matched = districts.find(d => d.name === destName || d.name === cleanDest);
+      if (matched) {
+        const parentCoords = getCoordinates(parentRegionName);
+        targetX = parentCoords.x + matched.dx;
+        targetY = parentCoords.y + matched.dy;
+        isDistrict = true;
+      }
+    }
+
+    if (!isDistrict) {
+      const coords = getCoordinates(destName);
+      targetX = coords.x;
+      targetY = coords.y;
+    }
+
+    const origin = getOriginCoordinates();
+    const dx = origin.x - targetX;
+    const dy = origin.y - targetY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    let rawBase = 0;
+    if (distance === 0) {
+      rawBase = 60000;
+    } else {
+      rawBase = 60000 + distance * 550;
+    }
+
+    // Ferry surcharge for Jeju Island
+    if (originRegion === "제주" || destName.includes("제주")) {
+      if (originRegion !== "제주" || !destName.includes("제주")) {
+        rawBase += 250000;
+      }
+    }
+
+    const baseFare = rawBase * tonnageMultiplier;
+
+    const surchargesList = [];
+    let currentFare = baseFare;
+
+    if (carType === "wing_top") {
+      surchargesList.push({ label: "윙바디/탑차 (+10%)", amount: baseFare * 0.10 });
+      currentFare *= 1.10;
+    } else if (carType === "refrigerated") {
+      surchargesList.push({ label: "냉동/냉장 (+25%)", amount: baseFare * 0.25 });
+      currentFare *= 1.25;
+    }
+
+    if (surchargeWeekend) {
+      surchargesList.push({ label: "주말/공휴일 (+10%)", amount: currentFare * 0.10 });
+      currentFare *= 1.10;
+    }
+    if (surchargeNight) {
+      surchargesList.push({ label: "야간배송 (+20%)", amount: currentFare * 0.20 });
+      currentFare *= 1.20;
+    }
+    if (surchargeWeather) {
+      surchargesList.push({ label: "기상악화 (+15%)", amount: currentFare * 0.15 });
+      currentFare *= 1.15;
+    }
+
+    const totalSurcharges = surchargesList.reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      distance,
+      baseFare,
+      surchargesList,
+      totalSurcharges,
+      demandFactor
+    };
+  }
+
+  const breakdown = getSelectedQuoteBreakdown();
+
   // Filtered regions for table (checks province name or child districts)
   const filteredRegions = useMemo(() => {
     const query = searchQuery.trim()
@@ -1144,10 +1239,10 @@ export default function Quotation() {
               <div 
                 className="animate-fade-slide-up"
                 style={{ 
-                  marginTop: '0.5rem', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: 'var(--radius-md)', 
-                  padding: '1rem 1.25rem', 
+                  marginTop: '0.5rem',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1rem 1.25rem',
                   backgroundColor: 'var(--bg-tertiary)',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -1156,7 +1251,7 @@ export default function Quotation() {
                   gap: '1rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1 }}>
                   <div style={{
                     width: '38px',
                     height: '38px',
@@ -1170,37 +1265,63 @@ export default function Quotation() {
                   }}>
                     <FileText size={18} />
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>선택된 견적 상세 요약</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.1rem' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.1rem', marginBottom: '0.35rem' }}>
                       {originRegion} → {selectedQuote.destination} ({selectedQuote.tonnageLabel} {carType === 'refrigerated' ? '냉동' : carType === 'wing_top' ? '윙바디' : '카고'})
-                      <span style={{ marginLeft: '0.5rem', color: 'var(--primary)', fontWeight: 900 }}>
-                        {selectedQuote.fee.toLocaleString()}원
-                      </span>
                     </div>
+                    {breakdown && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                        <div>기본금액: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{Math.round(breakdown.baseFare).toLocaleString()}원</span></div>
+                        <div style={{ color: 'var(--border-color)' }}>|</div>
+                        {breakdown.surchargesList.length > 0 ? (
+                          <div>
+                            할증: {breakdown.surchargesList.map((s, idx) => (
+                              <span key={idx} style={{ marginRight: '0.35rem' }}>
+                                <span style={{ fontWeight: 600 }}>{s.label.split(' ')[0]}</span>
+                                <span style={{ color: 'var(--primary)', fontWeight: 700 }}> (+{Math.round(s.amount).toLocaleString()}원)</span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div>할증: <span style={{ fontWeight: 600 }}>없음</span></div>
+                        )}
+                        <div style={{ color: 'var(--border-color)' }}>|</div>
+                        <div>수급조절배수: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{breakdown.demandFactor.toFixed(2)}x</span></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <Button 
-                    variant="outline" 
-                    style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
-                    onClick={() => copyQuoteToClipboard(selectedQuote.destination, selectedQuote.tonnageLabel, selectedQuote.fee)}
-                  >
-                    <Copy size={13} /> 클립보드 복사
-                  </Button>
-                  <Button 
-                    variant="primary" 
-                    style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
-                    onClick={() => handleCreateDispatch(selectedQuote.destination, selectedQuote.tonnage, selectedQuote.fee)}
-                  >
-                    신규 배차 등록 <ArrowRight size={13} />
-                  </Button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.45rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.1rem' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>최종 견적 운임:</span>
+                    <span style={{ fontSize: '1.1rem', color: 'var(--primary)', fontWeight: 900 }}>
+                      {selectedQuote.fee.toLocaleString()}원
+                    </span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>(VAT 별도)</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Button 
+                      variant="outline" 
+                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
+                      onClick={() => copyQuoteToClipboard(selectedQuote.destination, selectedQuote.tonnageLabel, selectedQuote.fee)}
+                    >
+                      <Copy size={13} /> 클립보드 복사
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
+                      onClick={() => handleCreateDispatch(selectedQuote.destination, selectedQuote.tonnage, selectedQuote.fee)}
+                    >
+                      신규 배차 등록 <ArrowRight size={13} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
-
-          </Card>
+            
+                      </Card>
         </div>
 
       </div>
