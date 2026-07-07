@@ -5265,19 +5265,19 @@ export default function Dispatches() {
                                         value={driverInput.driverPhone}
                                         onChange={e => setDriverInput({...driverInput, driverPhone: formatPhone(e.target.value)})}
                                       />
-                                      <Button
-                                        variant="outline"
-                                        style={{ width: '100%', padding: '0.5rem 0', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: 'var(--primary)', color: 'var(--primary)', textAlign: 'center' }}
-                                        onClick={() => {
-                                          if (dispatch.driverName) {
+                                      {dispatch.driverName ? (
+                                        <Button
+                                          variant="outline"
+                                          style={{ width: '100%', padding: '0.5rem 0', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: 'var(--primary)', color: 'var(--primary)', textAlign: 'center' }}
+                                          onClick={() => {
                                             loadOrCreateChatRoom(dispatch.driverName, 'driver', dispatch.driverPhone, dispatch.carNumber);
-                                          } else {
-                                            loadOrCreateChatRoom(dispatch.client, 'client', '02-8877-2233');
-                                          }
-                                        }}
-                                      >
-                                        대화방
-                                      </Button>
+                                          }}
+                                        >
+                                          대화방
+                                        </Button>
+                                      ) : (
+                                        <div />
+                                      )}
                                     </div>
 
                                     {/* Action Buttons for Status Setting (Segment Control Toggle Type) */}
