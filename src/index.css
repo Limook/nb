@@ -621,3 +621,25 @@ input:disabled, select:disabled {
   }
 }
 
+/* Responsive grid rows for Dispatch Form */
+.dispatch-form-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 0.75rem;
+}
+
+.dispatch-form-row-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .dispatch-form-row,
+  .dispatch-form-row-half {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+}
+
+

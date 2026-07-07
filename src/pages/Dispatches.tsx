@@ -3586,7 +3586,7 @@ export default function Dispatches() {
             </div>
 
             {/* 상차지 및 상차일시 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
+            <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">상차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -3671,7 +3671,7 @@ export default function Dispatches() {
             </div>
 
             {/* 하차지 및 하차일시 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
+            <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">하차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -3846,7 +3846,7 @@ export default function Dispatches() {
           {/* 4. 운임 및 정산 정보 */}
           <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
             {/* Row 1: Settle Method & Settle Date (50% / 50%) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div className="dispatch-form-row-half" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
                 <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 방법</label>
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
@@ -3895,7 +3895,7 @@ export default function Dispatches() {
             </div>
 
             {/* Row 2: Commission & Fee (50% / 50%) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div className="dispatch-form-row-half" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
                 <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
                 <Input 
@@ -3950,7 +3950,7 @@ export default function Dispatches() {
 
             <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div className="dispatch-form-row-half" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
                 <label className="text-sm font-bold text-secondary mb-1 block">메모</label>
                 <Input 
