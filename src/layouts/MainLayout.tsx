@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun, Menu } from 'lucide-react'
+import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun, Menu, FileText } from 'lucide-react'
 import { useThemeStore } from '../store/useThemeStore'
 import { useState } from 'react'
 
@@ -25,6 +25,7 @@ const MainLayout = () => {
     { name: '거래처 관리', path: '/clients', icon: <Users size={20} /> },
     { name: '차주 관리', path: '/drivers', icon: <UserSquare2 size={20} /> },
     { name: '정산 관리', path: '/settlements', icon: <Calculator size={20} /> },
+    { name: '견적 계산기', path: '/quotation', icon: <FileText size={20} /> },
   ]
 
   return (

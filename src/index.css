@@ -701,4 +701,18 @@ input:disabled, select:disabled {
   animation: fadeSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Quotation Page Layout */
+.responsive-layout-grid-quote {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .responsive-layout-grid-quote {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+}
+
 

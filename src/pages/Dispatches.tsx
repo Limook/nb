@@ -1818,6 +1818,30 @@ export default function Dispatches() {
     }
   }, [expandedId]);
 
+  // Load quote details from Quotation page if any
+  React.useEffect(() => {
+    const pendingQuoteStr = localStorage.getItem('pending_quote');
+    if (pendingQuoteStr) {
+      try {
+        const pendingQuote = JSON.parse(pendingQuoteStr);
+        setFormData(prev => ({
+          ...prev,
+          origin: pendingQuote.origin || '',
+          destination: pendingQuote.destination || '',
+          tonnage: String(pendingQuote.tonnage || ''),
+          carType: pendingQuote.carType || '',
+          fee: pendingQuote.fee ? String(pendingQuote.fee) : '',
+        }));
+        localStorage.removeItem('pending_quote');
+        setTimeout(() => {
+          triggerNotification('견적 계산기로부터 요금과 상/하차지 정보가 적용되었습니다!');
+        }, 300);
+      } catch (err) {
+        console.error('Failed to parse pending_quote:', err);
+      }
+    }
+  }, []);
+
   // Table filters state
   const [dateFilterType, setDateFilterType] = useState('전체') // 전체, 오늘, 이번주, 지난주, 이번달, 지난달, 직접선택
   const [customStartDate, setCustomStartDate] = useState('')
