@@ -11,6 +11,7 @@ import Clients from './pages/Clients'
 import Drivers from './pages/Drivers'
 import Settlements from './pages/Settlements'
 import Quotation from './pages/Quotation'
+import Chats from './pages/Chats'
 
 const Dashboard = () => (
   <div className="p-6">
@@ -52,6 +53,7 @@ function App() {
           <Route path="drivers" element={<Drivers />} />
           <Route path="settlements" element={<Settlements />} />
           <Route path="quotation" element={<Quotation />} />
+          <Route path="chats" element={<Chats />} />
         </Route>
       </Routes>
     </BrowserRouter>

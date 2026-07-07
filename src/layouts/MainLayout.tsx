@@ -1,11 +1,26 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun, Menu, FileText } from 'lucide-react'
+import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun, Menu, FileText, MessageSquare } from 'lucide-react'
 import { useThemeStore } from '../store/useThemeStore'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const MainLayout = () => {
   const { theme, toggleTheme } = useThemeStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleShowToast = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.message) {
+        setToastMessage(customEvent.detail.message);
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    };
+    window.addEventListener('show-toast', handleShowToast);
+    return () => {
+      window.removeEventListener('show-toast', handleShowToast);
+    };
+  }, []);
 
   const handleMouseEnter = () => {
     if (window.innerWidth > 768) {
@@ -26,6 +41,7 @@ const MainLayout = () => {
     { name: '차주 관리', path: '/drivers', icon: <UserSquare2 size={20} /> },
     { name: '정산 관리', path: '/settlements', icon: <Calculator size={20} /> },
     { name: '견적 계산기', path: '/quotation', icon: <FileText size={20} /> },
+    { name: '대화방', path: '/chats', icon: <MessageSquare size={20} /> },
   ]
 
   return (
@@ -237,6 +253,31 @@ const MainLayout = () => {
           <Outlet />
         </main>
       </div>
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '1.5rem',
+          right: '1.5rem',
+          backgroundColor: 'var(--bg-secondary)',
+          borderLeft: '4px solid var(--primary)',
+          boxShadow: 'var(--shadow-xl)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1rem 1.5rem',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          animation: 'fadeSlideUp 0.3s forwards'
+        }}>
+          <div style={{ color: 'var(--primary)' }}>
+            <MessageSquare size={18} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>새로운 알림</div>
+            <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>{toastMessage}</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
