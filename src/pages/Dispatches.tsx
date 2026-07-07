@@ -5246,7 +5246,20 @@ export default function Dispatches() {
                                      </span>
                                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 500, fontSize: '0.8rem' }}>
                                        <span style={{ color: 'var(--text-secondary)' }}>거래처: <strong style={{ color: 'var(--text-primary)' }}>{dispatch.client}</strong></span>
-                                       <Button
+                                                                               {(!dispatch.waypoints || dispatch.waypoints.length === 0) && editingWaypointsId !== dispatch.id && (
+                                          <Button
+                                            variant="outline"
+                                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', borderColor: 'var(--primary)', color: 'var(--primary)', height: '24px', display: 'flex', alignItems: 'center' }}
+                                            onClick={(e: any) => {
+                                              e.stopPropagation();
+                                              setEditingWaypointsId(dispatch.id);
+                                              setEditWaypoints(['']);
+                                            }}
+                                          >
+                                            + 경유지 추가
+                                          </Button>
+                                        )}
+<Button
                                          variant="outline"
                                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', borderColor: 'var(--primary)', color: 'var(--primary)', height: '24px', display: 'flex', alignItems: 'center' }}
                                          onClick={(e: any) => {
@@ -5310,31 +5323,20 @@ export default function Dispatches() {
                                       </div>
                                     </div>
 
-                                    {/* Waypoints Manager Card */}
-                                    <div style={{
-                                      marginTop: '0.5rem',
-                                      padding: '0.75rem',
-                                      backgroundColor: 'var(--bg-primary)',
-                                      borderRadius: 'var(--radius-md)',
-                                      border: '1px solid var(--border-color)',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '0.5rem'
-                                    }} onClick={e => e.stopPropagation()}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>경유지 정보 및 관리</span>
-                                        {editingWaypointsId !== dispatch.id ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setEditingWaypointsId(dispatch.id);
-                                              setEditWaypoints(dispatch.waypoints || []);
-                                            }}
-                                            style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                                          >
-                                            수정
-                                          </button>
-                                        ) : (
+                                    {/* Waypoints Editor (Show only in edit mode) */}
+                                    {editingWaypointsId === dispatch.id && (
+                                      <div style={{
+                                        marginTop: '0.5rem',
+                                        padding: '0.75rem',
+                                        backgroundColor: 'var(--bg-primary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.5rem'
+                                      }} onClick={e => e.stopPropagation()}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>경유지 정보 편집</span>
                                           <div style={{ display: 'flex', gap: '0.35rem' }}>
                                             <button
                                               type="button"
@@ -5364,17 +5366,15 @@ export default function Dispatches() {
                                               취소
                                             </button>
                                           </div>
-                                        )}
-                                      </div>
+                                        </div>
 
-                                      {editingWaypointsId === dispatch.id ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                                           {editWaypoints.map((wp, wIdx) => (
                                             <div key={wIdx} style={{ position: 'relative', width: '100%' }}>
                                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', backgroundColor: 'var(--primary)', borderRadius: '4px', padding: '0.1rem 0.3rem', flexShrink: 0 }}>경유 {wIdx + 1}</span>
                                                 <Input
-                                                  style={{ fontSize: '0.82rem', cursor: 'pointer', flex: 1, padding: '0.3rem 0.5rem' }}
+                                                  style={{ fontSize: '0.82rem', cursor: 'pointer', flex: 1, padding: '0.3rem 0.5rem', height: '30px' }}
                                                   placeholder={`경유지 ${wIdx + 1} 주소 검색`}
                                                   value={wp}
                                                   onClick={() => setActivePostcodeField(activePostcodeField === `edit_waypoint_${wIdx}` ? null : `edit_waypoint_${wIdx}`)}
@@ -5443,25 +5443,42 @@ export default function Dispatches() {
                                             </button>
                                           )}
                                         </div>
-                                      ) : (
-                                        <div>
-                                          {dispatch.waypoints && dispatch.waypoints.length > 0 ? (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
-                                              {dispatch.waypoints.map((wp: string, wIdx: number) => (
-                                                <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                  {wIdx > 0 && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>&rarr;</span>}
-                                                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
-                                                    {wp}
-                                                  </span>
-                                                </div>
-                                              ))}
+                                      </div>
+                                    )}
+
+                                    {/* Simple Waypoints List (Show only when not editing and waypoints exist) */}
+                                    {dispatch.waypoints && dispatch.waypoints.length > 0 && editingWaypointsId !== dispatch.id && (
+                                      <div style={{
+                                        marginTop: '0.5rem',
+                                        padding: '0.45rem 0.75rem',
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.65rem'
+                                      }} onClick={e => e.stopPropagation()}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>📍 경유지:</span>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', alignItems: 'center' }}>
+                                          {dispatch.waypoints.map((wp: string, wIdx: number) => (
+                                            <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                              {wIdx > 0 && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>➔</span>}
+                                              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>{wp}</span>
                                             </div>
-                                          ) : (
-                                            <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>등록된 경유지가 없습니다.</span>
-                                          )}
+                                          ))}
                                         </div>
-                                      )}
-                                    </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingWaypointsId(dispatch.id);
+                                            setEditWaypoints(dispatch.waypoints || []);
+                                          }}
+                                          style={{ marginLeft: 'auto', border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+                                        >
+                                          수정
+                                        </button>
+                                      </div>
+                                    )}
 
                                     <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
 
