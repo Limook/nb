@@ -619,38 +619,5 @@ input:disabled, select:disabled {
     margin-top: 0.5rem !important;
     gap: 1.6rem !important;
   }
-
-  /* Increase input paddings & font sizes */
-  .dispatch-left-area input, 
-  .dispatch-left-area select {
-    padding: 0.72rem 1rem !important;
-    font-size: 0.94rem !important;
-  }
-  
-  /* Make buttons and labels slightly larger */
-  .dispatch-left-area label {
-    font-size: 0.94rem !important;
-    margin-bottom: 0.45rem !important;
-  }
-
-  .dispatch-left-area button {
-    padding-top: 0.68rem !important;
-    padding-bottom: 0.68rem !important;
-    font-size: 0.9rem !important;
-  }
-
-  /* Keep recommendations and date shortcut buttons relatively compact but clean */
-  .dispatch-left-area div[style*="justifyContent: 'flex-end'"] button,
-  .dispatch-left-area .date-shortcut-wrapper button,
-  .dispatch-left-area div[style*="display: 'flex'"][style*="gap: '0.25rem'"] button {
-    padding: 0.28rem 0.6rem !important;
-    font-size: 0.8rem !important;
-  }
-
-  /* Form action buttons at the bottom */
-  .dispatch-left-area div[style*="marginTop: 'auto'"] button {
-    padding: 0.85rem 1.25rem !important;
-    font-size: 0.95rem !important;
-  }
 }
 
