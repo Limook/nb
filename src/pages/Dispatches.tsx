@@ -1847,7 +1847,7 @@ export default function Dispatches() {
   const [activeLocationListField, setActiveLocationListField] = useState<'origin' | 'destination' | 'both' | null>(null)
   const [clientSearchTerm, setClientSearchTerm] = useState('')
   const [clientSearchFilter, setClientSearchFilter] = useState('')
-  const [showHistoryPanel, setShowHistoryPanel] = useState(false)
+  const [showHistoryPanel, setShowHistoryPanel] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true)
 
   // Scroll to history list when toggled open on mobile
   React.useEffect(() => {
