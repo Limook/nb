@@ -3829,95 +3829,94 @@ export default function Dispatches() {
 
           {/* 4. 운임 및 정산 정보 */}
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-            <div>
-              <label className="text-sm font-bold text-secondary mb-2 block">정산 방법</label>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                {['인수증', '선불', '착불', '카드'].map(method => (
-                  <button 
-                    key={method} 
-                    type="button" 
-                    onClick={() => setFormData({...formData, settleMethod: method})}
-                    style={methodButtonStyle(method)}
-                  >
-                    {method}
-                  </button>
-                ))}
+            {/* Row 1: Commission & Fee (50% / 50%) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div>
+                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
+                <Input 
+                  type="text" 
+                  placeholder="예: 30,000" 
+                  disabled={formData.settleMethod === '인수증'}
+                  value={formData.settleMethod === '인수증' ? '' : formData.commission}
+                  onChange={e => handleInputChange('commission', e.target.value)}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
+                />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    {hasOtherInfo && recentFee && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleInputChange('fee', String(recentFee))} 
+                        style={recommendationButtonStyle}
+                        title="가장 최근 배차완료된 금액"
+                      >
+                        최근: {(recentFee / 10000).toFixed(0)}만
+                      </button>
+                    )}
+                    {hasOtherInfo && frequentFee && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleInputChange('fee', String(frequentFee))} 
+                        style={recommendationButtonStyle}
+                        title="가장 많이 배차된 금액"
+                      >
+                        최빈: {(frequentFee / 10000).toFixed(0)}만
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <Input 
+                  type="text" 
+                  placeholder="예: 300,000" 
+                  value={formData.fee}
+                  onChange={e => handleInputChange('fee', e.target.value)}
+                  style={{
+                    fontSize: '0.85rem',
+                    padding: '0.52rem 0.75rem',
+                    borderColor: errors.fee ? 'var(--danger)' : 'transparent',
+                    boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
+                  }}
+                />
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {/* Row 1: Commission & Fee */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <div>
-                  <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
-                  <Input 
-                    type="text" 
-                    placeholder="예: 30,000" 
-                    disabled={formData.settleMethod === '인수증'}
-                    value={formData.settleMethod === '인수증' ? '' : formData.commission}
-                    onChange={e => handleInputChange('commission', e.target.value)}
-                    style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                    <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      {hasOtherInfo && recentFee && (
-                        <button 
-                          type="button" 
-                          onClick={() => handleInputChange('fee', String(recentFee))} 
-                          style={recommendationButtonStyle}
-                          title="가장 최근 배차완료된 금액"
-                        >
-                          최근: {(recentFee / 10000).toFixed(0)}만
-                        </button>
-                      )}
-                      {hasOtherInfo && frequentFee && (
-                        <button 
-                          type="button" 
-                          onClick={() => handleInputChange('fee', String(frequentFee))} 
-                          style={recommendationButtonStyle}
-                          title="가장 많이 배차된 금액"
-                        >
-                          최빈: {(frequentFee / 10000).toFixed(0)}만
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <Input 
-                    type="text" 
-                    placeholder="예: 300,000" 
-                    value={formData.fee}
-                    onChange={e => handleInputChange('fee', e.target.value)}
-                    style={{
-                      fontSize: '0.85rem',
-                      padding: '0.52rem 0.75rem',
-                      borderColor: errors.fee ? 'var(--danger)' : 'transparent',
-                      boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
-                    }}
-                  />
+            {/* Row 2: Settle Method & Settle Date (50% / 50%) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div>
+                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 방법</label>
+                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                  {['인수증', '선불', '착불', '카드'].map(method => (
+                    <button 
+                      key={method} 
+                      type="button" 
+                      onClick={() => setFormData({...formData, settleMethod: method})}
+                      style={{ ...methodButtonStyle(method), padding: '0.52rem 0.25rem', fontSize: '0.78rem', flex: 1 }}
+                    >
+                      {method}
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              {/* Row 2: Settle Date with Shortcuts */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                   <label className="text-sm font-bold text-secondary block">정산 예정일</label>
-                  <div className="date-shortcut-wrapper" style={{ display: 'flex', gap: '0.25rem' }}>
+                  <div className="date-shortcut-wrapper" style={{ display: 'flex', gap: '0.15rem' }}>
                     {[
                       { label: '미지정', action: () => handleInputChange('settleDate', '') },
                       { label: '바로', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 0)) },
                       { label: '15일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 15)) },
-                      { label: '당월말일', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 0)) },
+                      { label: '당월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 0)) },
                       { label: '45일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 45)) },
-                      { label: '익월말일', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 1)) }
+                      { label: '익월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 1)) }
                     ].map(btn => (
                       <button 
                         key={btn.label}
                         type="button" 
                         onClick={btn.action} 
-                        style={dateShortcutStyle}
+                        style={{ ...dateShortcutStyle, padding: '0.12rem 0.25rem', fontSize: '0.66rem' }}
                       >
                         {btn.label}
                       </button>
