@@ -4575,35 +4575,41 @@ export default function Dispatches() {
                                     border: '1px solid var(--border-color)',
                                     borderLeft: `4px solid ${alertColors.border}`,
                                     borderRadius: 'var(--radius-md)',
-                                    padding: '0.55rem 0.75rem',
+                                    padding: '0.75rem 1rem',
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: '1rem',
-                                    fontSize: '0.8rem'
+                                    flexDirection: 'column',
+                                    gap: '0.45rem'
                                   }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
-                                      <span style={{ 
-                                        fontWeight: 800, 
-                                        color: alertColors.text, 
-                                        whiteSpace: 'nowrap',
-                                        backgroundColor: `${alertColors.border}15`,
-                                        padding: '0.2rem 0.4rem',
-                                        borderRadius: 'var(--radius-sm)',
-                                        fontSize: '0.74rem'
-                                      }}>
-                                        {difficulty === 0 ? '🟢 원활' : difficulty === 1 ? '🟡 주의' : '🔴 지연우려'}
-                                      </span>
-                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {difficulty === 0 && `대기 22명 | 경쟁 없음 | 평균가(${avgFee.toLocaleString()}원) 적정`}
-                                        {difficulty === 1 && `경쟁 8건. 운임 1~2만원 보완 또는 상차대기 연장 시 수락률 90% 상승!`}
-                                        {difficulty === 2 && `경쟁 30개 이상. 운임 2~3만원 추가하여 평균가(${avgFee.toLocaleString()}원) 보강 권장.`}
-                                      </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 800, color: alertColors.text }}>
+                                        <span>{difficulty === 0 ? '🟢 배차 원활' : difficulty === 1 ? '🟡 배차 지연 주의' : '🔴 배차 지연 우려'}</span>
+                                      </div>
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>AI 실시간 배차 분석 어드바이저</span>
                                     </div>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                      AI 어드바이저
-                                    </span>
+                                    
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 600, lineHeight: 1.45 }}>
+                                      {difficulty === 0 && '현재 주변 가용 차주가 충분하여 원활하게 배차될 것으로 보입니다. 현재 운임을 유지하셔도 좋습니다.'}
+                                      {difficulty === 1 && '인근 경쟁 화물들로 인해 매칭 지연 주의가 감지됩니다. 운임을 1~2만 원 가량 보강하시거나 상차 대기 시간을 연장해 보세요.'}
+                                      {difficulty === 2 && '공차 대비 주변의 경쟁 화물이 매우 집중된 심각 상태입니다. 원활한 배차 성사를 위해 운임을 평균 권장 수준으로 긴급 보강하십시오.'}
+                                    </p>
+
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      flexWrap: 'wrap',
+                                      columnGap: '1rem', 
+                                      rowGap: '0.2rem',
+                                      marginTop: '0.1rem', 
+                                      paddingTop: '0.45rem',
+                                      borderTop: '1px dashed var(--border-color)',
+                                      fontSize: '0.72rem', 
+                                      color: 'var(--text-tertiary)', 
+                                      fontWeight: 500 
+                                    }}>
+                                      <span>• 대기 차주: <strong style={{ color: 'var(--text-primary)' }}>{difficulty === 0 ? '인근 22명 공차 대기' : difficulty === 1 ? '인근 12명 공차 대기' : '인근 3명 미만 대기'}</strong></span>
+                                      <span>• 경쟁 화물: <strong style={{ color: 'var(--text-primary)' }}>{difficulty === 0 ? '경쟁 화물 없음' : difficulty === 1 ? '경쟁 화물 약 8건' : '동일 조건 화물 30개 이상'}</strong></span>
+                                      <span>• 구간 평균 운임: <strong style={{ color: 'var(--text-primary)' }}>{avgFee.toLocaleString()}원</strong> ({difficulty === 0 ? '적정' : difficulty === 1 ? '유사' : '평균 이하'})</span>
+                                    </div>
                                   </div>
                                 );
                               })()}
