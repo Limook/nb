@@ -33,18 +33,109 @@ const TONNAGES = [
   { value: 25, label: '25톤', multiplier: 3.85 }
 ]
 
-const INCHEON_DISTRICTS = [
-  { name: '인천 중구', x: -35, y: 0 },
-  { name: '인천 동구', x: -33, y: 2 },
-  { name: '인천 미추홀구', x: -30, y: -3 },
-  { name: '인천 연수구', x: -31, y: -8 },
-  { name: '인천 남동구', x: -26, y: -6 },
-  { name: '인천 부평구', x: -22, y: -1 },
-  { name: '인천 계양구', x: -21, y: 4 },
-  { name: '인천 서구', x: -28, y: 7 },
-  { name: '인천 강화군', x: -50, y: 25 },
-  { name: '인천 옹진군', x: -60, y: -20 }
-]
+const DISTRICTS_MAP: Record<string, { name: string, dx: number, dy: number }[]> = {
+  '서울': [
+    { name: '서울 강남구', dx: 5, dy: -5 },
+    { name: '서울 서초구', dx: 2, dy: -6 },
+    { name: '서울 마포구', dx: -5, dy: 3 },
+    { name: '서울 송파구', dx: 10, dy: -4 },
+    { name: '서울 강서구', dx: -12, dy: 1 }
+  ],
+  '인천': [
+    { name: '인천 중구', dx: -5, dy: 0 },
+    { name: '인천 부평구', dx: 8, dy: -1 },
+    { name: '인천 남동구', dx: 4, dy: -6 },
+    { name: '인천 서구', dx: 2, dy: 7 }
+  ],
+  '경기': [
+    { name: '수원시', dx: 0, dy: -20 },
+    { name: '성남시', dx: 15, dy: -15 },
+    { name: '고양시', dx: -10, dy: 15 },
+    { name: '용인시', dx: 20, dy: -30 },
+    { name: '화성시', dx: -5, dy: -40 }
+  ],
+  '강원': [
+    { name: '춘천시', dx: 0, dy: 20 },
+    { name: '원주시', dx: 10, dy: -30 },
+    { name: '강릉시', dx: 80, dy: 10 },
+    { name: '동해시', dx: 90, dy: -10 }
+  ],
+  '충북': [
+    { name: '청주시', dx: -20, dy: -10 },
+    { name: '충주시', dx: 10, dy: 20 },
+    { name: '제천시', dx: 30, dy: 30 },
+    { name: '음성군', dx: -5, dy: 10 }
+  ],
+  '충남': [
+    { name: '천안시', dx: 15, dy: 20 },
+    { name: '아산시', dx: 0, dy: 15 },
+    { name: '서산시', dx: -40, dy: 10 },
+    { name: '당진시', dx: -25, dy: 25 }
+  ],
+  '대전': [
+    { name: '대전 서구', dx: -5, dy: -5 },
+    { name: '대전 유성구', dx: -10, dy: 5 },
+    { name: '대전 중구', dx: 2, dy: -8 },
+    { name: '대전 대덕구', dx: 8, dy: 10 }
+  ],
+  '세종': [
+    { name: '세종 조치원읍', dx: 0, dy: 15 },
+    { name: '세종 한솔동', dx: -5, dy: -5 },
+    { name: '세종 도담동', dx: 2, dy: 5 }
+  ],
+  '전북': [
+    { name: '전주시', dx: 5, dy: -10 },
+    { name: '군산시', dx: -35, dy: 10 },
+    { name: '익산시', dx: -15, dy: 15 },
+    { name: '완주군', dx: 15, dy: -5 }
+  ],
+  '전남': [
+    { name: '여수시', dx: 40, dy: -40 },
+    { name: '순천시', dx: 25, dy: -20 },
+    { name: '목포시', dx: -50, dy: -10 },
+    { name: '광양시', dx: 45, dy: -15 }
+  ],
+  '광주': [
+    { name: '광주 북구', dx: 5, dy: 8 },
+    { name: '광주 서구', dx: -5, dy: -2 },
+    { name: '광주 광산구', dx: -15, dy: 0 },
+    { name: '광주 남구', dx: 0, dy: -8 }
+  ],
+  '경북': [
+    { name: '포항시', dx: 60, dy: -30 },
+    { name: '구미시', dx: -30, dy: 0 },
+    { name: '경산시', dx: -5, dy: -60 },
+    { name: '경주시', dx: 50, dy: -60 }
+  ],
+  '경남': [
+    { name: '창원시', dx: 10, dy: -10 },
+    { name: '김해시', dx: 35, dy: -12 },
+    { name: '양산시', dx: 45, dy: 5 },
+    { name: '진주시', dx: -50, dy: -20 }
+  ],
+  '대구': [
+    { name: '대구 수성구', dx: 15, dy: -5 },
+    { name: '대구 달서구', dx: -15, dy: -10 },
+    { name: '대구 북구', dx: -5, dy: 12 },
+    { name: '대구 동구', dx: 18, dy: 10 }
+  ],
+  '울산': [
+    { name: '울산 남구', dx: 5, dy: -10 },
+    { name: '울산 북구', dx: 8, dy: 12 },
+    { name: '울산 울주군', dx: -20, dy: -15 },
+    { name: '울산 중구', dx: -2, dy: 2 }
+  ],
+  '부산': [
+    { name: '부산 해운대구', dx: 15, dy: 10 },
+    { name: '부산 사하구', dx: -15, dy: -12 },
+    { name: '부산 강서구', dx: -25, dy: -5 },
+    { name: '부산 금정구', dx: 5, dy: 20 }
+  ],
+  '제주': [
+    { name: '제주시', dx: 0, dy: 15 },
+    { name: '서귀포시', dx: 0, dy: -20 }
+  ]
+}
 
 export default function Quotation() {
   const navigate = useNavigate()
@@ -73,7 +164,7 @@ export default function Quotation() {
     fee: number
   } | null>(null)
 
-  const [isIncheonExpanded, setIsIncheonExpanded] = useState(false)
+  const [expandedProvince, setExpandedProvince] = useState<string | null>(null)
 
   // Notification Toast State
   const [notification, setNotification] = useState<string | null>(null)
@@ -545,7 +636,10 @@ export default function Quotation() {
                 </thead>
                 <tbody>
                   {filteredRegions.map(region => {
-                    const isIncheon = region.name === '인천';
+                    const isExpanded = expandedProvince === region.name;
+                    const districts = DISTRICTS_MAP[region.name] || [];
+                    const parentDist = calculateDistance(originRegion, region);
+                    
                     return (
                       <React.Fragment key={region.name}>
                         <tr 
@@ -562,35 +656,25 @@ export default function Quotation() {
                               padding: '0.65rem 0.5rem', 
                               fontWeight: 700, 
                               color: 'var(--text-primary)',
-                              cursor: isIncheon ? 'pointer' : 'default'
+                              cursor: 'pointer',
+                              userSelect: 'none'
                             }}
                             onClick={() => {
-                              if (isIncheon) {
-                                setIsIncheonExpanded(!isIncheonExpanded)
-                              }
+                              setExpandedProvince(isExpanded ? null : region.name)
                             }}
                           >
+                            <span style={{ fontSize: '0.68rem', marginRight: '0.35rem', color: 'var(--text-tertiary)' }}>
+                              {isExpanded ? '▼' : '▶'}
+                            </span>
                             {region.name}
                             {region.name === originRegion && (
                               <span style={{ fontSize: '0.65rem', marginLeft: '0.25rem', padding: '0.05rem 0.35rem', backgroundColor: 'var(--primary)', color: '#ffffff', borderRadius: 'var(--radius-sm)' }}>상차</span>
-                            )}
-                            {isIncheon && (
-                              <span style={{ 
-                                fontSize: '0.65rem', 
-                                marginLeft: '0.35rem', 
-                                padding: '0.1rem 0.4rem', 
-                                backgroundColor: isIncheonExpanded ? 'var(--primary-light)' : 'var(--bg-primary)', 
-                                color: isIncheonExpanded ? 'var(--primary)' : 'var(--text-secondary)', 
-                                borderRadius: 'var(--radius-sm)',
-                                fontWeight: 700
-                              }}>
-                                {isIncheonExpanded ? '접기 ▲' : '구단위 보기 ▼'}
-                              </span>
                             )}
                           </td>
                           {TONNAGES.map(tonnage => {
                             const calculatedFee = calculateFare(region.name, tonnage.multiplier)
                             const isSelected = selectedQuote && selectedQuote.destination === region.name && selectedQuote.tonnage === tonnage.value
+                            const ratePerKm = Math.round(calculatedFee / parentDist)
                             
                             return (
                               <td 
@@ -614,14 +698,20 @@ export default function Quotation() {
                                   })
                                 }}
                               >
-                                {(calculatedFee / 10000).toFixed(1)}만
+                                <div>{(calculatedFee / 10000).toFixed(1)}만</div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '0.1rem', fontWeight: 400 }}>
+                                  {ratePerKm.toLocaleString()}원/km
+                                </div>
                               </td>
                             )
                           })}
                         </tr>
-                        {isIncheon && isIncheonExpanded && (
-                          INCHEON_DISTRICTS.map(district => {
-                            const dist = calculateDistance(originRegion, district)
+                        {isExpanded && (
+                          districts.map(district => {
+                            const dist = calculateDistance(originRegion, {
+                              x: getCoordinates(region.name).x + district.dx,
+                              y: getCoordinates(region.name).y + district.dy
+                            })
                             
                             return (
                               <tr 
@@ -635,15 +725,20 @@ export default function Quotation() {
                               >
                                 <td style={{ padding: '0.55rem 0.5rem 0.55rem 1.5rem', textAlign: 'left' }}>
                                   <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                    <span style={{ color: 'var(--text-tertiary)' }}>↳</span> {district.name.replace('인천 ', '')}
+                                    <span style={{ color: 'var(--text-tertiary)' }}>↳</span> {district.name.includes(region.name) ? district.name.replace(region.name + ' ', '') : district.name}
                                   </div>
                                   <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>
                                     {dist.toFixed(1)}km
                                   </div>
                                 </td>
                                 {TONNAGES.map(tonnage => {
-                                  const calculatedFee = calculateFareForCoordinates(district.x, district.y, tonnage.multiplier)
-                                  const isSelected = selectedQuote && selectedQuote.destination === district.name && selectedQuote.tonnage === tonnage.value
+                                  const calculatedFee = calculateFareForCoordinates(
+                                    getCoordinates(region.name).x + district.dx,
+                                    getCoordinates(region.name).y + district.dy,
+                                    tonnage.multiplier
+                                  )
+                                  const fullDestName = district.name.includes(region.name) ? district.name : (region.name + ' ' + district.name)
+                                  const isSelected = selectedQuote && selectedQuote.destination === fullDestName && selectedQuote.tonnage === tonnage.value
                                   const ratePerKm = Math.round(calculatedFee / dist)
                                   
                                   return (
@@ -661,13 +756,13 @@ export default function Quotation() {
                                       }}
                                       onClick={() => {
                                         setSelectedQuote({
-                                          destination: district.name,
+                                          destination: fullDestName,
                                           tonnage: tonnage.value,
                                           tonnageLabel: tonnage.label,
                                           fee: calculatedFee
                                         })
                                       }}
-                                      title={`${tonnage.label} 단가: ${ratePerKm.toLocaleString()}원/km`}
+                                      title={tonnage.label + ' 단가: ' + ratePerKm.toLocaleString() + '원/km'}
                                     >
                                       <div>{(calculatedFee / 10000).toFixed(1)}만</div>
                                       <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '0.1rem', fontWeight: 400 }}>
