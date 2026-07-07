@@ -761,7 +761,7 @@ export default function Dispatches() {
   // Dispatches state (Database representation in memory)
   const [dispatches, setDispatches] = useState<any[]>(() => {
     const saved = localStorage.getItem('dispatches')
-    return saved ? JSON.parse(saved) : [
+    const initialItems = saved ? JSON.parse(saved) : [
   {
     "id": 1,
     "client": "가온물류",
@@ -1763,6 +1763,10 @@ export default function Dispatches() {
     "carNumber": "경기90바1010"
   }
 ]
+    return initialItems.map((item: any) => ({
+      ...item,
+      originalFee: item.originalFee || item.fee
+    }));
   })
 
   React.useEffect(() => {
@@ -2474,6 +2478,7 @@ export default function Dispatches() {
       spec: `${formData.tonnage} ${formData.carType} ${formData.weight ? `(${formData.weight})` : ''}`.trim(),
       status: 'dispatching' as DispatchStatus,
       fee: Number(formData.fee.replace(/,/g, '')),
+      originalFee: Number(formData.fee.replace(/,/g, '')),
       settleMethod: formData.settleMethod,
       commission: formData.commission.replace(/,/g, ''),
       settleDate: formData.settleDate,
@@ -4557,11 +4562,12 @@ export default function Dispatches() {
                               {/* AI Advisor for Dispatch Traffic Light */}
                               {dispatch.status === 'dispatching' && (() => {
                                 const difficulty = dispatch.id % 3;
-                                const avgFee = difficulty === 0 
-                                  ? Math.round((dispatch.fee * 0.96) / 10000) * 10000
-                                  : difficulty === 1
-                                  ? Math.round((dispatch.fee * 1.03) / 10000) * 10000
-                                  : Math.round((dispatch.fee * 1.09) / 10000) * 10000;
+                                const baseFee = dispatch.originalFee || dispatch.fee;
+                                 const avgFee = difficulty === 0 
+                                   ? Math.round((baseFee * 0.96) / 10000) * 10000
+                                   : difficulty === 1
+                                   ? Math.round((baseFee * 1.03) / 10000) * 10000
+                                   : Math.round((baseFee * 1.09) / 10000) * 10000;
 
                                 const alertColors = [
                                   { border: '#10B981', bg: 'rgba(16, 185, 129, 0.04)', text: '#059669', label: '배차 신호등: 원활 (녹색) 🟢', desc: '현재 조건으로 배차가 신속하게 진행될 것으로 분석됩니다.' },
