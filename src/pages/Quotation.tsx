@@ -309,7 +309,7 @@ export default function Quotation() {
   }
 
   return (
-    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
       
       {/* Toast Notification Banner */}
       {notification && (
@@ -355,12 +355,12 @@ export default function Quotation() {
         </p>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.25rem' }} className="responsive-layout-grid-quote">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.25rem', flex: 1, overflow: 'hidden' }} className="responsive-layout-grid-quote">
         
         {/* Left Column: Config Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
           
-          <Card style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: 'none' }}>
+          <Card style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: 'none', flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
             <h4 style={{ 
               fontSize: '0.92rem', 
               fontWeight: 700, 
@@ -602,9 +602,9 @@ export default function Quotation() {
         </div>
 
         {/* Right Column: Grid Rate Table */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
           
-          <Card style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: 'none', height: '100%' }}>
+          <Card style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: 'none', height: '100%', flex: 1, overflow: 'hidden' }}>
             
             {/* Header: Title and Search Filter */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
@@ -624,7 +624,7 @@ export default function Quotation() {
             </div>
 
             {/* Rate Grid Matrix */}
-            <div className="responsive-table-wrapper hide-scrollbar" style={{ flex: 1, maxHeight: '420px', overflowY: 'auto' }}>
+            <div className="responsive-table-wrapper hide-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1.5px solid var(--border-color)', position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 10 }}>
