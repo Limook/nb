@@ -37,106 +37,269 @@ const DISTRICTS_MAP: Record<string, { name: string, dx: number, dy: number }[]> 
   '서울': [
     { name: '서울 강남구', dx: 5, dy: -5 },
     { name: '서울 서초구', dx: 2, dy: -6 },
-    { name: '서울 마포구', dx: -5, dy: 3 },
     { name: '서울 송파구', dx: 10, dy: -4 },
+    { name: '서울 강동구', dx: 18, dy: -2 },
+    { name: '서울 마포구', dx: -5, dy: 3 },
     { name: '서울 강서구', dx: -12, dy: 1 },
-    { name: '서울 강동구', dx: 18, dy: -2 }
+    { name: '서울 종로구', dx: 0, dy: 5 },
+    { name: '서울 중구', dx: 0, dy: 0 },
+    { name: '서울 용산구', dx: 0, dy: -3 },
+    { name: '서울 성동구', dx: 5, dy: 1 },
+    { name: '서울 광진구', dx: 8, dy: 1 },
+    { name: '서울 동대문구', dx: 6, dy: 4 },
+    { name: '서울 중랑구', dx: 10, dy: 5 },
+    { name: '서울 성북구', dx: 3, dy: 8 },
+    { name: '서울 강북구', dx: 2, dy: 12 },
+    { name: '서울 도봉구', dx: 3, dy: 16 },
+    { name: '서울 노원구', dx: 8, dy: 14 },
+    { name: '서울 은평구', dx: -6, dy: 10 },
+    { name: '서울 서대문구', dx: -4, dy: 4 },
+    { name: '서울 양천구', dx: -10, dy: -3 },
+    { name: '서울 구로구', dx: -10, dy: -7 },
+    { name: '서울 금천구', dx: -6, dy: -10 },
+    { name: '서울 영등포구', dx: -5, dy: -4 },
+    { name: '서울 동작구', dx: 0, dy: -6 },
+    { name: '서울 관악구', dx: 0, dy: -10 }
   ],
   '인천': [
     { name: '인천 중구', dx: -5, dy: 0 },
-    { name: '인천 부평구', dx: 8, dy: -1 },
+    { name: '인천 동구', dx: -3, dy: 2 },
+    { name: '인천 미추홀구', dx: 0, dy: -3 },
+    { name: '인천 연수구', dx: -1, dy: -8 },
     { name: '인천 남동구', dx: 4, dy: -6 },
-    { name: '인천 서구', dx: 2, dy: 7 }
+    { name: '인천 부평구', dx: 8, dy: -1 },
+    { name: '인천 계양구', dx: 9, dy: 4 },
+    { name: '인천 서구', dx: 2, dy: 7 },
+    { name: '인천 강화군', dx: -20, dy: 25 },
+    { name: '인천 옹진군', dx: -30, dy: -20 }
   ],
   '경기': [
     { name: '수원시', dx: 0, dy: -20 },
     { name: '성남시', dx: 15, dy: -15 },
     { name: '고양시', dx: -10, dy: 15 },
     { name: '용인시', dx: 20, dy: -30 },
-    { name: '화성시', dx: -5, dy: -40 }
-  ],
-  '강원': [
-    { name: '춘천시', dx: 0, dy: 20 },
-    { name: '원주시', dx: 10, dy: -30 },
-    { name: '강릉시', dx: 80, dy: 10 },
-    { name: '동해시', dx: 90, dy: -10 }
-  ],
-  '충북': [
-    { name: '청주시', dx: -20, dy: -10 },
-    { name: '충주시', dx: 10, dy: 20 },
-    { name: '제천시', dx: 30, dy: 30 },
-    { name: '음성군', dx: -5, dy: 10 }
-  ],
-  '충남': [
-    { name: '천안시', dx: 15, dy: 20 },
-    { name: '아산시', dx: 0, dy: 15 },
-    { name: '서산시', dx: -40, dy: 10 },
-    { name: '당진시', dx: -25, dy: 25 }
-  ],
-  '대전': [
-    { name: '대전 서구', dx: -5, dy: -5 },
-    { name: '대전 유성구', dx: -10, dy: 5 },
-    { name: '대전 중구', dx: 2, dy: -8 },
-    { name: '대전 대덕구', dx: 8, dy: 10 }
-  ],
-  '세종': [
-    { name: '세종 조치원읍', dx: 0, dy: 15 },
-    { name: '세종 한솔동', dx: -5, dy: -5 },
-    { name: '세종 도담동', dx: 2, dy: 5 }
-  ],
-  '전북': [
-    { name: '전주시', dx: 5, dy: -10 },
-    { name: '군산시', dx: -35, dy: 10 },
-    { name: '익산시', dx: -15, dy: 15 },
-    { name: '완주군', dx: 15, dy: -5 }
-  ],
-  '전남': [
-    { name: '여수시', dx: 40, dy: -40 },
-    { name: '순천시', dx: 25, dy: -20 },
-    { name: '목포시', dx: -50, dy: -10 },
-    { name: '광양시', dx: 45, dy: -15 }
-  ],
-  '광주': [
-    { name: '광주 북구', dx: 5, dy: 8 },
-    { name: '광주 서구', dx: -5, dy: -2 },
-    { name: '광주 광산구', dx: -15, dy: 0 },
-    { name: '광주 남구', dx: 0, dy: -8 }
-  ],
-  '경북': [
-    { name: '포항시', dx: 60, dy: -30 },
-    { name: '구미시', dx: -30, dy: 0 },
-    { name: '경산시', dx: -5, dy: -60 },
-    { name: '경주시', dx: 50, dy: -60 }
-  ],
-  '경남': [
-    { name: '창원시', dx: 10, dy: -10 },
-    { name: '김해시', dx: 35, dy: -12 },
-    { name: '양산시', dx: 45, dy: 5 },
-    { name: '진주시', dx: -50, dy: -20 }
-  ],
-  '대구': [
-    { name: '대구 수성구', dx: 15, dy: -5 },
-    { name: '대구 달서구', dx: -15, dy: -10 },
-    { name: '대구 북구', dx: -5, dy: 12 },
-    { name: '대구 동구', dx: 18, dy: 10 }
-  ],
-  '울산': [
-    { name: '울산 남구', dx: 5, dy: -10 },
-    { name: '울산 북구', dx: 8, dy: 12 },
-    { name: '울산 울주군', dx: -20, dy: -15 },
-    { name: '울산 중구', dx: -2, dy: 2 }
+    { name: '부천시', dx: -10, dy: -5 },
+    { name: '안산시', dx: -15, dy: -25 },
+    { name: '안양시', dx: -2, dy: -15 },
+    { name: '남양주시', dx: 30, dy: 15 },
+    { name: '화성시', dx: -5, dy: -40 },
+    { name: '평택시', dx: 0, dy: -65 },
+    { name: '의정부시', dx: 5, dy: 25 },
+    { name: '시흥시', dx: -18, dy: -15 },
+    { name: '파주시', dx: -20, dy: 35 },
+    { name: '김포시', dx: -25, dy: 15 },
+    { name: '광명시', dx: -8, dy: -10 },
+    { name: '군포시', dx: -5, dy: -20 },
+    { name: '광주시', dx: 25, dy: -20 },
+    { name: '이천시', dx: 45, dy: -35 },
+    { name: '양주시', dx: -2, dy: 30 },
+    { name: '오산시', dx: 5, dy: -35 },
+    { name: '구리시', dx: 15, dy: 10 },
+    { name: '안성시', dx: 25, dy: -65 },
+    { name: '포천시', dx: 20, dy: 45 },
+    { name: '의왕시', dx: 2, dy: -22 },
+    { name: '하남시', dx: 20, dy: 0 },
+    { name: '여주시', dx: 55, dy: -35 },
+    { name: '동두천시', dx: 10, dy: 40 },
+    { name: '양평군', dx: 50, dy: -10 },
+    { name: '가평군', dx: 50, dy: 25 },
+    { name: '연천군', dx: 10, dy: 60 }
   ],
   '부산': [
     { name: '부산 해운대구', dx: 15, dy: 10 },
     { name: '부산 사하구', dx: -15, dy: -12 },
     { name: '부산 강서구', dx: -25, dy: -5 },
-    { name: '부산 금정구', dx: 5, dy: 20 }
+    { name: '부산 금정구', dx: 5, dy: 20 },
+    { name: '부산 중구', dx: 0, dy: 0 },
+    { name: '부산 서구', dx: -5, dy: -3 },
+    { name: '부산 동구', dx: 2, dy: 2 },
+    { name: '부산 영도구', dx: 2, dy: -8 },
+    { name: '부산 부산진구', dx: -2, dy: 5 },
+    { name: '부산 동래구', dx: 3, dy: 10 },
+    { name: '부산 남구', dx: 6, dy: 2 },
+    { name: '부산 북구', dx: -8, dy: 12 },
+    { name: '부산 연제구', dx: 2, dy: 7 },
+    { name: '부산 수영구', dx: 8, dy: 6 },
+    { name: '부산 사상구', dx: -10, dy: 6 },
+    { name: '부산 기장군', dx: 25, dy: 22 }
+  ],
+  '대구': [
+    { name: '대구 수성구', dx: 15, dy: -5 },
+    { name: '대구 달서구', dx: -15, dy: -10 },
+    { name: '대구 북구', dx: -5, dy: 12 },
+    { name: '대구 동구', dx: 18, dy: 10 },
+    { name: '대구 중구', dx: 0, dy: 0 },
+    { name: '대구 서구', dx: -8, dy: 2 },
+    { name: '대구 남구', dx: 0, dy: -6 },
+    { name: '대구 달성군', dx: -25, dy: -30 },
+    { name: '대구 군위군', dx: -10, dy: 50 }
+  ],
+  '광주': [
+    { name: '광주 북구', dx: 5, dy: 8 },
+    { name: '광주 서구', dx: -5, dy: -2 },
+    { name: '광주 광산구', dx: -15, dy: 0 },
+    { name: '광주 남구', dx: 0, dy: -8 },
+    { name: '광주 동구', dx: 8, dy: -4 }
+  ],
+  '대전': [
+    { name: '대전 서구', dx: -5, dy: -5 },
+    { name: '대전 유성구', dx: -10, dy: 5 },
+    { name: '대전 중구', dx: 2, dy: -8 },
+    { name: '대전 대덕구', dx: 8, dy: 10 },
+    { name: '대전 동구', dx: 12, dy: -3 }
+  ],
+  '울산': [
+    { name: '울산 남구', dx: 5, dy: -10 },
+    { name: '울산 북구', dx: 8, dy: 12 },
+    { name: '울산 울주군', dx: -20, dy: -15 },
+    { name: '울산 중구', dx: -2, dy: 2 },
+    { name: '울산 동구', dx: 18, dy: 2 }
+  ],
+  '세종': [
+    { name: '세종 조치원읍', dx: 0, dy: 15 },
+    { name: '세종 한솔동', dx: -5, dy: -5 },
+    { name: '세종 아름동', dx: -3, dy: 5 },
+    { name: '세종 도담동', dx: 2, dy: 5 }
+  ],
+  '강원': [
+    { name: '춘천시', dx: 0, dy: 20 },
+    { name: '원주시', dx: 10, dy: -30 },
+    { name: '강릉시', dx: 80, dy: 10 },
+    { name: '동해시', dx: 90, dy: -10 },
+    { name: '태백시', dx: 85, dy: -50 },
+    { name: '속초시', dx: 70, dy: 50 },
+    { name: '삼척시', dx: 95, dy: -25 },
+    { name: '홍천군', dx: 25, dy: -10 },
+    { name: '횡성군', dx: 25, dy: -25 },
+    { name: '영월군', dx: 50, dy: -55 },
+    { name: '평창군', dx: 50, dy: -25 },
+    { name: '정선군', dx: 70, dy: -35 },
+    { name: '철원군', dx: -35, dy: 45 },
+    { name: '화천군', dx: -15, dy: 35 },
+    { name: '양구군', dx: 15, dy: 40 },
+    { name: '인제군', dx: 45, dy: 30 },
+    { name: '고성군', dx: 70, dy: 70 },
+    { name: '양양군', dx: 75, dy: 30 }
+  ],
+  '충북': [
+    { name: '청주시', dx: -20, dy: -10 },
+    { name: '충주시', dx: 10, dy: 20 },
+    { name: '제천시', dx: 30, dy: 30 },
+    { name: '보은군', dx: -15, dy: -35 },
+    { name: '옥천군', dx: -25, dy: -55 },
+    { name: '영동군', dx: -15, dy: -80 },
+    { name: '증평군', dx: -10, dy: 5 },
+    { name: '진천군', dx: -22, dy: 15 },
+    { name: '괴산군', dx: 0, dy: -2 },
+    { name: '음성군', dx: -5, dy: 10 },
+    { name: '단양군', dx: 45, dy: 15 }
+  ],
+  '충남': [
+    { name: '천안시', dx: 15, dy: 20 },
+    { name: '공주시', dx: 0, dy: -15 },
+    { name: '보령시', dx: -35, dy: -50 },
+    { name: '아산시', dx: 0, dy: 15 },
+    { name: '서산시', dx: -40, dy: 10 },
+    { name: '논산시', dx: 5, dy: -45 },
+    { name: '계룡시', dx: 8, dy: -35 },
+    { name: '당진시', dx: -25, dy: 25 },
+    { name: '금산군', dx: 25, dy: -60 },
+    { name: '부여군', dx: -15, dy: -45 },
+    { name: '서천군', dx: -30, dy: -65 },
+    { name: '청양군', dx: -15, dy: -25 },
+    { name: '홍성군', dx: -25, dy: -15 },
+    { name: '예산군', dx: -12, dy: 2 },
+    { name: '태안군', dx: -55, dy: 5 }
+  ],
+  '전북': [
+    { name: '전주시', dx: 5, dy: -10 },
+    { name: '군산시', dx: -35, dy: 10 },
+    { name: '익산시', dx: -15, dy: 15 },
+    { name: '정읍시', dx: -20, dy: -35 },
+    { name: '남원시', dx: 30, dy: -45 },
+    { name: '김제시', dx: -20, dy: -15 },
+    { name: '완주군', dx: 15, dy: -5 },
+    { name: '진안군', dx: 25, dy: -10 },
+    { name: '무주군', dx: 45, dy: 5 },
+    { name: '장수군', dx: 35, dy: -25 },
+    { name: '임실군', dx: 15, dy: -30 },
+    { name: '순창군', dx: 10, dy: -50 },
+    { name: '고창군', dx: -35, dy: -50 },
+    { name: '부안군', dx: -35, dy: -25 }
+  ],
+  '전남': [
+    { name: '목포시', dx: -50, dy: -10 },
+    { name: '여수시', dx: 40, dy: -40 },
+    { name: '순천시', dx: 25, dy: -20 },
+    { name: '나주시', dx: -20, dy: -10 },
+    { name: '광양시', dx: 45, dy: -15 },
+    { name: '담양군', dx: 0, dy: 15 },
+    { name: '곡성군', dx: 15, dy: 5 },
+    { name: '구례군', dx: 30, dy: 5 },
+    { name: '고흥군', dx: 20, dy: -50 },
+    { name: '보성군', dx: 10, dy: -35 },
+    { name: '화순군', dx: 10, dy: -15 },
+    { name: '장흥군', dx: -5, dy: -35 },
+    { name: '강진군', dx: -15, dy: -35 },
+    { name: '해남군', dx: -30, dy: -40 },
+    { name: '영암군', dx: -25, dy: -20 },
+    { name: '무안군', dx: -40, dy: -5 },
+    { name: '함평군', dx: -35, dy: 5 },
+    { name: '영광군', dx: -35, dy: 20 },
+    { name: '장성군', dx: -15, dy: 20 },
+    { name: '완도군', dx: -15, dy: -65 },
+    { name: '진도군', dx: -55, dy: -55 },
+    { name: '신안군', dx: -65, dy: -15 }
+  ],
+  '경북': [
+    { name: '포항시', dx: 60, dy: -30 },
+    { name: '경주시', dx: 50, dy: -60 },
+    { name: '김천시', dx: -45, dy: -20 },
+    { name: '안동시', dx: 5, dy: 40 },
+    { name: '구미시', dx: -30, dy: 0 },
+    { name: '영주시', dx: -5, dy: 75 },
+    { name: '영천시', dx: 25, dy: -40 },
+    { name: '상주시', dx: -45, dy: 25 },
+    { name: '문경시', dx: -40, dy: 50 },
+    { name: '경산시', dx: -5, dy: -60 },
+    { name: '의성군', dx: -10, dy: 20 },
+    { name: '청송군', dx: 30, dy: 20 },
+    { name: '영양군', dx: 30, dy: 45 },
+    { name: '영덕군', dx: 50, dy: 20 },
+    { name: '청도군', dx: 10, dy: -65 },
+    { name: '고령군', dx: -20, dy: -55 },
+    { name: '성주군', dx: -35, dy: -40 },
+    { name: '칠곡군', dx: -20, dy: -25 },
+    { name: '예천군', dx: -20, dy: 50 },
+    { name: '봉화군', dx: 15, dy: 75 },
+    { name: '울진군', dx: 55, dy: 60 },
+    { name: '울릉군', dx: 150, dy: 90 }
+  ],
+  '경남': [
+    { name: '창원시', dx: 10, dy: -10 },
+    { name: '진주시', dx: -50, dy: -20 },
+    { name: '통영시', dx: -25, dy: -60 },
+    { name: '사천시', dx: -40, dy: -40 },
+    { name: '김해시', dx: 35, dy: -12 },
+    { name: '밀양시', dx: 25, dy: 10 },
+    { name: '거제시', dx: 0, dy: -65 },
+    { name: '양산시', dx: 45, dy: 5 },
+    { name: '의령군', dx: -20, dy: -10 },
+    { name: '함안군', dx: -10, dy: -15 },
+    { name: '창녕군', dx: -5, dy: 15 },
+    { name: '고성군', dx: -20, dy: -45 },
+    { name: '남해군', dx: -60, dy: -55 },
+    { name: '하동군', dx: -70, dy: -30 },
+    { name: '산청군', dx: -50, dy: 5 },
+    { name: '함양군', dx: -65, dy: 15 },
+    { name: '거창군', dx: -55, dy: 35 },
+    { name: '합천군', dx: -30, dy: 15 }
   ],
   '제주': [
     { name: '제주시', dx: 0, dy: 15 },
     { name: '서귀포시', dx: 0, dy: -20 }
   ]
-}
+};
 
 export default function Quotation() {
   const navigate = useNavigate()
@@ -572,15 +735,7 @@ export default function Quotation() {
                 </>
               )}
 
-              <Input 
-                placeholder="상세 번지/동/건물명 직접 입력" 
-                value={originDetail}
-                onChange={(e) => {
-                  setOriginDetail(e.target.value)
-                  setSelectedQuote(null)
-                }}
-                style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', marginTop: '0.25rem' }}
-              />
+
             </div>
 
             {/* Car Type Segment Control */}
@@ -875,9 +1030,7 @@ export default function Quotation() {
                                 <div>{(calculatedFee / 10000).toFixed(1)}만</div>
                                 <div style={{ 
                                   fontSize: '0.72rem', 
-                                  color: isSelected ? 'var(--primary)' : 'var(--text-secondary)', 
-                                  marginTop: '0.15rem', 
-                                  fontWeight: 700 
+                                  color: '#16a34a', marginTop: '0.15rem', fontWeight: 700 
                                 }}>
                                   {ratePerKm.toLocaleString()}원/km
                                 </div>
@@ -961,9 +1114,7 @@ export default function Quotation() {
                                       <div>{(calculatedFee / 10000).toFixed(1)}만</div>
                                       <div style={{ 
                                         fontSize: '0.72rem', 
-                                        color: isSelected ? 'var(--primary)' : 'var(--text-secondary)', 
-                                        marginTop: '0.15rem', 
-                                        fontWeight: 700 
+                                        color: '#16a34a', marginTop: '0.15rem', fontWeight: 700 
                                       }}>
                                         {ratePerKm.toLocaleString()}원/km
                                       </div>
