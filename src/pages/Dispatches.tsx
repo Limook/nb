@@ -2916,7 +2916,7 @@ export default function Dispatches() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 72px - 4rem)', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 3rem)', overflow: 'hidden', position: 'relative' }}>
       <style>{`
         @keyframes blink-dispatched {
           0% { background-color: rgba(49, 130, 246, 0.45); }
