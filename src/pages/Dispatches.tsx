@@ -5067,49 +5067,47 @@ export default function Dispatches() {
                                     
                                     {/* Driver Info Inputs */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                         <Input 
                                           placeholder="차량번호 (예: 서울 12가 3456)" 
                                           style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }} 
                                           value={driverInput.carNumber}
                                           onChange={e => setDriverInput({...driverInput, carNumber: e.target.value})}
                                         />
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                          <Button
-                                            variant="primary"
-                                            style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', whiteSpace: 'nowrap', width: '100%' }}
-                                            onClick={() => setAssigningDispatchId(dispatch.id)}
-                                          >
-                                            차량배정
-                                          </Button>
-                                          <Button
-                                            variant="outline"
-                                            style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', whiteSpace: 'nowrap', width: '100%', borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                                            onClick={() => {
-                                              if (dispatch.driverName) {
-                                                loadOrCreateChatRoom(dispatch.driverName, 'driver', dispatch.driverPhone, dispatch.carNumber);
-                                              } else {
-                                                loadOrCreateChatRoom(dispatch.client, 'client', '02-8877-2233');
-                                              }
-                                            }}
-                                          >
-                                            대화방
-                                          </Button>
-                                        </div>
+                                        <Button
+                                          variant="primary"
+                                          style={{ padding: '0.5rem 0.75rem', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                                          onClick={() => setAssigningDispatchId(dispatch.id)}
+                                        >
+                                          차량배정
+                                        </Button>
                                       </div>
-                                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.4rem' }}>
+                                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                         <Input 
                                           placeholder="차주명" 
-                                          style={{ padding: '0.5rem', fontSize: '0.85rem' }} 
+                                          style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }} 
                                           value={driverInput.driverName}
                                           onChange={e => setDriverInput({...driverInput, driverName: e.target.value})}
                                         />
                                         <Input 
                                           placeholder="연락처 (예: 010-0000-0000)" 
-                                          style={{ padding: '0.5rem', fontSize: '0.85rem' }} 
+                                          style={{ flex: 1.2, padding: '0.5rem', fontSize: '0.85rem' }} 
                                           value={driverInput.driverPhone}
                                           onChange={e => setDriverInput({...driverInput, driverPhone: formatPhone(e.target.value)})}
                                         />
+                                        <Button
+                                          variant="outline"
+                                          style={{ padding: '0.5rem 0.75rem', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                                          onClick={() => {
+                                            if (dispatch.driverName) {
+                                              loadOrCreateChatRoom(dispatch.driverName, 'driver', dispatch.driverPhone, dispatch.carNumber);
+                                            } else {
+                                              loadOrCreateChatRoom(dispatch.client, 'client', '02-8877-2233');
+                                            }
+                                          }}
+                                        >
+                                          대화방
+                                        </Button>
                                       </div>
                                     </div>
 
