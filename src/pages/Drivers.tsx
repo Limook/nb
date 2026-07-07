@@ -474,8 +474,8 @@ export default function Drivers() {
       </div>
 
       {/* Search Bar */}
-      <Card style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', border: 'none' }}>
-        <div style={{ position: 'relative', width: '320px' }}>
+      <Card className="responsive-filter-bar" style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', border: 'none' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
           <Input 
             style={{ paddingLeft: '2.75rem' }} 
@@ -519,7 +519,8 @@ export default function Drivers() {
 
       {/* Drivers Table */}
       <Card style={{ flex: 1, overflowY: 'auto', border: 'none' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="responsive-table-wrapper">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
               <th style={{ padding: '1.25rem 1.5rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>차주명</th>
@@ -661,7 +662,7 @@ export default function Drivers() {
                             <Truck size={15} style={{ color: 'var(--primary)' }} />
                             차주 및 차량 상세 제원
                           </h4>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem', fontSize: '0.85rem', paddingTop: '0.25rem' }}>
+                          <div className="detail-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem', fontSize: '0.85rem', paddingTop: '0.25rem' }}>
                             <div>
                               <span style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.15rem' }}>차주명 (연락처)</span>
                               <span style={{ fontWeight: 600 }}>{driver.name} ({driver.phone})</span>
@@ -695,6 +696,7 @@ export default function Drivers() {
             )}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   )

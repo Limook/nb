@@ -17,8 +17,12 @@ const MainLayout = () => {
 
   return (
     <div className="app-container">
+      {/* Sidebar Backdrop Overlay on Mobile */}
+      {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />}
+
       {/* Sidebar */}
       <aside 
+        className={`main-sidebar ${isSidebarOpen ? 'open' : ''}`}
         style={{ 
           width: isSidebarOpen ? '260px' : '0px', 
           transition: 'all var(--transition-normal)',

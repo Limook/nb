@@ -714,6 +714,28 @@ export default function Dispatches() {
     };
   };
 
+  const addDaysAndFormat = (baseStr: string, days: number) => {
+    const dateObj = baseStr ? new Date(baseStr.substring(0, 10)) : new Date();
+    if (isNaN(dateObj.getTime())) return '';
+    dateObj.setDate(dateObj.getDate() + days);
+    const yyyy = dateObj.getFullYear();
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const formatEndOfMonth = (baseStr: string, offsetMonths: number) => {
+    const dateObj = baseStr ? new Date(baseStr.substring(0, 10)) : new Date();
+    if (isNaN(dateObj.getTime())) return '';
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth();
+    const lastDay = new Date(year, month + offsetMonths + 1, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const [formData, setFormData] = useState(() => {
     const dates = getInitialDates();
     return {
@@ -1770,6 +1792,27 @@ export default function Dispatches() {
 
   // Active dispatch ID being assigned a driver
   const [assigningDispatchId, setAssigningDispatchId] = useState<number | null>(null)
+  const [expandedDriverId, setExpandedDriverId] = useState<number | null>(null)
+  const [adjustTargetMap, setAdjustTargetMap] = useState<Record<number, 'fee' | 'commission'>>({})
+  const [blinkRow, setBlinkRow] = useState<{ id: number; status: DispatchStatus } | null>(null)
+
+  const triggerBlink = (dispatchId: number, status: DispatchStatus) => {
+    setBlinkRow({ id: dispatchId, status });
+    setTimeout(() => {
+      setBlinkRow(prev => prev && prev.id === dispatchId ? null : prev);
+    }, 1200);
+  };
+
+  React.useEffect(() => {
+    if (expandedId !== null) {
+      setTimeout(() => {
+        const el = document.getElementById(`expanded-row-${expandedId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 120);
+    }
+  }, [expandedId]);
 
   // Table filters state
   const [dateFilterType, setDateFilterType] = useState('전체') // 전체, 오늘, 이번주, 지난주, 이번달, 지난달, 직접선택
@@ -2034,9 +2077,37 @@ export default function Dispatches() {
   // Dynamic recommendation logic based on historical dispatch data
   const getRecommendations = () => {
     const client = formData.clientName.trim()
+
+    // Helper to map active dispatches to the same format as historyPool
+    const mapDispatchToPoolItem = (d: any) => {
+      let tonnage = '';
+      let carType = '';
+      if (d.spec) {
+        const parts = d.spec.trim().split(/\s+/);
+        tonnage = parts[0] || '';
+        carType = parts[1] || '';
+      }
+      return {
+        client: d.client || '',
+        origin: d.origin || '',
+        destination: d.destination || '',
+        tonnage,
+        carType,
+        weight: '',
+        fee: typeof d.fee === 'number' ? d.fee : (Number(d.fee) || 0),
+        date: d.date || ''
+      };
+    };
+
+    // Combine historyPool and active dispatches (loaded from localStorage) as the source pool
+    const combinedPool = [
+      ...dispatches.map(mapDispatchToPoolItem),
+      ...historyPool
+    ];
+
     const pool = client 
-      ? historyPool.filter(d => d.client === client)
-      : historyPool
+      ? combinedPool.filter(d => d.client === client)
+      : combinedPool
 
     // 1. Routes (origin -> destination)
     const routesMap: Record<string, { count: number, origin: string, destination: string }> = {}
@@ -2044,8 +2115,6 @@ export default function Dispatches() {
     const originsMap: Record<string, number> = {}
     // 3. Destinations
     const destMap: Record<string, number> = {}
-    // 4. Specs
-    const specsMap: Record<string, { count: number, tonnage: string, carType: string, weight: string }> = {}
 
     pool.forEach(item => {
       // Route
@@ -2058,11 +2127,6 @@ export default function Dispatches() {
 
       // Destination
       destMap[item.destination] = (destMap[item.destination] || 0) + 1
-
-      // Spec
-      const sKey = `${item.tonnage}|${item.carType}|${item.weight}`
-      if (!specsMap[sKey]) specsMap[sKey] = { count: 0, tonnage: item.tonnage, carType: item.carType, weight: item.weight }
-      specsMap[sKey].count++
     })
 
     const topRoutes = Object.values(routesMap)
@@ -2079,10 +2143,83 @@ export default function Dispatches() {
       .slice(0, 3)
       .map(entry => entry[0])
 
-    const topSpecs = Object.values(specsMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-      .reverse()
+    // Hybrid Spec Recommendation System:
+    // 1. Get client-specific spec counts
+    const clientSpecsMap: Record<string, { count: number, tonnage: string, carType: string, weight: string }> = {};
+    const overallSpecsMap: Record<string, { count: number, tonnage: string, carType: string, weight: string }> = {};
+
+    combinedPool.forEach(item => {
+      const sKey = `${item.tonnage}|${item.carType}`; // Ignore weight completely
+      
+      // Overall stats
+      if (!overallSpecsMap[sKey]) {
+        overallSpecsMap[sKey] = { count: 0, tonnage: item.tonnage, carType: item.carType, weight: '' };
+      }
+      overallSpecsMap[sKey].count++;
+
+      // Client stats
+      if (client && item.client === client) {
+        if (!clientSpecsMap[sKey]) {
+          clientSpecsMap[sKey] = { count: 0, tonnage: item.tonnage, carType: item.carType, weight: '' };
+        }
+        clientSpecsMap[sKey].count++;
+      }
+    });
+
+    const clientSpecsList = Object.values(clientSpecsMap).sort((a, b) => b.count - a.count);
+    const overallSpecsList = Object.values(overallSpecsMap).sort((a, b) => b.count - a.count);
+
+    const uniqueSpecsList: Array<{ count: number, tonnage: string, carType: string, weight: string, isClientSpec?: boolean }> = [];
+    const seenKeys = new Set<string>();
+
+    // Add client specs first with explicit flag
+    clientSpecsList.forEach(spec => {
+      const dKey = `${spec.tonnage}|\f${spec.carType}`.replace('\\f', '');
+      if (!seenKeys.has(dKey)) {
+        seenKeys.add(dKey);
+        uniqueSpecsList.push({ ...spec, isClientSpec: true });
+      }
+    });
+
+    // Add overall specs with explicit flag
+    overallSpecsList.forEach(spec => {
+      if (uniqueSpecsList.length >= 5) return;
+      const dKey = `${spec.tonnage}|\f${spec.carType}`.replace('\\f', '');
+      if (!seenKeys.has(dKey)) {
+        seenKeys.add(dKey);
+        uniqueSpecsList.push({ ...spec, isClientSpec: false });
+      }
+    });
+
+    // If still less than 5 unique specs, pull from popular standard specs to ensure 5 chips are always displayed
+    const defaultSpecs = [
+      { count: 0, tonnage: '1톤', carType: '카고', weight: '' },
+      { count: 0, tonnage: '1톤', carType: '탑차', weight: '' },
+      { count: 0, tonnage: '2.5톤', carType: '카고', weight: '' },
+      { count: 0, tonnage: '3.5톤', carType: '윙바디', weight: '' },
+      { count: 0, tonnage: '5톤', carType: '카고', weight: '' },
+      { count: 0, tonnage: '5톤', carType: '윙바디', weight: '' },
+      { count: 0, tonnage: '11톤', carType: '카고', weight: '' }
+    ];
+
+    defaultSpecs.forEach(spec => {
+      if (uniqueSpecsList.length >= 5) return;
+      const dKey = `${spec.tonnage}|\f${spec.carType}`.replace('\\f', '');
+      if (!seenKeys.has(dKey)) {
+        seenKeys.add(dKey);
+        uniqueSpecsList.push({ ...spec, isClientSpec: false });
+      }
+    });
+
+    // Split back to client-specific vs overall using isClientSpec flag (100% robust)
+    const clientPart = uniqueSpecsList.filter(spec => (spec as any).isClientSpec);
+    const overallPart = uniqueSpecsList.filter(spec => !(spec as any).isClientSpec);
+
+    // Sort individually in ascending order so that when combined, the most frequent is on the right-most.
+    clientPart.reverse();
+    overallPart.reverse();
+
+    const topSpecs = [...overallPart, ...clientPart];
 
     return { topRoutes, topOrigins, topDestinations, topSpecs }
   }
@@ -2387,6 +2524,7 @@ export default function Dispatches() {
       }))
       setDriverInput({ carNumber: '', driverName: '', driverPhone: '' })
       triggerNotification('배차가 대기 상태로 환원되고 차주 정보가 초기화되었습니다.')
+      triggerBlink(dispatchId, 'dispatching')
       return
     }
 
@@ -2406,6 +2544,7 @@ export default function Dispatches() {
       }))
       setDriverInput({ carNumber: '', driverName: '', driverPhone: '' })
       triggerNotification('배차가 취소 상태로 변경되고 차주 정보가 초기화되었습니다.')
+      triggerBlink(dispatchId, 'cancelled')
       return
     }
 
@@ -2429,6 +2568,7 @@ export default function Dispatches() {
     }))
 
     triggerNotification(`차주 정보 및 배차 상태가 [${getStatusLabel(status)}]로 설정되었습니다.`)
+    triggerBlink(dispatchId, status)
   }
 
   const getStatusLabel = (status: string) => {
@@ -2777,6 +2917,35 @@ export default function Dispatches() {
 
   return (
     <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 72px - 4rem)', overflow: 'hidden', position: 'relative' }}>
+      <style>{`
+        @keyframes blink-dispatched {
+          0% { background-color: rgba(49, 130, 246, 0.45); }
+          100% { background-color: transparent; }
+        }
+        @keyframes blink-loaded {
+          0% { background-color: rgba(16, 185, 129, 0.45); }
+          100% { background-color: transparent; }
+        }
+        @keyframes blink-unloaded {
+          0% { background-color: rgba(78, 89, 104, 0.45); }
+          100% { background-color: transparent; }
+        }
+        @keyframes blink-completed {
+          0% { background-color: rgba(16, 185, 129, 0.45); }
+          100% { background-color: transparent; }
+        }
+        @keyframes blink-dispatching {
+          0% { background-color: rgba(245, 158, 11, 0.45); }
+          100% { background-color: transparent; }
+        }
+        @keyframes blink-cancelled {
+          0% { background-color: rgba(239, 68, 68, 0.45); }
+          100% { background-color: transparent; }
+        }
+        .blink-row-active td {
+          animation: inherit;
+        }
+      `}</style>
       
       {/* Toast Notification */}
       {notification && (
@@ -2950,67 +3119,302 @@ export default function Dispatches() {
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.75rem' }}>배정 가능 차주 목록</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {dummyDrivers.map(driver => (
-                    <div 
-                      key={driver.id} 
-                      style={{ 
-                        padding: '1rem', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: 'var(--bg-secondary)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        transition: 'all var(--transition-fast)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{driver.name}</span>
-                          <Badge color={driver.type === '소속' ? 'primary' : driver.type === '지입' ? 'success' : 'gray'}>
-                            {driver.type}
-                          </Badge>
-                        </div>
-                        <Button 
-                          variant="primary"
-                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                          onClick={() => {
-                            setDispatches(prev => prev.map(d => {
-                              if (d.id === assigningDispatchId) {
-                                return {
-                                  ...d,
-                                  status: 'dispatched' as DispatchStatus,
+                {(() => {
+                  const target = dispatches.find(d => d.id === assigningDispatchId);
+                  if (!target) return null;
+                  const driverHomeLocations: Record<number, string> = {
+                    1: '경기 안산시 단원구',
+                    2: '인천 중구 아암대로',
+                    3: '서울 구로구 경인로',
+                    4: '충북 청주시 흥덕구',
+                    5: '경기 평택시 포승읍',
+                    6: '경남 김해시 골든루트로',
+                    7: '경남 창원시 성산구',
+                    8: '경기 시흥시 공단대로'
+                  };
+
+                  const getDistanceInKm = (addr1: string, addr2: string) => {
+                    if (!addr1 || !addr2) return 15;
+                    const getRegion = (addr: string) => {
+                      if (addr.includes('서울')) return 'Seoul';
+                      if (addr.includes('인천')) return 'Incheon';
+                      if (addr.includes('안산') || addr.includes('평택') || addr.includes('시흥') || addr.includes('경기')) return 'Gyeonggi';
+                      if (addr.includes('청주') || addr.includes('충북')) return 'Chungcheong';
+                      if (addr.includes('김해') || addr.includes('창원') || addr.includes('부산') || addr.includes('경남')) return 'Gyeongsang';
+                      return 'Other';
+                    };
+                    const r1 = getRegion(addr1);
+                    const r2 = getRegion(addr2);
+                    if (r1 === r2) return 8.5;
+                    const distances: Record<string, Record<string, number>> = {
+                      Seoul: { Incheon: 32, Gyeonggi: 25, Chungcheong: 110, Gyeongsang: 340 },
+                      Incheon: { Seoul: 32, Gyeonggi: 28, Chungcheong: 125, Gyeongsang: 360 },
+                      Gyeonggi: { Seoul: 25, Incheon: 28, Chungcheong: 90, Gyeongsang: 320 },
+                      Chungcheong: { Seoul: 110, Incheon: 125, Gyeonggi: 90, Gyeongsang: 210 },
+                      Gyeongsang: { Seoul: 340, Incheon: 360, Gyeonggi: 320, Chungcheong: 210 }
+                    };
+                    const baseDist = distances[r1]?.[r2] || distances[r2]?.[r1] || 150;
+                    const offset = (addr1.length + addr2.length) % 10;
+                    return baseDist + offset;
+                  };
+
+                  const getDriverMonthlyEarnings = (driver: any) => {
+                    const completedFee = dispatches
+                      .filter(d => (d.carNumber === driver.vNumber || d.driverName === driver.name) && d.status === 'completed')
+                      .reduce((sum, d) => sum + d.fee, 0);
+                    const base = driver.spec.includes('11톤') || driver.spec.includes('25톤') ? 3500000 : driver.spec.includes('5톤') ? 2200000 : 1200000;
+                    return base + completedFee;
+                  };
+
+                  const getDriverRecentDispatchesCount = (driver: any) => {
+                    return dispatches.filter(d => (d.carNumber === driver.vNumber || d.driverName === driver.name)).length;
+                  };
+
+                  const getRecommendationReason = (driver: any, targetSpec: string, distance: number, hasActive: boolean) => {
+                    const reasons: string[] = [];
+                    const hasExperience = dispatches.some(d => 
+                      (d.carNumber === driver.vNumber || d.driverName === driver.name) && 
+                      d.spec === targetSpec
+                    );
+                    if (hasExperience) reasons.push('동종화물 유경험');
+                    if (distance < 30) reasons.push('상차지 인접');
+                    if (!hasActive) {
+                      reasons.push('현재 대기중');
+                    } else {
+                      reasons.push('연계운행 최적');
+                    }
+                    return reasons.join(', ');
+                  };
+
+                  // Calculate score for each driver
+                  const scoredDrivers = dummyDrivers.map(driver => {
+                    const activeTrip = dispatches.find(d => 
+                      (d.carNumber === driver.vNumber || d.driverName === driver.name) && 
+                      d.status !== 'completed' && 
+                      d.status !== 'cancelled'
+                    );
+
+                    // 1. Same Cargo / Spec Experience
+                    const hasExperience = dispatches.some(d => 
+                      (d.carNumber === driver.vNumber || d.driverName === driver.name) && 
+                      d.spec === target.spec
+                    ) ? 30 : 0;
+
+                    // 2. Dispatch Count (Fewer is better)
+                    const totalDispatches = getDriverRecentDispatchesCount(driver);
+                    const dispatchScore = Math.max(0, 20 - totalDispatches * 4);
+
+                    // 3. Monthly total earnings (Lower is better for fair distribution)
+                    const monthlyEarnings = getDriverMonthlyEarnings(driver);
+                    const earningsScore = Math.max(0, 20 - (monthlyEarnings / 500000) * 2);
+
+                    // 4. Distance to loading point (Closer is better)
+                    const currentAddr = activeTrip ? activeTrip.destination : driverHomeLocations[driver.id];
+                    const distance = getDistanceInKm(currentAddr, target.origin);
+                    const distanceScore = Math.max(0, 30 - distance * 0.15);
+
+                    // 5. Unloading time before target loading time (Continuous trip scheduling)
+                    let nextTripScore = 0;
+                    if (activeTrip) {
+                      const activeUnloadTime = new Date(activeTrip.destinationDate).getTime();
+                      const targetLoadTime = new Date(target.originDate).getTime();
+                      const destToOriginDistance = getDistanceInKm(activeTrip.destination, target.origin);
+                      if (activeUnloadTime < targetLoadTime && destToOriginDistance < 50) {
+                        nextTripScore = 40;
+                      }
+                    } else {
+                      nextTripScore = 15;
+                    }
+
+                    const score = hasExperience + dispatchScore + earningsScore + distanceScore + nextTripScore;
+                    return {
+                      ...driver,
+                      activeTrip,
+                      distance,
+                      monthlyEarnings,
+                      score
+                    };
+                  });
+
+                  // Sort by score descending
+                  const sortedDrivers = [...scoredDrivers].sort((a, b) => b.score - a.score);
+                  const recommendedDrivers = sortedDrivers.slice(0, 3);
+
+                  const renderDriverCard = (driver: any, isRecommended: boolean) => {
+                    return (
+                      <div 
+                        key={driver.id + (isRecommended ? '-rec' : '')} 
+                        onClick={() => setExpandedDriverId(prev => prev === driver.id ? null : driver.id)}
+                        style={{ 
+                          padding: '1rem', 
+                          border: expandedDriverId === driver.id ? '1.5px solid var(--primary)' : '1px solid var(--border-color)', 
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                          cursor: 'pointer',
+                          boxShadow: expandedDriverId === driver.id ? 'var(--shadow-sm)' : 'none',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', minWidth: 0 }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap' }}>{driver.name}</span>
+                            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+                              <Badge color={driver.type === '소속' ? 'primary' : driver.type === '지입' ? 'success' : 'gray'}>
+                                {driver.type}
+                              </Badge>
+                            </span>
+                            {isRecommended && (
+                              <span style={{ flexShrink: 0, display: 'inline-flex', fontWeight: 700 }}>
+                                <Badge color="warning">
+                                  ⭐ AI 추천
+                                </Badge>
+                              </span>
+                            )}
+                          </div>
+                          <Button 
+                            variant="primary"
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDispatches(prev => prev.map(d => {
+                                if (d.id === assigningDispatchId) {
+                                    return {
+                                      ...d,
+                                      status: 'dispatched' as DispatchStatus,
+                                      carNumber: driver.vNumber,
+                                      driverName: driver.name,
+                                      driverPhone: driver.phone
+                                    }
+                                }
+                                return d
+                              }))
+                              if (expandedId === assigningDispatchId) {
+                                setDriverInput({
                                   carNumber: driver.vNumber,
                                   driverName: driver.name,
                                   driverPhone: driver.phone
-                                }
+                                })
                               }
-                              return d
-                            }))
-                            if (expandedId === assigningDispatchId) {
-                              setDriverInput({
-                                carNumber: driver.vNumber,
-                                driverName: driver.name,
-                                driverPhone: driver.phone
-                              })
-                            }
-                            triggerNotification(`[${driver.name}] 차주가 배차 건에 정상적으로 배정되었습니다.`);
-                            setAssigningDispatchId(null);
-                          }}
-                        >
-                          선택 배정
-                        </Button>
+                              triggerNotification(`[${driver.name}] 차주가 배차 건에 정상적으로 배정되었습니다.`);
+                              setAssigningDispatchId(null);
+                              triggerBlink(assigningDispatchId, 'dispatched');
+                            }}
+                          >
+                            선택 배정
+                          </Button>
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <div>차량번호: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{driver.vNumber}</span></div>
+                            <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                              {driver.activeTrip ? '연계지 거리:' : '현위치 거리:'} {driver.distance.toFixed(0)}km
+                            </div>
+                          </div>
+                          <div>스펙: {driver.spec}</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.1rem' }}>
+                            <span>월 총운임: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{driver.monthlyEarnings.toLocaleString()}원</span></span>
+                            {isRecommended && (
+                              <span style={{ fontSize: '0.76rem', color: 'var(--warning-text)', fontWeight: 600 }}>
+                                {getRecommendationReason(driver, target.spec, driver.distance, !!driver.activeTrip)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Expanded Section with smooth height transition */}
+                        <div style={{
+                          maxHeight: expandedDriverId === driver.id ? '250px' : '0',
+                          overflow: 'hidden',
+                          opacity: expandedDriverId === driver.id ? 1 : 0,
+                          marginTop: expandedDriverId === driver.id ? '0.75rem' : '0',
+                          borderTop: expandedDriverId === driver.id ? '1px dashed var(--border-color)' : 'none',
+                          paddingTop: expandedDriverId === driver.id ? '0.75rem' : '0',
+                          transition: 'all var(--transition-normal)'
+                        }} onClick={e => e.stopPropagation()}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.82rem' }}>
+                            <div>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>현재 상태 및 주소</span>
+                              {driver.activeTrip ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--primary)', fontWeight: 700 }}>
+                                    <span style={{ width: '6px', height: '6px', backgroundColor: 'var(--primary)', borderRadius: '50%' }}></span>
+                                    운행중 ({driver.activeTrip.origin.split(' ')[1] || driver.activeTrip.origin} → {driver.activeTrip.destination.split(' ')[1] || driver.activeTrip.destination})
+                                  </div>
+                                  <div style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>하차지: {driver.activeTrip.destination}</div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#10B981', fontWeight: 700 }}>
+                                    <span style={{ width: '6px', height: '6px', backgroundColor: '#10B981', borderRadius: '50%' }}></span>
+                                    대기중 (배정 가능)
+                                  </div>
+                                  <div style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>대기위치: {driverHomeLocations[driver.id]}</div>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontWeight: 700, display: 'block', marginBottom: '0.1rem' }}>계좌 정보</span>
+                              <span style={{ color: 'var(--text-secondary)' }}>{driver.bank || '등록된 계좌 없음'}</span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>최근 배차 이력</span>
+                              {(() => {
+                                const driverHistory = dispatches.filter(d => 
+                                  (d.carNumber === driver.vNumber || d.driverName === driver.name)
+                                );
+                                if (driverHistory.length === 0) {
+                                  return <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>배차 이력 없음</div>;
+                                }
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    {driverHistory.slice(0, 3).map((hist, idx) => (
+                                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                        <span>{hist.origin.split(' ')[1] || hist.origin} → {hist.destination.split(' ')[1] || hist.destination} ({hist.client})</span>
+                                        <span style={{ fontWeight: 600, color: hist.status === 'completed' ? '#10B981' : hist.status === 'cancelled' ? '#EF4444' : 'var(--primary)' }}>
+                                          {hist.status === 'completed' ? '완료' : hist.status === 'cancelled' ? '취소' : '진행중'}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                        <div>차량번호: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{driver.vNumber}</span></div>
-                        <div>연락처: {driver.phone}</div>
-                        <div>스펙: {driver.spec}</div>
+                    );
+                  };
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      {/* 1. Recommended section */}
+                      <div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.6rem' }}>
+                          ⭐ AI 최적 추천 차주 (최대 3명)
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          {recommendedDrivers.map(driver => renderDriverCard(driver, true))}
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.25rem 0' }} />
+
+                      {/* 2. All drivers section */}
+                      <div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>
+                          전체 배정 가능 차주 목록
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          {sortedDrivers.map(driver => renderDriverCard(driver, false))}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
             </Card>
           </div>
@@ -3415,60 +3819,90 @@ export default function Dispatches() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.1fr 1.2fr', gap: '0.75rem' }}>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 예정일</label>
-                <Input 
-                  type="date" 
-                  value={formData.settleDate}
-                  onChange={e => handleInputChange('settleDate', e.target.value)}
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Row 1: Commission & Fee */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
+                  <Input 
+                    type="text" 
+                    placeholder="예: 30,000" 
+                    disabled={formData.settleMethod === '인수증'}
+                    value={formData.settleMethod === '인수증' ? '' : formData.commission}
+                    onChange={e => handleInputChange('commission', e.target.value)}
+                    style={{ fontSize: '0.85rem', padding: '0.65rem 0.5rem' }}
+                  />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      {hasOtherInfo && recentFee && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleInputChange('fee', String(recentFee))} 
+                          style={recommendationButtonStyle}
+                          title="가장 최근 배차완료된 금액"
+                        >
+                          최근: {(recentFee / 10000).toFixed(0)}만
+                        </button>
+                      )}
+                      {hasOtherInfo && frequentFee && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleInputChange('fee', String(frequentFee))} 
+                          style={recommendationButtonStyle}
+                          title="가장 많이 배차된 금액"
+                        >
+                          최빈: {(frequentFee / 10000).toFixed(0)}만
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <Input 
+                    type="text" 
+                    placeholder="예: 300,000" 
+                    value={formData.fee}
+                    onChange={e => handleInputChange('fee', e.target.value)}
+                    style={{
+                      fontSize: '0.85rem',
+                      padding: '0.65rem 0.5rem',
+                      borderColor: errors.fee ? 'var(--danger)' : 'transparent',
+                      boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
+                    }}
+                  />
+                </div>
               </div>
+
+              {/* Row 2: Settle Date with Shortcuts */}
               <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
-                <Input 
-                  type="text" 
-                  placeholder="예: 30,000" 
-                  disabled={formData.settleMethod === '인수증'}
-                  value={formData.settleMethod === '인수증' ? '' : formData.commission}
-                  onChange={e => handleInputChange('commission', e.target.value)}
-                />
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <label className="text-sm font-bold text-secondary block">정산 예정일</label>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {hasOtherInfo && recentFee && (
+                    {[
+                      { label: '미지정', action: () => handleInputChange('settleDate', '') },
+                      { label: '바로', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 0)) },
+                      { label: '15일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 15)) },
+                      { label: '당월말일', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 0)) },
+                      { label: '45일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 45)) },
+                      { label: '익월말일', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 1)) }
+                    ].map(btn => (
                       <button 
+                        key={btn.label}
                         type="button" 
-                        onClick={() => handleInputChange('fee', String(recentFee))} 
-                        style={recommendationButtonStyle}
-                        title="가장 최근 배차완료된 금액"
+                        onClick={btn.action} 
+                        style={dateShortcutStyle}
                       >
-                        최근: {(recentFee / 10000).toFixed(0)}만
+                        {btn.label}
                       </button>
-                    )}
-                    {hasOtherInfo && frequentFee && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleInputChange('fee', String(frequentFee))} 
-                        style={recommendationButtonStyle}
-                        title="가장 많이 배차된 금액"
-                      >
-                        최빈: {(frequentFee / 10000).toFixed(0)}만
-                      </button>
-                    )}
+                    ))}
                   </div>
                 </div>
                 <Input 
-                  type="text" 
-                  placeholder="예: 300,000" 
-                  value={formData.fee}
-                  onChange={e => handleInputChange('fee', e.target.value)}
-                  style={{
-                    borderColor: errors.fee ? 'var(--danger)' : 'transparent',
-                    boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
-                  }}
+                  type="date" 
+                  style={{ fontSize: '0.85rem', padding: '0.65rem 0.5rem' }}
+                  value={formData.settleDate}
+                  onChange={e => handleInputChange('settleDate', e.target.value)}
                 />
               </div>
             </div>
@@ -3993,11 +4427,13 @@ export default function Dispatches() {
                     <React.Fragment key={dispatch.id}>
                       {/* Main Row */}
                       <tr 
+                        className={blinkRow && blinkRow.id === dispatch.id ? 'blink-row-active' : undefined}
                         style={{ 
                           borderBottom: isExpanded ? 'none' : '1px solid var(--border-color)', 
                           transition: 'background-color var(--transition-fast)',
                           cursor: 'pointer',
-                          backgroundColor: isExpanded ? 'var(--bg-tertiary)' : 'transparent'
+                          backgroundColor: isExpanded ? 'var(--bg-tertiary)' : 'transparent',
+                          animation: blinkRow && blinkRow.id === dispatch.id ? `blink-${blinkRow.status} 1.0s ease-out forwards` : undefined
                         }} 
                         onClick={() => {
                           if (isExpanded) {
@@ -4064,20 +4500,25 @@ export default function Dispatches() {
 
                       {/* Expanded Detail Panel */}
                       {isExpanded && (
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                        <tr id={`expanded-row-${dispatch.id}`} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
                           <td colSpan={7} style={{ padding: '0.5rem 1rem 1rem 1rem' }}>
-                            <div 
-                              className="animate-slide-down"
-                              style={{
-                                padding: '1.25rem',
-                                backgroundColor: 'var(--bg-primary)',
-                                borderRadius: 'var(--radius-md)',
-                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '1.25rem'
-                              }}
-                            >
+                            <div style={{
+                              borderRadius: 'var(--radius-md)',
+                              overflow: 'hidden',
+                              animation: blinkRow && blinkRow.id === dispatch.id ? `blink-${blinkRow.status} 1.0s ease-out forwards` : undefined
+                            }}>
+                              <div 
+                                className="animate-slide-down"
+                                style={{
+                                  padding: '1.25rem',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  borderRadius: 'var(--radius-md)',
+                                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '1.25rem'
+                                }}
+                              >
                               {/* AI Advisor for Dispatch Traffic Light */}
                               {dispatch.status === 'dispatching' && (() => {
                                 const difficulty = dispatch.id % 3;
@@ -4164,11 +4605,21 @@ export default function Dispatches() {
                                 );
                               })()}
 
-                              {/* Layout Details */}
-                              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr', gap: '1.25rem' }}>
+                              {/* Layout Details (55% left, 45% right) */}
+                              <div style={{ display: 'grid', gridTemplateColumns: '55fr 45fr', gap: '1.25rem' }}>
                                 
-                                {/* Left Side: Dispatch Detail Info */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                {/* Left Side: Dispatch Detail Info (Wrapped in white box: bg-secondary) */}
+                                <div style={{ 
+                                  backgroundColor: 'var(--bg-secondary)', 
+                                  border: '1px solid var(--border-color)', 
+                                  borderRadius: 'var(--radius-md)', 
+                                  padding: '0.85rem 1rem',
+                                  display: 'flex', 
+                                  flexDirection: 'column', 
+                                  gap: '0.85rem',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                                  height: '100%'
+                                }}>
                                   <h4 style={{ 
                                     fontSize: '0.92rem', 
                                     fontWeight: 700, 
@@ -4184,19 +4635,15 @@ export default function Dispatches() {
                                     상세 정보
                                   </h4>
                                   
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                                     
-                                    {/* 1. Route Timeline Card */}
+                                    {/* 1. Route Timeline */}
                                     <div style={{ 
-                                      backgroundColor: 'var(--bg-secondary)', 
-                                      border: '1px solid var(--border-color)', 
-                                      borderRadius: 'var(--radius-md)', 
-                                      padding: '0.85rem 1rem',
                                       display: 'grid',
                                       gridTemplateColumns: '1fr 1fr',
                                       gap: '1rem',
                                       position: 'relative',
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                      padding: '0.25rem 0'
                                     }}>
                                       {/* Origin Block */}
                                       <div>
@@ -4233,22 +4680,20 @@ export default function Dispatches() {
                                         <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-all', lineHeight: 1.3 }}>
                                           {dispatch.destination}
                                         </div>
-                                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2' }}>
+                                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                           📅 {dispatch.destinationDate ? new Date(dispatch.destinationDate).toLocaleString() : '미기재'}
                                         </div>
                                       </div>
                                     </div>
 
-                                    {/* 2. Billing & Cargo Details Card */}
+                                    <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
+
+                                    {/* 2. Billing & Cargo Details */}
                                     <div style={{ 
-                                      backgroundColor: 'var(--bg-secondary)', 
-                                      border: '1px solid var(--border-color)', 
-                                      borderRadius: 'var(--radius-md)', 
-                                      padding: '0.85rem 1rem',
                                       display: 'grid',
                                       gridTemplateColumns: '1fr 1fr',
                                       gap: '0.75rem 1rem',
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                      padding: '0.25rem 0'
                                     }}>
                                       <div>
                                         <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 수단 / 수수료</span>
@@ -4270,17 +4715,13 @@ export default function Dispatches() {
                                       </div>
                                     </div>
 
-                                    {/* 3. Memo Accent Box */}
+                                    <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
+
+                                    {/* 3. Memo Box */}
                                     <div style={{ 
                                       borderLeft: '3.5px solid var(--primary)', 
-                                      backgroundColor: 'var(--bg-secondary)', 
-                                      borderTop: '1px solid var(--border-color)',
-                                      borderRight: '1px solid var(--border-color)',
-                                      borderBottom: '1px solid var(--border-color)',
-                                      padding: '0.6rem 0.85rem', 
-                                      borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
-                                      fontSize: '0.82rem',
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                      padding: '0.25rem 0.85rem',
+                                      fontSize: '0.82rem'
                                     }}>
                                       <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>기사 전달사항 및 메모</span>
                                       <span style={{ fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>
@@ -4292,9 +4733,9 @@ export default function Dispatches() {
                                 </div>
 
                                 {/* Right Side: Console Cards */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%' }}>
                                   
-                                  {/* 1. 운임 및 수수료 정보 수정 Card */}
+                                  {/* 1. 운임 및 수수료 정보 수정 Card (White background: bg-secondary) */}
                                   <div style={{ 
                                     backgroundColor: 'var(--bg-secondary)', 
                                     border: '1px solid var(--border-color)', 
@@ -4325,12 +4766,13 @@ export default function Dispatches() {
 
                                     {/* Quick adjust function defined inline inside loop */}
                                     {(() => {
-                                      const adjustAmount = (field: 'fee' | 'commission', delta: number) => {
+                                      const currentTarget = adjustTargetMap[dispatch.id] || 'fee';
+                                      const adjustAmount = (delta: number) => {
                                         if (editingFeeId !== dispatch.id) {
                                           setEditingFeeId(dispatch.id);
                                           const currentFee = dispatch.fee;
                                           const currentComm = dispatch.commission ? Number(dispatch.commission) : 0;
-                                          if (field === 'fee') {
+                                          if (currentTarget === 'fee') {
                                             const newVal = Math.max(0, currentFee + delta);
                                             setEditingFeeValue(newVal.toLocaleString());
                                             setEditingCommissionValue(currentComm ? currentComm.toLocaleString() : '');
@@ -4340,7 +4782,7 @@ export default function Dispatches() {
                                             setEditingCommissionValue(newVal ? newVal.toLocaleString() : '');
                                           }
                                         } else {
-                                          if (field === 'fee') {
+                                          if (currentTarget === 'fee') {
                                             const current = Number(editingFeeValue.replace(/,/g, '')) || 0;
                                             const newVal = Math.max(0, current + delta);
                                             setEditingFeeValue(newVal.toLocaleString());
@@ -4353,77 +4795,142 @@ export default function Dispatches() {
                                       };
 
                                       return (
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginTop: '0.25rem' }}>
-                                          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>운임:</span>
-                                              <Input 
-                                                type="text" 
-                                                style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
-                                                placeholder="운임 입력"
-                                                value={(editingFeeId === dispatch.id ? editingFeeValue : dispatch.fee.toLocaleString()) || ''}
-                                                onChange={e => {
+                                        <div className="fee-correction-grid-wrapper" style={{ overflowX: 'auto', paddingBottom: '4px' }} onClick={e => e.stopPropagation()}>
+                                          <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: 'auto 1.1fr auto auto auto auto auto', 
+                                            gap: '0.4rem 0.5rem', 
+                                            alignItems: 'center', 
+                                            marginTop: '0.25rem',
+                                            minWidth: '345px'
+                                          }}>
+                                            {/* Row 1 */}
+                                            <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textAlign: 'right' }}>운임:</span>
+                                            <Input 
+                                              type="text" 
+                                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', width: '100%' }}
+                                              placeholder="운임 입력"
+                                              value={(editingFeeId === dispatch.id ? editingFeeValue : dispatch.fee.toLocaleString()) || ''}
+                                              onChange={e => {
+                                                setEditingFeeId(dispatch.id)
+                                                setEditingFeeValue(formatAmount(e.target.value))
+                                              }}
+                                              onFocus={() => {
+                                                if (editingFeeId !== dispatch.id) {
                                                   setEditingFeeId(dispatch.id)
-                                                  setEditingFeeValue(formatAmount(e.target.value))
+                                                  setEditingFeeValue(dispatch.fee.toLocaleString())
+                                                  setEditingCommissionValue(dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')
+                                                }
+                                              }}
+                                            />
+                                            
+                                            {/* Toggle Switch (Spans 2 Rows) */}
+                                            <div style={{ 
+                                              gridRow: 'span 2', 
+                                              display: 'flex', 
+                                              flexDirection: 'column', 
+                                              border: '1px solid var(--border-color)', 
+                                              borderRadius: 'var(--radius-sm)', 
+                                              overflow: 'hidden', 
+                                              height: '100%',
+                                              width: '32px',
+                                              backgroundColor: 'var(--bg-primary)'
+                                            }}>
+                                              <button 
+                                                type="button" 
+                                                onClick={() => setAdjustTargetMap(prev => ({ ...prev, [dispatch.id]: 'fee' }))}
+                                                style={{ 
+                                                  flex: 1, 
+                                                  border: 'none', 
+                                                  borderBottom: '1px solid var(--border-color)',
+                                                  backgroundColor: currentTarget === 'fee' ? 'var(--primary)' : 'transparent',
+                                                  color: currentTarget === 'fee' ? 'white' : 'var(--text-secondary)',
+                                                  fontSize: '0.76rem',
+                                                  fontWeight: 700,
+                                                  cursor: 'pointer',
+                                                  padding: '2px 0',
+                                                  transition: 'all var(--transition-fast)'
                                                 }}
-                                                onFocus={() => {
-                                                  if (editingFeeId !== dispatch.id) {
-                                                    setEditingFeeId(dispatch.id)
-                                                    setEditingFeeValue(dispatch.fee.toLocaleString())
-                                                    setEditingCommissionValue(dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')
-                                                  }
-                                                }}
-                                              />
-                                            </div>
-                                            {/* Adjust buttons */}
-                                            <div style={{ display: 'flex', gap: '2px', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                              <button type="button" onClick={() => adjustAmount('fee', 10000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>+1만</button>
-                                              <button type="button" onClick={() => adjustAmount('fee', 5000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>+5천</button>
-                                              <button type="button" onClick={() => adjustAmount('fee', 1000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>+1천</button>
-                                              <button type="button" onClick={() => adjustAmount('fee', -10000)} style={adjustButtonStyle('var(--bg-secondary)', 'var(--text-secondary)')}>-1만</button>
-                                              <button type="button" onClick={() => adjustAmount('fee', -5000)} style={adjustButtonStyle('var(--bg-secondary)', 'var(--text-secondary)')}>-5천</button>
-                                              <button type="button" onClick={() => adjustAmount('fee', -1000)} style={adjustButtonStyle('var(--bg-secondary)', 'var(--text-secondary)')}>-1천</button>
-                                            </div>
-                                          </div>
-
-                                          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>수수료:</span>
-                                              <Input 
-                                                type="text" 
-                                                style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
-                                                placeholder="수수료 입력"
+                                              >
+                                                운
+                                              </button>
+                                              <button 
+                                                type="button" 
+                                                onClick={() => setAdjustTargetMap(prev => ({ ...prev, [dispatch.id]: 'commission' }))}
                                                 disabled={dispatch.settleMethod === '인수증'}
-                                                value={(editingFeeId === dispatch.id ? editingCommissionValue : (dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')) || ''}
-                                                onChange={e => {
-                                                  setEditingFeeId(dispatch.id)
-                                                  setEditingCommissionValue(formatAmount(e.target.value))
+                                                style={{ 
+                                                  flex: 1, 
+                                                  border: 'none', 
+                                                  backgroundColor: currentTarget === 'commission' ? 'var(--primary)' : 'transparent',
+                                                  color: currentTarget === 'commission' ? 'white' : 'var(--text-secondary)',
+                                                  fontSize: '0.76rem',
+                                                  fontWeight: 700,
+                                                  cursor: 'pointer',
+                                                  padding: '2px 0',
+                                                  transition: 'all var(--transition-fast)',
+                                                  opacity: dispatch.settleMethod === '인수증' ? 0.4 : 1
                                                 }}
-                                                onFocus={() => {
-                                                  if (editingFeeId !== dispatch.id) {
-                                                    setEditingFeeId(dispatch.id)
-                                                    setEditingFeeValue(dispatch.fee.toLocaleString())
-                                                    setEditingCommissionValue(dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')
-                                                  }
-                                                }}
-                                              />
+                                              >
+                                                수
+                                              </button>
                                             </div>
-                                          </div>
 
-                                          <Button 
-                                            variant="primary" 
-                                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.82rem', height: '32px' }}
-                                            onClick={() => handleQuickFeeSave(dispatch.id)}
-                                            disabled={editingFeeId !== dispatch.id}
-                                          >
-                                            수정 완료
-                                          </Button>
+                                            {/* Row 1 adjustment buttons */}
+                                            <button type="button" onClick={() => adjustAmount(10000)} style={adjustButtonStyle('var(--danger-bg)', 'var(--danger)')}>+1만</button>
+                                            <button type="button" onClick={() => adjustAmount(5000)} style={adjustButtonStyle('var(--danger-bg)', 'var(--danger)')}>+5천</button>
+                                            <button type="button" onClick={() => adjustAmount(1000)} style={adjustButtonStyle('var(--danger-bg)', 'var(--danger)')}>+1천</button>
+
+                                            {/* Save Button (Spans 2 Rows) */}
+                                            <Button 
+                                              variant="primary" 
+                                              style={{ 
+                                                gridRow: 'span 2', 
+                                                padding: '0.35rem 0.75rem', 
+                                                fontSize: '0.82rem', 
+                                                height: '100%', 
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                whiteSpace: 'nowrap'
+                                              }}
+                                              onClick={() => handleQuickFeeSave(dispatch.id)}
+                                              disabled={editingFeeId !== dispatch.id}
+                                            >
+                                              수정
+                                            </Button>
+
+                                            {/* Row 2 */}
+                                            <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textAlign: 'right' }}>수수료:</span>
+                                            <Input 
+                                              type="text" 
+                                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', width: '100%' }}
+                                              placeholder="수수료 입력"
+                                              disabled={dispatch.settleMethod === '인수증'}
+                                              value={(editingFeeId === dispatch.id ? editingCommissionValue : (dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')) || ''}
+                                              onChange={e => {
+                                                setEditingFeeId(dispatch.id)
+                                                setEditingCommissionValue(formatAmount(e.target.value))
+                                              }}
+                                              onFocus={() => {
+                                                if (editingFeeId !== dispatch.id) {
+                                                  setEditingFeeId(dispatch.id)
+                                                  setEditingFeeValue(dispatch.fee.toLocaleString())
+                                                  setEditingCommissionValue(dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')
+                                                }
+                                              }}
+                                            />
+
+                                            {/* Row 2 adjustment buttons */}
+                                            <button type="button" onClick={() => adjustAmount(-10000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>-1만</button>
+                                            <button type="button" onClick={() => adjustAmount(-5000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>-5천</button>
+                                            <button type="button" onClick={() => adjustAmount(-1000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>-1천</button>
+                                          </div>
                                         </div>
                                       );
                                     })()}
                                   </div>
 
-                                  {/* 2. 차주 배정 및 상태 제어 Card */}
+                                  {/* 2. 차주 배정 및 상태 제어 Card (White background: bg-secondary, expanded height) */}
                                   <div style={{ 
                                     backgroundColor: 'var(--bg-secondary)', 
                                     border: '1px solid var(--border-color)', 
@@ -4432,7 +4939,8 @@ export default function Dispatches() {
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '0.5rem',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                                    flex: 1
                                   }} onClick={e => e.stopPropagation()}>
                                     <h4 style={{ 
                                        fontSize: '0.92rem', 
@@ -4482,70 +4990,63 @@ export default function Dispatches() {
                                       </div>
                                     </div>
 
-                                    {/* Action Buttons for Status Setting (Segment Control Style) */}
+                                    {/* Action Buttons for Status Setting (Segment Control Toggle Type) */}
                                     <div style={{ 
                                       display: 'flex', 
-                                      width: '100%', 
-                                      border: '1.5px solid var(--border-color)', 
-                                      borderRadius: 'var(--radius-md)', 
+                                      flexDirection: 'row', 
+                                      border: '1px solid var(--border-color)', 
+                                      borderRadius: 'var(--radius-sm)', 
                                       overflow: 'hidden', 
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                      marginTop: '0.5rem'
+                                      marginTop: '0.65rem'
                                     }}>
-                                      {(() => {
-                                        const statuses: { key: DispatchStatus; label: string; activeColor: string }[] = [
-                                          { key: 'dispatched', label: '배차완료', activeColor: 'var(--primary)' },
-                                          { key: 'loaded', label: '상차완료', activeColor: '#10B981' },
-                                          { key: 'unloaded', label: '하차완료', activeColor: 'var(--text-secondary)' },
-                                          { key: 'completed', label: '운행완료', activeColor: '#10B981' },
-                                          { key: 'dispatching', label: '배차대기', activeColor: '#F59E0B' },
-                                          { key: 'cancelled', label: '배차취소', activeColor: '#EF4444' }
-                                        ];
-
-                                        return statuses.map((item, idx) => {
-                                          const isActive = dispatch.status === item.key;
-                                          const isLast = idx === statuses.length - 1;
-
-                                          return (
-                                            <button
-                                              key={item.key}
-                                              type="button"
-                                              onClick={() => {
-                                                let next: DispatchStatus = item.key;
-                                                if (isActive) {
-                                                  if (item.key === 'dispatched') next = 'dispatching';
-                                                  else if (item.key === 'loaded') next = 'dispatched';
-                                                  else if (item.key === 'unloaded') next = 'loaded';
-                                                  else if (item.key === 'completed') next = 'unloaded';
-                                                  else if (item.key === 'cancelled') next = 'dispatching';
-                                                  else if (item.key === 'dispatching') next = 'dispatched';
-                                                }
-                                                handleUpdateDriverAndStatus(dispatch.id, next);
-                                              }}
-                                              style={{
-                                                flex: 1,
-                                                border: 'none',
-                                                borderRight: isLast ? 'none' : '1.5px solid var(--border-color)',
-                                                backgroundColor: isActive ? item.activeColor : 'var(--bg-secondary)',
-                                                color: isActive ? '#ffffff' : 'var(--text-primary)',
-                                                padding: '0.65rem 0.25rem',
-                                                fontSize: '0.74rem',
-                                                fontWeight: isActive ? 800 : 500,
-                                                cursor: 'pointer',
-                                                transition: 'all var(--transition-fast)',
-                                                outline: 'none',
-                                                whiteSpace: 'nowrap',
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '0.15rem'
-                                              }}
-                                            >
-                                              {item.label}
-                                            </button>
-                                          );
-                                        });
-                                       })()}
+                                      {[
+                                        { key: 'dispatched', label: '배차완료', activeBg: 'var(--primary)' },
+                                        { key: 'loaded', label: '상차완료', activeBg: '#10B981' },
+                                        { key: 'unloaded', label: '하차완료', activeBg: 'var(--text-secondary)' },
+                                        { key: 'completed', label: '운행완료', activeBg: '#10B981' },
+                                        { key: 'dispatching', label: '배차대기', activeBg: '#F59E0B' },
+                                        { key: 'cancelled', label: '배차취소', activeBg: '#EF4444' }
+                                      ].map((item, idx, arr) => {
+                                        const isActive = dispatch.status === item.key;
+                                        const isLast = idx === arr.length - 1;
+                                        return (
+                                          <button
+                                            key={item.key}
+                                            type="button"
+                                            onClick={() => {
+                                              let next = item.key;
+                                              if (isActive) {
+                                                if (item.key === 'dispatched') next = 'dispatching';
+                                                else if (item.key === 'loaded') next = 'dispatched';
+                                                else if (item.key === 'unloaded') next = 'loaded';
+                                                else if (item.key === 'completed') next = 'unloaded';
+                                                else if (item.key === 'cancelled') next = 'dispatching';
+                                                else if (item.key === 'dispatching') next = 'dispatched';
+                                              }
+                                              handleUpdateDriverAndStatus(dispatch.id, next as DispatchStatus);
+                                            }}
+                                            style={{
+                                              flex: 1,
+                                              border: 'none',
+                                              borderRight: isLast ? 'none' : '1.5px solid var(--border-color)',
+                                              backgroundColor: isActive ? item.activeBg : 'var(--bg-primary)',
+                                              color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                                              padding: '0.55rem 0.25rem',
+                                              fontSize: '0.74rem',
+                                              fontWeight: isActive ? 800 : 500,
+                                              cursor: 'pointer',
+                                              transition: 'all var(--transition-fast)',
+                                              outline: 'none',
+                                              whiteSpace: 'nowrap',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center'
+                                            }}
+                                          >
+                                            {item.label}
+                                          </button>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 </div>
@@ -4553,6 +5054,7 @@ export default function Dispatches() {
                               </div>
 
                             </div>
+                          </div>
                           </td>
                         </tr>
                     )}</React.Fragment>

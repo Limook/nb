@@ -742,8 +742,8 @@ export default function Clients() {
       </div>
 
       {/* Search Bar */}
-      <Card style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', border: 'none' }}>
-        <div style={{ position: 'relative', width: '320px' }}>
+      <Card className="responsive-filter-bar" style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', border: 'none' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
           <Input 
             style={{ paddingLeft: '2.75rem' }} 
@@ -760,7 +760,8 @@ export default function Clients() {
 
       {/* Clients Table */}
       <Card style={{ flex: 1, overflowY: 'auto', border: 'none' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="responsive-table-wrapper">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
               <th style={{ padding: '1.25rem 1.5rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>거래처명</th>
@@ -896,7 +897,7 @@ export default function Clients() {
                     <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
                       <td colSpan={6} style={{ padding: '0.5rem 1.5rem 1.5rem 1.5rem' }}>
                         <div 
-                          className="animate-slide-down"
+                          className="animate-slide-down detail-grid-layout"
                           style={{
                             padding: '1.25rem',
                             backgroundColor: 'var(--bg-primary)',
@@ -991,6 +992,7 @@ export default function Clients() {
             )}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   )
