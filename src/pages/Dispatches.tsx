@@ -2395,6 +2395,9 @@ export default function Dispatches() {
       clientContact: contact
     }))
     setActiveLocationListField('both')
+    if (window.innerWidth > 768) {
+      setShowHistoryPanel(true);
+    }
   }
 
   const handleRecommendSpec = (tonnage: string, type: string, weight: string) => {
@@ -4324,17 +4327,161 @@ export default function Dispatches() {
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-              {showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
+              {activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
             </span>
             <Button
               variant="secondary"
               style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
-              onClick={() => setShowHistoryPanel(false)}
+              onClick={() => {
+                if (activeLocationListField) setActiveLocationListField(null);
+                else if (showClientSearch) setShowClientSearch(false);
+                else setShowHistoryPanel(false);
+              }}
             >
-              {window.innerWidth <= 768 ? '닫기' : '접기 ➔'}
+              {activeLocationListField || showClientSearch ? '닫기' : (window.innerWidth <= 768 ? '닫기' : '접기 ➔')}
             </Button>
           </h4>
-          {showClientSearch ? (
+          {activeLocationListField ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%', overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                {formData.clientName.trim() 
+                  ? `[${formData.clientName}] 거래처의 주요 상하차지 추천 주소 목록입니다.`
+                  : '그동안 등록된 이력을 기반으로 가장 많이 쓰인 상하차지 목록입니다.'}
+              </span>
+              <div style={{ display: 'grid', gridTemplateRows: '1fr 1.1fr 1.1fr', gap: '0.65rem', flex: 1, overflow: 'hidden' }}>
+                
+                {/* 1. 주요 구간 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid #8b5cf6', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#8b5cf6' }}>⚡ 운행데이터기반 주요구간 (상하차 동시선택)</span>
+                  <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {(() => {
+                        const routeCounts: Record<string, number> = {};
+                        historyPool.forEach(item => {
+                          if (item.origin && item.destination) {
+                            const key = `${item.origin} === ${item.destination}`;
+                            routeCounts[key] = (routeCounts[key] || 0) + 1;
+                          }
+                        });
+                        const topRoutes = Object.entries(routeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([key]) => {
+                          const [origin, destination] = key.split(' === ');
+                          return { origin, destination };
+                        });
+                        return topRoutes.map((route: { origin: string, destination: string }, idx: number) => {
+                          const isSelected = formData.origin === route.origin && formData.destination === route.destination;
+                          return (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, origin: route.origin, destination: route.destination }))
+                                setErrors(prev => ({ ...prev, origin: false, destination: false }))
+                                setActiveLocationListField(null)
+                                triggerNotification(`주요 구간이 선택되었습니다.`)
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '15px', height: '15px', fontSize: '0.62rem', fontWeight: 800, backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '50%' }}>{idx + 1}</span>
+                                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                  {route.origin.split(' ').slice(0, 2).join(' ')} &rarr; {route.destination.split(' ').slice(0, 2).join(' ')}
+                                </div>
+                              </div>
+                              <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. 주요 상차지 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>📍 거래처 저장기반 주요상차지</span>
+                  <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {(() => {
+                        const clientName = formData.clientName.trim()
+                        let list: string[] = []
+                        if (clientName) {
+                          const matched = clients.find(c => c.name === clientName)
+                          if (matched) list = matched.origins || []
+                        }
+                        if (list.length === 0) {
+                          const counts: Record<string, number> = {};
+                          historyPool.forEach(item => {
+                            if (item.origin) counts[item.origin] = (counts[item.origin] || 0) + 1
+                          })
+                          list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
+                        }
+                        return list.map((loc: string, idx: number) => {
+                          const isSelected = formData.origin === loc
+                          return (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, origin: loc }))
+                                setErrors(prev => ({ ...prev, origin: false }))
+                                setActiveLocationListField(null)
+                                triggerNotification(`상차지 선택 완료`)
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
+                                <Badge color="primary">{idx + 1}</Badge>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
+                              </div>
+                              <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. 주요 하차지 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--success)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--success)' }}>🏁 거래처 저장기반 주요하차지</span>
+                  <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {(() => {
+                        const clientName = formData.clientName.trim()
+                        let list: string[] = []
+                        if (clientName) {
+                          const matched = clients.find(c => c.name === clientName)
+                          if (matched) list = matched.destinations || []
+                        }
+                        if (list.length === 0) {
+                          const counts: Record<string, number> = {};
+                          historyPool.forEach(item => {
+                            if (item.destination) counts[item.destination] = (counts[item.destination] || 0) + 1
+                          })
+                          list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
+                        }
+                        return list.map((loc: string, idx: number) => {
+                          const isSelected = formData.destination === loc
+                          return (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, destination: loc }))
+                                setErrors(prev => ({ ...prev, destination: false }))
+                                setActiveLocationListField(null)
+                                triggerNotification(`하차지 선택 완료`)
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
+                                <Badge color="success">{idx + 1}</Badge>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
+                              </div>
+                              <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          ) : showClientSearch ? (
             <div className="animate-slide-down" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
               {/* Client Search Header & Filters */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
@@ -5239,7 +5386,7 @@ export default function Dispatches() {
   )}
 
   {/* Major Location List Modal Popup */}
-  {activeLocationListField && (
+  {activeLocationListField && window.innerWidth <= 768 && (
     <div style={{
       position: 'fixed',
       top: 0,
