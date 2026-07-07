@@ -598,3 +598,12 @@ input:disabled, select:disabled {
     display: flex !important;
   }
 }
+
+/* General compact styles for left registration card inputs */
+.dispatch-left-area input {
+  padding: 0.52rem 0.75rem !important;
+  font-size: 0.85rem !important;
+}
+.dispatch-left-area input[style*="paddingLeft"] {
+  padding-left: 2.25rem !important;
+}

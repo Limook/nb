@@ -2888,12 +2888,12 @@ export default function Dispatches() {
 
   const selectStyle = (hasError: boolean): React.CSSProperties => ({
     width: '100%',
-    padding: '0.75rem 1rem',
+    padding: '0.52rem 0.75rem',
     borderRadius: 'var(--radius-md)',
     border: hasError ? '1.5px solid var(--danger)' : '1px solid transparent',
     backgroundColor: 'var(--bg-primary)',
     color: 'var(--text-primary)',
-    fontSize: '0.95rem',
+    fontSize: '0.85rem',
     cursor: 'pointer',
     transition: 'all var(--transition-fast)',
     boxShadow: hasError ? '0 0 0 2px var(--danger-bg)' : 'none'
@@ -3433,7 +3433,7 @@ export default function Dispatches() {
           </div>
         ) : (
           <>
-            <Card style={{ flex: 1, padding: '1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.75rem', border: 'none' }}>
+            <Card style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.15rem', border: 'none' }}>
               <h4 style={{ 
                 fontSize: '0.92rem', 
                 fontWeight: 700, 
@@ -3512,7 +3512,7 @@ export default function Dispatches() {
           </div>
 
           {/* 2. 상/하차지 & 상/하차일시 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
             
             {/* 자주 쓰는 구간 추천 칩 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -3645,7 +3645,7 @@ export default function Dispatches() {
                 </div>
                 <Input 
                   type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.65rem 0.5rem' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
                   value={formData.originDate}
                   onChange={e => handleInputChange('originDate', e.target.value)}
                 />
@@ -3732,7 +3732,7 @@ export default function Dispatches() {
                 </div>
                 <Input 
                   type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.65rem 0.5rem' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
                   value={formData.destinationDate}
                   onChange={e => handleInputChange('destinationDate', e.target.value)}
                 />
@@ -3742,7 +3742,7 @@ export default function Dispatches() {
           </div>
 
           {/* 3. 차량 스펙 */}
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>차량 스펙</label>
               <div 
@@ -3828,7 +3828,7 @@ export default function Dispatches() {
           </div>
 
           {/* 4. 운임 및 정산 정보 */}
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
             <div>
               <label className="text-sm font-bold text-secondary mb-2 block">정산 방법</label>
               <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -3845,9 +3845,9 @@ export default function Dispatches() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {/* Row 1: Commission & Fee */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <div>
                   <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
                   <Input 
@@ -3856,7 +3856,7 @@ export default function Dispatches() {
                     disabled={formData.settleMethod === '인수증'}
                     value={formData.settleMethod === '인수증' ? '' : formData.commission}
                     onChange={e => handleInputChange('commission', e.target.value)}
-                    style={{ fontSize: '0.85rem', padding: '0.65rem 0.5rem' }}
+                    style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
                   />
                 </div>
                 <div>
@@ -3892,7 +3892,7 @@ export default function Dispatches() {
                     onChange={e => handleInputChange('fee', e.target.value)}
                     style={{
                       fontSize: '0.85rem',
-                      padding: '0.65rem 0.5rem',
+                      padding: '0.52rem 0.75rem',
                       borderColor: errors.fee ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
                     }}
@@ -3926,7 +3926,7 @@ export default function Dispatches() {
                 </div>
                 <Input 
                   type="date" 
-                  style={{ fontSize: '0.85rem', padding: '0.65rem 0.5rem' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
                   value={formData.settleDate}
                   onChange={e => handleInputChange('settleDate', e.target.value)}
                 />
@@ -3935,7 +3935,7 @@ export default function Dispatches() {
 
             <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
                 <label className="text-sm font-bold text-secondary mb-1 block">메모</label>
                 <Input 
@@ -3962,12 +3962,12 @@ export default function Dispatches() {
             </div>
           </div>
 
-          <div style={{ marginTop: 'auto', paddingTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
-            <Button variant="primary" style={{ flex: 1, padding: '0.9rem' }} onClick={handleDispatchSubmit}><Plus size={18} /> 배차 등록</Button>
+          <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+            <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
             <Button 
               variant="secondary" 
               type="button"
-              style={{ width: '80px', padding: '0.9rem', fontSize: '0.85rem' }} 
+              style={{ width: '80px', padding: '0.7rem', fontSize: '0.82rem' }} 
               onClick={handleResetForm}
             >
               초기화
