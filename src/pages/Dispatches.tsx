@@ -4008,7 +4008,15 @@ export default function Dispatches() {
 
       {/* Right Area: Dispatch History (60% Width) */}
       {showHistoryPanel && (
-        <div className="dispatch-right-area animate-fade-slide-up" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div 
+          className="dispatch-right-area animate-fade-slide-up" 
+          style={{ display: 'flex', flexDirection: 'column' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && window.innerWidth <= 768) {
+              setShowHistoryPanel(false);
+            }
+          }}
+        >
         <Card style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden', border: 'none' }}>
           <h4 style={{ 
             fontSize: '0.92rem', 
@@ -4030,7 +4038,7 @@ export default function Dispatches() {
               style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
               onClick={() => setShowHistoryPanel(false)}
             >
-              접기 ➔
+              {window.innerWidth <= 768 ? '닫기' : '접기 ➔'}
             </Button>
           </h4>
           {showClientSearch ? (

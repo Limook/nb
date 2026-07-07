@@ -651,6 +651,35 @@ input:disabled, select:disabled {
   .dispatch-form-row-swap > div:nth-child(2) {
     order: 1 !important;
   }
+
+  /* Make history panel a floating modal popup on mobile */
+  .dispatch-right-area {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1000 !important;
+    background-color: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(4px) !important;
+    padding: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .dispatch-right-area > div {
+    width: 100% !important;
+    max-width: 680px !important;
+    height: 85vh !important;
+    max-height: 800px !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-2xl) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background-color: var(--bg-secondary) !important;
+    animation: fadeSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  }
 }
 
 /* Animation for Modal Slide-Up */
