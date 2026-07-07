@@ -33,6 +33,17 @@ const TONNAGES = [
   { value: 25, label: '25톤', multiplier: 3.85 }
 ]
 
+const MOCK_ADDRESS_DATABASE = [
+  { address: '서울 강남구 테헤란로 152', region: '서울', district: '서울 강남구', detail: '테헤란로 152' },
+  { address: '서울 마포구 독막로 320', region: '서울', district: '서울 마포구', detail: '독막로 320' },
+  { address: '경기 화성시 동탄산단로 50', region: '경기', district: '화성시', detail: '동탄산단로 50' },
+  { address: '인천 중구 서해대로 120', region: '인천', district: '인천 중구', detail: '서해대로 120' },
+  { address: '부산 해운대구 우동 80', region: '부산', district: '부산 해운대구', detail: '우동 80' },
+  { address: '경북 구미시 3공단로 12', region: '경북', district: '구미시', detail: '3공단로 12' },
+  { address: '경남 김해시 김해대로 2200', region: '경남', district: '김해시', detail: '김해대로 2200' },
+  { address: '충남 아산시 아산밸리로 100', region: '충남', district: '아산시', detail: '아산밸리로 100' }
+]
+
 const DISTRICTS_MAP: Record<string, { name: string, dx: number, dy: number }[]> = {
   '서울': [
     { name: '서울 강남구', dx: 5, dy: -5 },
@@ -143,6 +154,12 @@ export default function Quotation() {
   // Input states
   const [originRegion, setOriginRegion] = useState('서울')
   const [originDetail, setOriginDetail] = useState('')
+  const [originDistrict, setOriginDistrict] = useState(() => {
+    const list = DISTRICTS_MAP['서울'] || []
+    return list[0]?.name || ''
+  })
+  const [addressSearchInput, setAddressSearchInput] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [carType, setCarType] = useState<'cargo' | 'wing_top' | 'refrigerated'>('cargo')
   
   // Surcharge conditions
@@ -168,6 +185,17 @@ export default function Quotation() {
 
   // Notification Toast State
   const [notification, setNotification] = useState<string | null>(null)
+
+  // Document level click listener to close suggestions on click outside
+  React.useEffect(() => {
+    const handleOutsideClick = () => {
+      setShowSuggestions(false)
+    }
+    document.addEventListener('click', handleOutsideClick)
+    return () => {
+      document.removeEventListener('click', handleOutsideClick)
+    }
+  }, [])
   const triggerNotification = (msg: string) => {
     setNotification(msg)
     setTimeout(() => setNotification(null), 2500)
@@ -178,9 +206,20 @@ export default function Quotation() {
     return REGIONS.find(r => r.name === name) || { x: 0, y: 0 }
   }
 
+  // Get active origin coordinates taking selected district into account
+  const getOriginCoordinates = () => {
+    const parent = REGIONS.find(r => r.name === originRegion) || { x: 0, y: 0 }
+    const districts = DISTRICTS_MAP[originRegion] || []
+    const matched = districts.find(d => d.name === originDistrict || d.name === (originRegion + ' ' + originDistrict))
+    if (matched) {
+      return { x: parent.x + matched.dx, y: parent.y + matched.dy }
+    }
+    return { x: parent.x, y: parent.y }
+  }
+
   // Calculate distance for any target coordinate
-  const calculateDistance = (originName: string, target: { x: number, y: number }) => {
-    const origin = getCoordinates(originName)
+  const calculateDistance = (_originName: string, target: { x: number, y: number }) => {
+    const origin = getOriginCoordinates()
     const dx = origin.x - target.x
     const dy = origin.y - target.y
     const dist = Math.sqrt(dx * dx + dy * dy)
@@ -189,7 +228,7 @@ export default function Quotation() {
 
   // Calculate fare for any target coordinate
   const calculateFareForCoordinates = (targetX: number, targetY: number, tonnageMultiplier: number) => {
-    const origin = getCoordinates(originRegion)
+    const origin = getOriginCoordinates()
     const dx = origin.x - targetX
     const dy = origin.y - targetY
     const distance = Math.sqrt(dx * dx + dy * dy)
@@ -224,7 +263,7 @@ export default function Quotation() {
 
   // Generate dynamic calculation logic
   const calculateFare = (destName: string, tonnageMultiplier: number) => {
-    const origin = getCoordinates(originRegion)
+    const origin = getOriginCoordinates()
     const dest = getCoordinates(destName)
     
     const dx = origin.x - dest.x
@@ -270,10 +309,29 @@ export default function Quotation() {
     return Math.round(fare / 5000) * 5000
   }
 
-  // Filtered regions for table
+  // Filtered regions for table (checks province name or child districts)
   const filteredRegions = useMemo(() => {
-    if (!searchQuery.trim()) return REGIONS
-    return REGIONS.filter(r => r.name.includes(searchQuery.trim()))
+    const query = searchQuery.trim()
+    if (!query) return REGIONS
+    return REGIONS.filter(region => {
+      const provinceMatches = region.name.includes(query)
+      const districts = DISTRICTS_MAP[region.name] || []
+      const districtMatches = districts.some(d => d.name.includes(query))
+      return provinceMatches || districtMatches
+    })
+  }, [searchQuery])
+
+  // Automatically expand matching provinces when search query matches a child district
+  React.useEffect(() => {
+    const query = searchQuery.trim()
+    if (!query) return
+    for (const region of REGIONS) {
+      const districts = DISTRICTS_MAP[region.name] || []
+      if (districts.some(d => d.name.includes(query))) {
+        setExpandedProvince(region.name)
+        break
+      }
+    }
   }, [searchQuery])
 
   // Clipboard export copy
@@ -376,14 +434,17 @@ export default function Quotation() {
               상차 및 차종 옵션 설정
             </h4>
 
-            {/* Origin province selection */}
+            {/* Origin province and district selection */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>상차지 (시도 선택)</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>상차지 선택 (시/도 및 구)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <select 
                   value={originRegion} 
                   onChange={(e) => {
-                    setOriginRegion(e.target.value)
+                    const newRegion = e.target.value
+                    setOriginRegion(newRegion)
+                    const list = DISTRICTS_MAP[newRegion] || []
+                    setOriginDistrict(list[0]?.name || '')
                     setSelectedQuote(null)
                   }}
                   style={{
@@ -401,16 +462,116 @@ export default function Quotation() {
                     <option key={r.name} value={r.name}>{r.name}</option>
                   ))}
                 </select>
-                <Input 
-                  placeholder="상세 구/군 (예: 강남구)" 
-                  value={originDetail}
+
+                <select 
+                  value={originDistrict} 
                   onChange={(e) => {
-                    setOriginDetail(e.target.value)
+                    setOriginDistrict(e.target.value)
                     setSelectedQuote(null)
                   }}
-                  style={{ padding: '0.65rem 0.85rem', fontSize: '0.86rem' }}
+                  style={{
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    outline: 'none'
+                  }}
+                  disabled={!(DISTRICTS_MAP[originRegion] && DISTRICTS_MAP[originRegion].length > 0)}
+                >
+                  {(DISTRICTS_MAP[originRegion] || []).map(d => {
+                    const shortName = d.name.includes(originRegion) ? d.name.replace(originRegion + ' ', '') : d.name
+                    return (
+                      <option key={d.name} value={d.name}>{shortName}</option>
+                    )
+                  })}
+                  {!(DISTRICTS_MAP[originRegion] && DISTRICTS_MAP[originRegion].length > 0) && (
+                    <option value="">일반(시/도 전체)</option>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            {/* Address Search Finder */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', position: 'relative' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>주소로 상차지 찾기</label>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                <Input 
+                  placeholder="지번/도로명 검색 (예: 테헤란로, 동탄산단...)" 
+                  value={addressSearchInput}
+                  onChange={(e) => {
+                    setAddressSearchInput(e.target.value)
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  style={{ paddingLeft: '2rem', paddingRight: '0.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', fontSize: '0.8rem' }}
                 />
               </div>
+
+              {/* Suggestions popover */}
+              {showSuggestions && addressSearchInput.trim() && (
+                (() => {
+                  const filtered = MOCK_ADDRESS_DATABASE.filter(item => 
+                    item.address.includes(addressSearchInput.trim())
+                  )
+                  if (filtered.length === 0) return null
+                  return (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      zIndex: 50,
+                      maxHeight: '180px',
+                      overflowY: 'auto',
+                      marginTop: '0.25rem'
+                    }}>
+                      {filtered.map((item, idx) => (
+                        <div 
+                          key={idx}
+                          onClick={() => {
+                            setOriginRegion(item.region)
+                            setOriginDistrict(item.district)
+                            setOriginDetail(item.detail)
+                            setAddressSearchInput(item.address)
+                            setShowSuggestions(false)
+                            setSelectedQuote(null)
+                          }}
+                          style={{
+                            padding: '0.55rem 0.75rem',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-color)' : 'none',
+                            color: 'var(--text-primary)',
+                            transition: 'background-color var(--transition-fast)'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          {item.address}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()
+              )}
+
+              <Input 
+                placeholder="상세 번지/동/건물명 직접 입력" 
+                value={originDetail}
+                onChange={(e) => {
+                  setOriginDetail(e.target.value)
+                  setSelectedQuote(null)
+                }}
+                style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', marginTop: '0.25rem' }}
+              />
             </div>
 
             {/* Car Type Segment Control */}
@@ -707,7 +868,12 @@ export default function Quotation() {
                           })}
                         </tr>
                         {isExpanded && (
-                          districts.map(district => {
+                          districts.filter(d => {
+                            const query = searchQuery.trim()
+                            if (!query) return true
+                            if (region.name.includes(query)) return true
+                            return d.name.includes(query)
+                          }).map(district => {
                             const dist = calculateDistance(originRegion, {
                               x: getCoordinates(region.name).x + district.dx,
                               y: getCoordinates(region.name).y + district.dy
