@@ -718,28 +718,36 @@ input:disabled, select:disabled {
 /* Split Chat Layout (Responsive) */
 .chat-layout-container {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   height: calc(100vh - 3.5rem);
   margin: -1.5rem;
+  padding: 1.25rem;
   background-color: var(--bg-primary);
   overflow: hidden;
 }
 
 .chat-left-area {
   width: 40%;
-  border-right: 1px solid var(--border-color);
+  border: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .chat-right-area {
   width: 60%;
-  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .chat-back-button {
@@ -751,7 +759,13 @@ input:disabled, select:disabled {
     flex-direction: column !important;
     gap: 0 !important;
     margin: -1.5rem !important;
+    padding: 0 !important;
     height: calc(100vh - 3.5rem) !important;
+  }
+  .chat-left-area, .chat-right-area {
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   .chat-left-area.mobile-hidden {
     display: none !important;
