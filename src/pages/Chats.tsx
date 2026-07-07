@@ -118,6 +118,12 @@ export default function Chats() {
       setTemplates(DEFAULT_TEMPLATES)
       localStorage.setItem('chat_templates', JSON.stringify(DEFAULT_TEMPLATES))
     }
+
+    const activeId = localStorage.getItem('selected_chat_room_id')
+    if (activeId) {
+      setSelectedRoomId(activeId)
+      localStorage.removeItem('selected_chat_room_id')
+    }
   }, [])
 
   // Auto scroll to bottom

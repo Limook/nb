@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Check, Route, ChevronDown, ChevronUp, FileText, Star } from 'lucide-react'
 
 // Rich historical dispatch data for calculating recommendations
@@ -695,6 +696,7 @@ const carTypes = ['카고', '윙바디', '탑차', '냉장탑', '냉동탑', '�
 type DispatchStatus = 'dispatching' | 'dispatched' | 'cancelled' | 'loaded' | 'unloaded' | 'completed'
 
 export default function Dispatches() {
+  const navigate = useNavigate()
   const getLocalDateTimeString = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -3260,13 +3262,31 @@ export default function Dispatches() {
                   <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
                   대화방: {chatRoomRecipient.partnerName}
                 </span>
-                <Button
-                  variant="secondary"
-                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
-                  onClick={() => setActiveLeftPanel('form')}
-                >
-                  운행등록으로 복귀
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Button
+                    variant="outline"
+                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
+                    onClick={() => {
+                      const saved = localStorage.getItem('chat_logs');
+                      let rooms = [];
+                      if (saved) { rooms = JSON.parse(saved); }
+                      const room = rooms.find((r: any) => r.partnerName === chatRoomRecipient.partnerName && r.partnerType === chatRoomRecipient.partnerType);
+                      if (room) {
+                        localStorage.setItem('selected_chat_room_id', room.id);
+                      }
+                      navigate('/chats');
+                    }}
+                  >
+                    전체 화면
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
+                    onClick={() => setActiveLeftPanel('form')}
+                  >
+                    운행등록으로 복귀
+                  </Button>
+                </div>
               </h4>
 
               <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
