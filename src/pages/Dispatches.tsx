@@ -3064,7 +3064,7 @@ export default function Dispatches() {
     cursor: 'pointer',
     transition: 'all var(--transition-fast)',
     boxShadow: hasError ? '0 0 0 2px var(--danger-bg)' : 'none',
-    height: '38px'
+    height: '40px'
   })
 
   const methodButtonStyle = (method: string): React.CSSProperties => {
@@ -4018,19 +4018,19 @@ export default function Dispatches() {
                   placeholder="거래처명" 
                   value={formData.clientName} 
                   onChange={e => handleInputChange('clientName', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                 />
                 <Input 
                   placeholder="전화번호" 
                   value={formData.clientPhone} 
                   onChange={e => handleInputChange('clientPhone', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                 />
                 <Input 
                   placeholder="담당자명" 
                   value={formData.clientContact} 
                   onChange={e => handleInputChange('clientContact', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                 />
                 <Button 
                   type="button"
@@ -4181,7 +4181,7 @@ export default function Dispatches() {
                 </div>
                 <Input 
                   type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                   value={formData.originDate}
                   onChange={e => handleInputChange('originDate', e.target.value)}
                 />
@@ -4386,7 +4386,7 @@ export default function Dispatches() {
                 </div>
                 <Input 
                   type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                   value={formData.destinationDate}
                   onChange={e => handleInputChange('destinationDate', e.target.value)}
                 />
@@ -4479,7 +4479,7 @@ export default function Dispatches() {
                 placeholder="화물실중량" 
                 value={formData.weight}
                 onChange={e => handleInputChange('weight', e.target.value)}
-                style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
               />
             </div>
           </div>
@@ -4528,7 +4528,7 @@ export default function Dispatches() {
                 </div>
                 <Input 
                   type="date" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                   value={formData.settleDate}
                   onChange={e => handleInputChange('settleDate', e.target.value)}
                 />
@@ -4545,7 +4545,7 @@ export default function Dispatches() {
                   disabled={formData.settleMethod === '인수증'}
                   value={formData.settleMethod === '인수증' ? '' : formData.commission}
                   onChange={e => handleInputChange('commission', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                 />
               </div>
               <div>
@@ -4582,7 +4582,7 @@ export default function Dispatches() {
                   style={{
                     fontSize: '0.85rem',
                     padding: '0.52rem 0.75rem',
-                    height: '38px',
+                    height: '40px',
                     borderColor: errors.fee ? 'var(--danger)' : 'transparent',
                     boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
                   }}
@@ -4599,7 +4599,7 @@ export default function Dispatches() {
                   placeholder="추가 요청 사항 입력"
                   value={formData.memo}
                   onChange={e => handleInputChange('memo', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                 />
               </div>
               <div>
@@ -4615,7 +4615,7 @@ export default function Dispatches() {
                   placeholder="예: 철강, 기계부품 등"
                   value={formData.cargoItem}
                   onChange={e => handleInputChange('cargoItem', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '38px' }}
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
                 />
               </div>
             </div>
