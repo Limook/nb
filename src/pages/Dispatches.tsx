@@ -4121,6 +4121,7 @@ export default function Dispatches() {
                     style={{ 
                       fontSize: '0.85rem',
                       padding: '0.52rem 0.75rem',
+                      height: '40px',
                       borderColor: errors.origin ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.origin ? '0 0 0 2px var(--danger-bg)' : 'none',
                       cursor: 'pointer'
@@ -4207,6 +4208,7 @@ export default function Dispatches() {
                     style={{ 
                       fontSize: '0.85rem',
                       padding: '0.52rem 0.75rem',
+                      height: '40px',
                       borderColor: errors.destination ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.destination ? '0 0 0 2px var(--danger-bg)' : 'none',
                       cursor: 'pointer'
