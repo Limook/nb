@@ -3829,7 +3829,56 @@ export default function Dispatches() {
 
           {/* 4. 운임 및 정산 정보 */}
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-            {/* Row 1: Commission & Fee (50% / 50%) */}
+            {/* Row 1: Settle Method & Settle Date (50% / 50%) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div>
+                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 방법</label>
+                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                  {['인수증', '선불', '착불', '카드'].map(method => (
+                    <button 
+                      key={method} 
+                      type="button" 
+                      onClick={() => setFormData({...formData, settleMethod: method})}
+                      style={{ ...methodButtonStyle(method), padding: '0.52rem 0.25rem', fontSize: '0.78rem', flex: 1 }}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <label className="text-sm font-bold text-secondary block">정산 예정일</label>
+                  <div className="date-shortcut-wrapper" style={{ display: 'flex', gap: '0.15rem' }}>
+                    {[
+                      { label: '미지정', action: () => handleInputChange('settleDate', '') },
+                      { label: '바로', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 0)) },
+                      { label: '15일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 15)) },
+                      { label: '당월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 0)) },
+                      { label: '45일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 45)) },
+                      { label: '익월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 1)) }
+                    ].map(btn => (
+                      <button 
+                        key={btn.label}
+                        type="button" 
+                        onClick={btn.action} 
+                        style={{ ...dateShortcutStyle, padding: '0.12rem 0.25rem', fontSize: '0.66rem' }}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Input 
+                  type="date" 
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
+                  value={formData.settleDate}
+                  onChange={e => handleInputChange('settleDate', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Commission & Fee (50% / 50%) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
                 <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
@@ -3879,55 +3928,6 @@ export default function Dispatches() {
                     borderColor: errors.fee ? 'var(--danger)' : 'transparent',
                     boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
                   }}
-                />
-              </div>
-            </div>
-
-            {/* Row 2: Settle Method & Settle Date (50% / 50%) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 방법</label>
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
-                  {['인수증', '선불', '착불', '카드'].map(method => (
-                    <button 
-                      key={method} 
-                      type="button" 
-                      onClick={() => setFormData({...formData, settleMethod: method})}
-                      style={{ ...methodButtonStyle(method), padding: '0.52rem 0.25rem', fontSize: '0.78rem', flex: 1 }}
-                    >
-                      {method}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label className="text-sm font-bold text-secondary block">정산 예정일</label>
-                  <div className="date-shortcut-wrapper" style={{ display: 'flex', gap: '0.15rem' }}>
-                    {[
-                      { label: '미지정', action: () => handleInputChange('settleDate', '') },
-                      { label: '바로', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 0)) },
-                      { label: '15일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 15)) },
-                      { label: '당월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 0)) },
-                      { label: '45일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 45)) },
-                      { label: '익월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 1)) }
-                    ].map(btn => (
-                      <button 
-                        key={btn.label}
-                        type="button" 
-                        onClick={btn.action} 
-                        style={{ ...dateShortcutStyle, padding: '0.12rem 0.25rem', fontSize: '0.66rem' }}
-                      >
-                        {btn.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <Input 
-                  type="date" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
-                  value={formData.settleDate}
-                  onChange={e => handleInputChange('settleDate', e.target.value)}
                 />
               </div>
             </div>
