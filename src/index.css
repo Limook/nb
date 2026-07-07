@@ -715,4 +715,64 @@ input:disabled, select:disabled {
   }
 }
 
+/* Split Chat Layout (Responsive) */
+.chat-layout-container {
+  display: flex;
+  gap: 2rem;
+  height: calc(100vh - 3.5rem);
+  margin: -1.5rem;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+}
+
+.chat-left-area {
+  width: 40%;
+  border-right: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-right-area {
+  width: 60%;
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-back-button {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .chat-layout-container {
+    flex-direction: column !important;
+    gap: 0 !important;
+    margin: -1.5rem !important;
+    height: calc(100vh - 3.5rem) !important;
+  }
+  .chat-left-area.mobile-hidden {
+    display: none !important;
+  }
+  .chat-left-area.mobile-visible {
+    display: flex !important;
+    width: 100% !important;
+  }
+  .chat-right-area.mobile-hidden {
+    display: none !important;
+  }
+  .chat-right-area.mobile-visible {
+    display: flex !important;
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .chat-back-button {
+    display: none !important;
+  }
+}
+
 
