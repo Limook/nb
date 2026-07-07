@@ -2827,8 +2827,23 @@ export default function Dispatches() {
   };
 
   // Dispatch Difficulty Traffic Light component
-  const DispatchTrafficLight = ({ dispatchId }: { dispatchId: number }) => {
-    const difficulty = dispatchId % 3; // 0: Easy (Green), 1: Normal (Yellow), 2: Hard (Red)
+  const DispatchTrafficLight = ({ dispatch }: { dispatch: any }) => {
+    const baseDiff = dispatch.id % 3;
+    const diffInFee = dispatch.fee - (dispatch.originalFee || dispatch.fee);
+
+    let difficulty = baseDiff;
+    if (baseDiff === 1) {
+      if (diffInFee >= 10000) {
+        difficulty = 0;
+      }
+    } else if (baseDiff === 2) {
+      if (diffInFee >= 25000) {
+        difficulty = 0;
+      } else if (diffInFee >= 10000) {
+        difficulty = 1;
+      }
+    }
+
     let tooltipText = "";
     if (difficulty === 0) tooltipText = "배차 난이도: 쉬움 (인근 대기 차량 풍부)";
     else if (difficulty === 1) tooltipText = "배차 난이도: 보통 (차 수급 균형)";
@@ -4498,7 +4513,7 @@ export default function Dispatches() {
                           {dispatch.status === 'dispatching' && (
                             <>
                               <Badge color="warning">배차중</Badge>
-                              <DispatchTrafficLight dispatchId={dispatch.id} />
+                              <DispatchTrafficLight dispatch={dispatch} />
                             </>
                           )}
                           {dispatch.status === 'dispatched' && <Badge color="primary">배차완료</Badge>}
@@ -4561,13 +4576,28 @@ export default function Dispatches() {
                               >
                               {/* AI Advisor for Dispatch Traffic Light */}
                               {dispatch.status === 'dispatching' && (() => {
-                                const difficulty = dispatch.id % 3;
+                                const baseDiff = dispatch.id % 3;
+                                const diffInFee = dispatch.fee - (dispatch.originalFee || dispatch.fee);
+
+                                let difficulty = baseDiff;
+                                if (baseDiff === 1) {
+                                  if (diffInFee >= 10000) {
+                                    difficulty = 0;
+                                  }
+                                } else if (baseDiff === 2) {
+                                  if (diffInFee >= 25000) {
+                                    difficulty = 0;
+                                  } else if (diffInFee >= 10000) {
+                                    difficulty = 1;
+                                  }
+                                }
+
                                 const baseFee = dispatch.originalFee || dispatch.fee;
-                                 const avgFee = difficulty === 0 
-                                   ? Math.round((baseFee * 0.96) / 10000) * 10000
-                                   : difficulty === 1
-                                   ? Math.round((baseFee * 1.03) / 10000) * 10000
-                                   : Math.round((baseFee * 1.09) / 10000) * 10000;
+                                const avgFee = baseDiff === 0 
+                                  ? Math.round((baseFee * 0.96) / 10000) * 10000
+                                  : baseDiff === 1
+                                  ? Math.round((baseFee * 1.03) / 10000) * 10000
+                                  : Math.round((baseFee * 1.09) / 10000) * 10000;
 
                                 const alertColors = [
                                   { border: '#10B981', bg: 'rgba(16, 185, 129, 0.04)', text: '#059669', label: '배차 신호등: 원활 (녹색) 🟢', desc: '현재 조건으로 배차가 신속하게 진행될 것으로 분석됩니다.' },
