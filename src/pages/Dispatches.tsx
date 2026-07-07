@@ -3967,7 +3967,7 @@ export default function Dispatches() {
           </div>
         ) : (
           <>
-            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.15rem', border: 'none' }}>
+            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '0.85rem 1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem', border: 'none' }}>
               <h4 style={{ 
                 fontSize: '0.92rem', 
                 fontWeight: 700, 
@@ -4400,7 +4400,7 @@ export default function Dispatches() {
           </div>
 
           {/* 3. 차량 스펙 */}
-          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
+          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.2rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>차량 스펙</label>
               <div 
@@ -4487,7 +4487,7 @@ export default function Dispatches() {
           </div>
 
           {/* 4. 운임 및 정산 정보 */}
-          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {/* Row 1: Settle Method & Settle Date (50% / 50%) */}
             <div className="dispatch-form-row-half" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
@@ -4623,7 +4623,7 @@ export default function Dispatches() {
             </div>
           </div>
 
-          <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+          <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
             <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
             <Button 
               variant="secondary" 
