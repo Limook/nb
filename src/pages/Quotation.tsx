@@ -354,6 +354,9 @@ export default function Quotation() {
   // Supply/Demand multiplier
   const [demandFactor, setDemandFactor] = useState(1.0)
   
+  // Company Profit Rate (%)
+  const [profitRate, setProfitRate] = useState(10)
+  
   // Filter search
   const [searchQuery, setSearchQuery] = useState('')
   
@@ -432,6 +435,7 @@ export default function Quotation() {
     if (surchargeWeather) fare *= 1.15
 
     fare *= demandFactor
+    fare *= (1 + profitRate / 100)
 
     return Math.round(fare / 5000) * 5000
   }
@@ -479,6 +483,7 @@ export default function Quotation() {
 
     // 6. Apply Peak Demand Slider multiplier
     fare *= demandFactor
+    fare *= (1 + profitRate / 100)
 
     // 7. Round to nearest 5,000 won (logistic standard)
     return Math.round(fare / 5000) * 5000
@@ -567,17 +572,27 @@ export default function Quotation() {
     }
 
     const totalSurcharges = surchargesList.reduce((sum, item) => sum + item.amount, 0);
+    const netCost = currentFare * demandFactor;
+    const profitAmount = netCost * (profitRate / 100);
 
     return {
       distance,
       baseFare,
       surchargesList,
       totalSurcharges,
-      demandFactor
+      demandFactor,
+      profitRate,
+      profitAmount
     };
   }
 
   const breakdown = getSelectedQuoteBreakdown();
+
+  const selectedQuoteFee = useMemo(() => {
+    if (!selectedQuote) return 0;
+    const tonnage = TONNAGES.find(t => t.value === selectedQuote.tonnage) || TONNAGES[0];
+    return calculateFare(selectedQuote.destination, tonnage.multiplier);
+  }, [selectedQuote, originRegion, originDistrict, carType, surchargeWeekend, surchargeNight, surchargeWeather, demandFactor, profitRate]);
 
   // Filtered regions for table (checks province name or child districts)
   const filteredRegions = useMemo(() => {
@@ -907,7 +922,7 @@ export default function Quotation() {
                 
                 <button
                   type="button"
-                  onClick={() => { setSurchargeWeekend(!surchargeWeekend); setSelectedQuote(null); }}
+                  onClick={() => { setSurchargeWeekend(!surchargeWeekend); }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -928,7 +943,7 @@ export default function Quotation() {
 
                 <button
                   type="button"
-                  onClick={() => { setSurchargeNight(!surchargeNight); setSelectedQuote(null); }}
+                  onClick={() => { setSurchargeNight(!surchargeNight); }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -949,7 +964,7 @@ export default function Quotation() {
 
                 <button
                   type="button"
-                  onClick={() => { setSurchargeWeather(!surchargeWeather); setSelectedQuote(null); }}
+                  onClick={() => { setSurchargeWeather(!surchargeWeather); }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -986,7 +1001,6 @@ export default function Quotation() {
                 value={demandFactor}
                 onChange={(e) => {
                   setDemandFactor(parseFloat(e.target.value))
-                  setSelectedQuote(null)
                 }}
                 style={{
                   width: '100%',
@@ -998,6 +1012,50 @@ export default function Quotation() {
                 <span>비성수기 (-20%)</span>
                 <span>보통</span>
                 <span>공급부족 (+50%)</span>
+              </div>
+            </div>
+
+            {/* Company Profit Margin Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>회사 이익률 설정</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  {profitRate}%
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="1"
+                  value={profitRate}
+                  onChange={(e) => {
+                    setProfitRate(parseInt(e.target.value))
+                  }}
+                  style={{
+                    flex: 1,
+                    cursor: 'pointer',
+                    accentColor: 'var(--primary)'
+                  }}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={profitRate}
+                  onChange={(e: any) => {
+                    const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
+                    setProfitRate(val)
+                  }}
+                  style={{ width: '65px', padding: '0.3rem', fontSize: '0.78rem', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                <span>0% (차주 요금 원가)</span>
+                <span>10% (기본마진)</span>
+                <span>50% (최대)</span>
               </div>
             </div>
           </Card>
@@ -1288,6 +1346,8 @@ export default function Quotation() {
                         )}
                         <div style={{ color: 'var(--border-color)' }}>|</div>
                         <div>수급조절배수: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{breakdown.demandFactor.toFixed(2)}x</span></div>
+                        <div style={{ color: 'var(--border-color)' }}>|</div>
+                        <div>회사이익률: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{breakdown.profitRate}%</span> <span style={{ color: 'var(--primary)', fontWeight: 700 }}>(+{Math.round(breakdown.profitAmount).toLocaleString()}원)</span></div>
                       </div>
                     )}
                   </div>
@@ -1297,7 +1357,7 @@ export default function Quotation() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.1rem' }}>
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>최종 견적 운임:</span>
                     <span style={{ fontSize: '1.1rem', color: 'var(--primary)', fontWeight: 900 }}>
-                      {selectedQuote.fee.toLocaleString()}원
+                      {selectedQuoteFee.toLocaleString()}원
                     </span>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>(VAT 별도)</span>
                   </div>
@@ -1305,14 +1365,14 @@ export default function Quotation() {
                     <Button 
                       variant="outline" 
                       style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
-                      onClick={() => copyQuoteToClipboard(selectedQuote.destination, selectedQuote.tonnageLabel, selectedQuote.fee)}
+                      onClick={() => copyQuoteToClipboard(selectedQuote.destination, selectedQuote.tonnageLabel, selectedQuoteFee)}
                     >
                       <Copy size={13} /> 클립보드 복사
                     </Button>
                     <Button 
                       variant="primary" 
                       style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
-                      onClick={() => handleCreateDispatch(selectedQuote.destination, selectedQuote.tonnage, selectedQuote.fee)}
+                      onClick={() => handleCreateDispatch(selectedQuote.destination, selectedQuote.tonnage, selectedQuoteFee)}
                     >
                       신규 배차 등록 <ArrowRight size={13} />
                     </Button>
