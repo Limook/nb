@@ -2916,7 +2916,7 @@ export default function Dispatches() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 3rem)', overflow: 'hidden', position: 'relative' }}>
+    <div className="dispatch-layout-container">
       <style>{`
         @keyframes blink-dispatched {
           0% { background-color: rgba(49, 130, 246, 0.45); }
@@ -3082,7 +3082,7 @@ export default function Dispatches() {
       )}
       
       {/* Left Area: Dispatch Registration Form OR Driver Assignment (40% Width) */}
-      <div style={{ width: '40%', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="dispatch-left-area" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         {assigningDispatchId !== null ? (
           <div className="animate-fade-slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <h2 className="text-xl font-bold mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3878,7 +3878,7 @@ export default function Dispatches() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                   <label className="text-sm font-bold text-secondary block">정산 예정일</label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  <div className="date-shortcut-wrapper" style={{ display: 'flex', gap: '0.25rem' }}>
                     {[
                       { label: '미지정', action: () => handleInputChange('settleDate', '') },
                       { label: '바로', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 0)) },
@@ -3953,7 +3953,7 @@ export default function Dispatches() {
       </div>
 
       {/* Right Area: Dispatch History (60% Width) */}
-      <div style={{ width: '60%', display: 'flex', flexDirection: 'column' }}>
+      <div className="dispatch-right-area" style={{ display: 'flex', flexDirection: 'column' }}>
         <h2 className="text-xl font-bold mb-4">
           {showClientSearch ? '거래처 검색 및 선택' : activeLocationListField ? '주요 상하차지 목록' : '운행 내역'}
         </h2>
@@ -4606,7 +4606,7 @@ export default function Dispatches() {
                               })()}
 
                               {/* Layout Details (55% left, 45% right) */}
-                              <div style={{ display: 'grid', gridTemplateColumns: '55fr 45fr', gap: '1.25rem' }}>
+                              <div className="dispatch-detail-grid" style={{ gap: '1.25rem' }}>
                                 
                                 {/* Left Side: Dispatch Detail Info (Wrapped in white box: bg-secondary) */}
                                 <div style={{ 
@@ -4991,7 +4991,7 @@ export default function Dispatches() {
                                     </div>
 
                                     {/* Action Buttons for Status Setting (Segment Control Toggle Type) */}
-                                    <div style={{ 
+                                    <div className="status-segment-bar" style={{ 
                                       display: 'flex', 
                                       flexDirection: 'row', 
                                       border: '1px solid var(--border-color)', 

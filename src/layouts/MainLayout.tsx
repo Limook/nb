@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, Truck, Users, UserSquare2, Calculator, Moon, Sun, Menu } from 'lucide-react'
 import { useThemeStore } from '../store/useThemeStore'
 import { useState } from 'react'
 
@@ -150,6 +150,43 @@ const MainLayout = () => {
 
       {/* Main Content */}
       <div className="main-content" style={{ width: '100%' }}>
+        {/* Mobile Header (visible only on mobile <= 768px) */}
+        <header 
+          className="mobile-header"
+          style={{
+            height: '56px',
+            borderBottom: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-secondary)',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 1rem',
+            position: 'sticky',
+            top: 0,
+            zIndex: 80,
+            flexShrink: 0
+          }}
+        >
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            style={{ 
+              background: 'var(--bg-primary)', 
+              border: 'none', 
+              color: 'var(--text-secondary)', 
+              padding: '0.5rem', 
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            <Menu size={20} />
+          </button>
+          <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>T-Logis</span>
+          <div style={{ width: '36px' }} />
+        </header>
+
         {/* Page Content */}
         <main className="page-content" style={{ backgroundColor: 'var(--bg-primary)' }}>
           <Outlet />
