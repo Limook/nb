@@ -3656,7 +3656,7 @@ export default function Dispatches() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">상차일시</label>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {['지금', '오늘', '내일', '월요일'].map(s => (
+                    {['월요일', '내일', '오늘', '지금'].map(s => (
                       <button key={s} type="button" onClick={() => handleDateShortcut('originDate', s)} style={dateShortcutStyle}>{s}</button>
                     ))}
                   </div>
@@ -3741,7 +3741,7 @@ export default function Dispatches() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">하차일시</label>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {['오늘', '내일', '월요일'].map(s => (
+                    {['월요일', '내일', '오늘'].map(s => (
                       <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
                     ))}
                   </div>
