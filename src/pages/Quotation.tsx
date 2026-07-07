@@ -33,24 +33,14 @@ const TONNAGES = [
   { value: 25, label: '25톤', multiplier: 3.85 }
 ]
 
-const MOCK_ADDRESS_DATABASE = [
-  { address: '서울 강남구 테헤란로 152', region: '서울', district: '서울 강남구', detail: '테헤란로 152' },
-  { address: '서울 마포구 독막로 320', region: '서울', district: '서울 마포구', detail: '독막로 320' },
-  { address: '경기 화성시 동탄산단로 50', region: '경기', district: '화성시', detail: '동탄산단로 50' },
-  { address: '인천 중구 서해대로 120', region: '인천', district: '인천 중구', detail: '서해대로 120' },
-  { address: '부산 해운대구 우동 80', region: '부산', district: '부산 해운대구', detail: '우동 80' },
-  { address: '경북 구미시 3공단로 12', region: '경북', district: '구미시', detail: '3공단로 12' },
-  { address: '경남 김해시 김해대로 2200', region: '경남', district: '김해시', detail: '김해대로 2200' },
-  { address: '충남 아산시 아산밸리로 100', region: '충남', district: '아산시', detail: '아산밸리로 100' }
-]
-
 const DISTRICTS_MAP: Record<string, { name: string, dx: number, dy: number }[]> = {
   '서울': [
     { name: '서울 강남구', dx: 5, dy: -5 },
     { name: '서울 서초구', dx: 2, dy: -6 },
     { name: '서울 마포구', dx: -5, dy: 3 },
     { name: '서울 송파구', dx: 10, dy: -4 },
-    { name: '서울 강서구', dx: -12, dy: 1 }
+    { name: '서울 강서구', dx: -12, dy: 1 },
+    { name: '서울 강동구', dx: 18, dy: -2 }
   ],
   '인천': [
     { name: '인천 중구', dx: -5, dy: 0 },
@@ -159,8 +149,39 @@ export default function Quotation() {
     return list[0]?.name || ''
   })
   const [addressSearchInput, setAddressSearchInput] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
   const [carType, setCarType] = useState<'cargo' | 'wing_top' | 'refrigerated'>('cargo')
+  const [activePostcodeField, setActivePostcodeField] = useState<string | null>(null)
+
+  // Load Daum Postcode API script on mount if not already present
+  React.useEffect(() => {
+    if (!(window as any).daum) {
+      const script = document.createElement('script');
+      script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  const mapSidoToRegion = (sido: string): string => {
+    if (sido.includes('서울')) return '서울'
+    if (sido.includes('인천')) return '인천'
+    if (sido.includes('경기')) return '경기'
+    if (sido.includes('강원')) return '강원'
+    if (sido.includes('충북') || sido.includes('충청북도')) return '충북'
+    if (sido.includes('충남') || sido.includes('충청남도')) return '충남'
+    if (sido.includes('대전')) return '대전'
+    if (sido.includes('세종')) return '세종'
+    if (sido.includes('전북') || sido.includes('전라북도')) return '전북'
+    if (sido.includes('전남') || sido.includes('전라남도')) return '전남'
+    if (sido.includes('광주')) return '광주'
+    if (sido.includes('경북') || sido.includes('경상북도')) return '경북'
+    if (sido.includes('경남') || sido.includes('경상남도')) return '경남'
+    if (sido.includes('대구')) return '대구'
+    if (sido.includes('울산')) return '울산'
+    if (sido.includes('부산')) return '부산'
+    if (sido.includes('제주')) return '제주'
+    return '서울'
+  }
   
   // Surcharge conditions
   const [surchargeWeekend, setSurchargeWeekend] = useState(false)
@@ -186,16 +207,7 @@ export default function Quotation() {
   // Notification Toast State
   const [notification, setNotification] = useState<string | null>(null)
 
-  // Document level click listener to close suggestions on click outside
-  React.useEffect(() => {
-    const handleOutsideClick = () => {
-      setShowSuggestions(false)
-    }
-    document.addEventListener('click', handleOutsideClick)
-    return () => {
-      document.removeEventListener('click', handleOutsideClick)
-    }
-  }, [])
+
   const triggerNotification = (msg: string) => {
     setNotification(msg)
     setTimeout(() => setNotification(null), 2500)
@@ -500,67 +512,64 @@ export default function Quotation() {
               <div style={{ position: 'relative' }}>
                 <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                 <Input 
-                  placeholder="지번/도로명 검색 (예: 테헤란로, 동탄산단...)" 
+                  placeholder="클릭하여 주소 검색 API 실행" 
                   value={addressSearchInput}
-                  onChange={(e) => {
-                    setAddressSearchInput(e.target.value)
-                    setShowSuggestions(true)
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  style={{ paddingLeft: '2rem', paddingRight: '0.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', fontSize: '0.8rem' }}
+                  onClick={() => setActivePostcodeField(activePostcodeField === 'origin' ? null : 'origin')}
+                  readOnly
+                  style={{ paddingLeft: '2rem', paddingRight: '0.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}
                 />
               </div>
 
-              {/* Suggestions popover */}
-              {showSuggestions && addressSearchInput.trim() && (
-                (() => {
-                  const filtered = MOCK_ADDRESS_DATABASE.filter(item => 
-                    item.address.includes(addressSearchInput.trim())
-                  )
-                  if (filtered.length === 0) return null
-                  return (
-                    <div style={{
+              {activePostcodeField === 'origin' && (
+                <>
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
+                  <div 
+                    style={{
                       position: 'absolute',
                       top: '100%',
                       left: 0,
                       right: 0,
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
+                      height: '320px',
+                      border: '1.5px solid var(--primary)',
                       borderRadius: 'var(--radius-md)',
                       boxShadow: 'var(--shadow-lg)',
-                      zIndex: 50,
-                      maxHeight: '180px',
-                      overflowY: 'auto',
-                      marginTop: '0.25rem'
-                    }}>
-                      {filtered.map((item, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => {
-                            setOriginRegion(item.region)
-                            setOriginDistrict(item.district)
-                            setOriginDetail(item.detail)
-                            setAddressSearchInput(item.address)
-                            setShowSuggestions(false)
-                            setSelectedQuote(null)
-                          }}
-                          style={{
-                            padding: '0.55rem 0.75rem',
-                            fontSize: '0.78rem',
-                            cursor: 'pointer',
-                            borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-color)' : 'none',
-                            color: 'var(--text-primary)',
-                            transition: 'background-color var(--transition-fast)'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          {item.address}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })()
+                      backgroundColor: 'var(--bg-secondary)',
+                      zIndex: 1000,
+                      marginTop: '0.25rem',
+                      overflow: 'hidden'
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        const daum = (window as any).daum;
+                        if (daum && daum.Postcode) {
+                          new daum.Postcode({
+                            oncomplete: (data: any) => {
+                              const addr = data.roadAddress || data.address;
+                              setAddressSearchInput(addr);
+                              
+                              // Auto-map region & district coordinates
+                              const regionName = mapSidoToRegion(data.sido);
+                              setOriginRegion(regionName);
+                              
+                              const districtsList = DISTRICTS_MAP[regionName] || [];
+                              const matchedDistrict = districtsList.find(d => {
+                                const cleanD = d.name.replace(regionName + ' ', '');
+                                return data.sigungu.includes(cleanD) || cleanD.includes(data.sigungu);
+                              });
+                              
+                              setOriginDistrict(matchedDistrict ? matchedDistrict.name : (districtsList[0]?.name || ''));
+                              setOriginDetail(addr);
+                              setActivePostcodeField(null);
+                              setSelectedQuote(null);
+                            },
+                            width: '100%',
+                            height: '100%'
+                          }).embed(el);
+                        }
+                      }
+                    }}
+                  />
+                </>
               )}
 
               <Input 
