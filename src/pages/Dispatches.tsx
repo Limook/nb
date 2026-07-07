@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
-import { Plus, Search, MapPin, Check, Route, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Search, Check, Route, ChevronDown, ChevronUp } from 'lucide-react'
 
 // Rich historical dispatch data for calculating recommendations
 const initialHistoricalDispatches = [
@@ -3600,10 +3600,8 @@ export default function Dispatches() {
                   </div>
                 </div>
                 <div style={{ position: 'relative', width: '100%' }}>
-                  <MapPin size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                   <Input 
                     style={{ 
-                      paddingLeft: '2.25rem', 
                       fontSize: '0.85rem',
                       borderColor: errors.origin ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.origin ? '0 0 0 2px var(--danger-bg)' : 'none',
@@ -3687,10 +3685,8 @@ export default function Dispatches() {
                   </div>
                 </div>
                 <div style={{ position: 'relative', width: '100%' }}>
-                  <MapPin size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                   <Input 
                     style={{ 
-                      paddingLeft: '2.25rem', 
                       fontSize: '0.85rem',
                       borderColor: errors.destination ? 'var(--danger)' : 'transparent',
                       boxShadow: errors.destination ? '0 0 0 2px var(--danger-bg)' : 'none',

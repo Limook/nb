@@ -604,6 +604,3 @@ input:disabled, select:disabled {
   padding: 0.52rem 0.75rem !important;
   font-size: 0.85rem !important;
 }
-.dispatch-left-area input[style*="padding-left"] {
-  padding-left: 2.25rem !important;
-}
