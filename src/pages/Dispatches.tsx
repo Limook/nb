@@ -3453,7 +3453,7 @@ export default function Dispatches() {
           </div>
         ) : (
           <>
-            <Card style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.15rem', border: 'none' }}>
+            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.15rem', border: 'none' }}>
               <h4 style={{ 
                 fontSize: '0.92rem', 
                 fontWeight: 700, 
@@ -3532,7 +3532,7 @@ export default function Dispatches() {
           </div>
 
           {/* 2. 상/하차지 & 상/하차일시 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
+          <div className="dispatch-registration-section" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
             
             {/* 자주 쓰는 구간 추천 칩 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -3758,7 +3758,7 @@ export default function Dispatches() {
           </div>
 
           {/* 3. 차량 스펙 */}
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
+          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>차량 스펙</label>
               <div 
@@ -3844,7 +3844,7 @@ export default function Dispatches() {
           </div>
 
           {/* 4. 운임 및 정산 정보 */}
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
             {/* Row 1: Settle Method & Settle Date (50% / 50%) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <div>
