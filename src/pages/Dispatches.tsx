@@ -4876,19 +4876,35 @@ export default function Dispatches() {
                                   height: '100%'
                                 }}>
                                   <h4 style={{ 
-                                    fontSize: '0.92rem', 
-                                    fontWeight: 700, 
-                                    color: 'var(--text-primary)', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.35rem',
-                                    borderBottom: '1px solid var(--border-color)', 
-                                    paddingBottom: '0.5rem',
-                                    margin: 0
-                                  }}>
-                                    <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-                                    상세 정보
-                                  </h4>
+                                     fontSize: '0.92rem',
+                                     fontWeight: 700, 
+                                     color: 'var(--text-primary)', 
+                                     display: 'flex', 
+                                     alignItems: 'center', 
+                                     justifyContent: 'space-between',
+                                     gap: '0.35rem',
+                                     borderBottom: '1px solid var(--border-color)', 
+                                     paddingBottom: '0.5rem',
+                                     margin: 0
+                                   }}>
+                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                       <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                                       상세 정보
+                                     </span>
+                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 500, fontSize: '0.8rem' }}>
+                                       <span style={{ color: 'var(--text-secondary)' }}>거래처: <strong style={{ color: 'var(--text-primary)' }}>{dispatch.client}</strong></span>
+                                       <Button
+                                         variant="outline"
+                                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', borderColor: 'var(--primary)', color: 'var(--primary)', height: '24px', display: 'flex', alignItems: 'center' }}
+                                         onClick={(e: any) => {
+                                           e.stopPropagation();
+                                           loadOrCreateChatRoom(dispatch.client, 'client', '02-8877-2233');
+                                         }}
+                                       >
+                                         대화방
+                                       </Button>
+                                     </span>
+                                   </h4>
                                   
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                                     
