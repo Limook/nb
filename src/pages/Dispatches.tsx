@@ -4249,73 +4249,25 @@ export default function Dispatches() {
                     </>
                   )}
                 </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">하차일시</label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {['월요일', '내일', '오늘'].map(s => (
-                      <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
-                    ))}
-                  </div>
-                </div>
-                <Input 
-                  type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
-                  value={formData.destinationDate}
-                  onChange={e => handleInputChange('destinationDate', e.target.value)}
-                />
-              </div>
-            </div>
 
-            {/* 경유지 추가 및 관리 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem', marginTop: '0.35rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label className="text-sm font-bold text-secondary block" style={{ margin: 0 }}>경유지 설정</label>
-                {(!formData.waypoints || formData.waypoints.length < 3) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        waypoints: [...(prev.waypoints || []), '']
-                      }));
-                    }}
-                    style={{
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      color: 'var(--primary)',
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.15rem'
-                    }}
-                  >
-                    <Plus size={12} /> 추가 (최대 3개)
-                  </button>
-                )}
-              </div>
-              
-              {formData.waypoints && formData.waypoints.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  {formData.waypoints.map((wp: string, idx: number) => (
+                {/* Compact Waypoint row block aligned below destination address input */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.35rem' }}>
+                  {formData.waypoints && formData.waypoints.map((wp: string, idx: number) => (
                     <div key={idx} style={{ position: 'relative', width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <div style={{ 
-                          fontSize: '0.72rem', 
-                          fontWeight: 700, 
-                          color: '#ffffff', 
-                          backgroundColor: 'var(--primary)',
-                          borderRadius: '4px', 
-                          padding: '0.15rem 0.35rem',
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: 'var(--primary)',
+                          backgroundColor: 'var(--primary-light)',
+                          borderRadius: '4px',
+                          padding: '0.1rem 0.25rem',
                           flexShrink: 0
                         }}>
                           경유 {idx + 1}
-                        </div>
+                        </span>
                         <Input
-                          style={{ fontSize: '0.82rem', cursor: 'pointer', flex: 1, padding: '0.4rem 0.6rem' }}
+                          style={{ fontSize: '0.8rem', cursor: 'pointer', flex: 1, padding: '0.35rem 0.5rem', height: '30px' }}
                           placeholder={`경유지 ${idx + 1} 주소 검색`}
                           value={wp}
                           onClick={() => setActivePostcodeField(activePostcodeField === `waypoint_${idx}` ? null : `waypoint_${idx}`)}
@@ -4334,11 +4286,11 @@ export default function Dispatches() {
                             border: '1px solid var(--border-color)',
                             backgroundColor: 'var(--bg-secondary)',
                             color: 'var(--text-secondary)',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '0.4rem 0.6rem',
-                            fontSize: '0.72rem',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '0 0.4rem',
+                            fontSize: '0.68rem',
                             cursor: 'pointer',
-                            height: '36px'
+                            height: '30px'
                           }}
                         >
                           삭제
@@ -4367,7 +4319,7 @@ export default function Dispatches() {
                               if (el) {
                                 const daum = (window as any).daum;
                                 if (daum && daum.Postcode) {
-                                  new daum.Postcode({
+                                  new daum.Postcode({ 
                                     oncomplete: (data: any) => {
                                       const addr = data.roadAddress || data.address;
                                       setFormData(prev => {
@@ -4388,13 +4340,54 @@ export default function Dispatches() {
                       )}
                     </div>
                   ))}
+                  
+                  {(!formData.waypoints || formData.waypoints.length < 3) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          waypoints: [...(prev.waypoints || []), '']
+                        }));
+                      }}
+                      style={{
+                        alignSelf: 'flex-start',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: 'var(--primary)',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.15rem',
+                        padding: '0.15rem 0'
+                      }}
+                    >
+                      <Plus size={12} /> 경유지 추가 (최대 3개)
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', padding: '0.45rem', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', textAlign: 'center', margin: '0.2rem 0' }}>
-                  등록된 경유지가 없습니다. (선택 입력)
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="text-sm font-bold text-secondary block">하차일시</label>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    {['월요일', '내일', '오늘'].map(s => (
+                      <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
+                    ))}
+                  </div>
                 </div>
-              )}
+                <Input 
+                  type="datetime-local" 
+                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem' }}
+                  value={formData.destinationDate}
+                  onChange={e => handleInputChange('destinationDate', e.target.value)}
+                />
+              </div>
             </div>
+
+
 
           </div>
 
@@ -5066,31 +5059,27 @@ export default function Dispatches() {
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>{dispatch.client}</td>
                         <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', fontSize: '0.86rem', fontWeight: 700 }}>
+                            <span style={{ color: 'var(--text-primary)' }}>
                               {dispatch.origin.split(' ').slice(0, 2).join(' ')}
                             </span>
-                            {dispatch.waypoints && dispatch.waypoints.length > 0 && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem', alignItems: 'center', marginLeft: '0.75rem', margin: '0.1rem 0' }}>
-                                {dispatch.waypoints.map((wp: string, wIdx: number) => (
-                                  <React.Fragment key={wIdx}>
-                                    <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>&rarr;</span>
-                                    <span style={{ 
-                                      fontSize: '0.74rem', 
-                                      backgroundColor: 'var(--primary-light)', 
-                                      color: 'var(--primary)', 
-                                      padding: '0.05rem 0.25rem', 
-                                      borderRadius: '4px',
-                                      fontWeight: 700
-                                    }}>
-                                      {wp.split(' ').slice(0, 2).join(' ') || wp}
-                                    </span>
-                                  </React.Fragment>
-                                ))}
-                              </div>
-                            )}
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginLeft: '1.5rem' }}>
-                              <span style={{ color: 'var(--primary)', fontWeight: 800, marginRight: '0.25rem' }}>&rarr;</span>
+                            {dispatch.waypoints && dispatch.waypoints.length > 0 && dispatch.waypoints.map((_: string, wIdx: number) => (
+                              <React.Fragment key={wIdx}>
+                                <span style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>&rarr;</span>
+                                <span style={{ 
+                                  fontSize: '0.72rem', 
+                                  backgroundColor: 'var(--primary-light)', 
+                                  color: 'var(--primary)', 
+                                  padding: '0.05rem 0.25rem', 
+                                  borderRadius: '4px',
+                                  fontWeight: 700
+                                }}>
+                                  경유지{wIdx + 1}
+                                </span>
+                              </React.Fragment>
+                            ))}
+                            <span style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>&rarr;</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>
                               {dispatch.destination.split(' ').slice(0, 2).join(' ')}
                             </span>
                           </div>
