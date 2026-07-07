@@ -7,6 +7,37 @@ const MainLayout = () => {
   const { theme, toggleTheme } = useThemeStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0)
+
+  const calculateTotalUnread = () => {
+    const saved = localStorage.getItem('chat_logs')
+    if (saved) {
+      try {
+        const rooms = JSON.parse(saved)
+        const total = rooms.reduce((acc: number, r: any) => acc + (r.unreadCount || 0), 0)
+        setTotalUnreadCount(total)
+      } catch (e) {
+        setTotalUnreadCount(0)
+      }
+    }
+  }
+
+  useEffect(() => {
+    calculateTotalUnread()
+    const handleSync = () => {
+      calculateTotalUnread()
+    }
+    window.addEventListener('storage', handleSync)
+    window.addEventListener('chat_logs_updated', handleSync)
+    window.addEventListener('show-toast', handleSync)
+    const interval = setInterval(calculateTotalUnread, 1000)
+    return () => {
+      window.removeEventListener('storage', handleSync)
+      window.removeEventListener('chat_logs_updated', handleSync)
+      window.removeEventListener('show-toast', handleSync)
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     const handleShowToast = (e: Event) => {
@@ -132,16 +163,52 @@ const MainLayout = () => {
                 }
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', flexShrink: 0, position: 'relative' }}>
                 {item.icon}
+                {item.name === '대화방' && totalUnreadCount > 0 && !isSidebarOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '6px',
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--danger)',
+                    border: '1px solid var(--bg-secondary)'
+                  }} />
+                )}
               </div>
               <span style={{ 
                 whiteSpace: 'nowrap',
                 opacity: isSidebarOpen ? 1 : 0,
                 width: isSidebarOpen ? 'auto' : 0,
                 overflow: 'hidden',
-                transition: 'all var(--transition-fast)'
-              }}>{item.name}</span>
+                transition: 'all var(--transition-fast)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                {item.name}
+                {item.name === '대화방' && totalUnreadCount > 0 && isSidebarOpen && (
+                  <span style={{
+                    backgroundColor: 'var(--danger)',
+                    color: '#ffffff',
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    borderRadius: 'var(--radius-full)',
+                    padding: '0.05rem 0.35rem',
+                    minWidth: '16px',
+                    height: '16px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                    marginLeft: '0.2rem'
+                  }}>
+                    {totalUnreadCount}
+                  </span>
+                )}
+              </span>
             </NavLink>
           ))}
         </nav>
