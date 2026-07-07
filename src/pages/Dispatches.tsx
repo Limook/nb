@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
-import { Plus, Search, Check, Route, ChevronDown, ChevronUp, FileText } from 'lucide-react'
+import { Plus, Search, Check, Route, ChevronDown, ChevronUp, FileText, Star } from 'lucide-react'
 
 // Rich historical dispatch data for calculating recommendations
 const initialHistoricalDispatches = [
@@ -1805,6 +1805,62 @@ export default function Dispatches() {
   } | null>(null)
   const [embeddedChatInput, setEmbeddedChatInput] = useState('')
   const [embeddedChatMessages, setEmbeddedChatMessages] = useState<any[]>([])
+  const [showEmbeddedTemplates, setShowEmbeddedTemplates] = useState(false)
+  const [embeddedTemplates, setEmbeddedTemplates] = useState<any[]>([])
+
+  const LOCAL_DEFAULT_TEMPLATES = [
+    { id: 't1', category: '정산', text: '이번 운행 건 인수증 사진과 함께 세금계산서 청구 부탁드립니다.' },
+    { id: 't2', category: '정산', text: '운임 정산 처리가 완료되었습니다. 다음 결제일에 등록하신 계좌로 입금 예정입니다.' },
+    { id: 't3', category: '상하차', text: '상차지 주소: [상차지주소] / 하차지 주소: [하차지주소] 운행 스펙 확인하시고 이동 바랍니다.' },
+    { id: 't4', category: '상하차', text: '하차 장소가 협소하여 진입 대기가 발생할 수 있으니 도착 10분 전 연락 바랍니다.' },
+    { id: 't5', category: '공지', text: '운행 중 특이사항(차량 이상, 상하차 지연 등)이 발생할 경우 즉시 관제 센터로 공유 부탁드립니다.' }
+  ];
+
+  // Sync templates dynamically via CustomEvent and localStorage
+  React.useEffect(() => {
+    const loadTemps = () => {
+      const savedTemplates = localStorage.getItem('chat_templates')
+      if (savedTemplates) {
+        try {
+          setEmbeddedTemplates(JSON.parse(savedTemplates))
+        } catch (e) {
+          setEmbeddedTemplates(LOCAL_DEFAULT_TEMPLATES)
+        }
+      } else {
+        setEmbeddedTemplates(LOCAL_DEFAULT_TEMPLATES)
+        localStorage.setItem('chat_templates', JSON.stringify(LOCAL_DEFAULT_TEMPLATES))
+      }
+    }
+    loadTemps()
+    window.addEventListener('chat_templates_updated', loadTemps)
+    return () => window.removeEventListener('chat_templates_updated', loadTemps)
+  }, [])
+
+  const handleAddEmbeddedTemplate = () => {
+    const category = prompt('카테고리를 입력하세요 (예: 정산, 상하차, 공지 등):')
+    if (!category) return
+    const text = prompt('상용구 내용을 입력하세요:')
+    if (!text) return
+
+    const newTemplate = {
+      id: 't_' + Date.now(),
+      category: category.trim(),
+      text: text.trim()
+    }
+    const updated = [...embeddedTemplates, newTemplate]
+    setEmbeddedTemplates(updated)
+    localStorage.setItem('chat_templates', JSON.stringify(updated))
+    window.dispatchEvent(new Event('chat_templates_updated'))
+  }
+
+  const handleDeleteEmbeddedTemplate = (id: string, e: any) => {
+    e.stopPropagation()
+    if (!confirm('해당 상용구를 삭제하시겠습니까?')) return
+    const updated = embeddedTemplates.filter(t => t.id !== id)
+    setEmbeddedTemplates(updated)
+    localStorage.setItem('chat_templates', JSON.stringify(updated))
+    window.dispatchEvent(new Event('chat_templates_updated'))
+  }
 
   const loadOrCreateChatRoom = (recipientName: string, recipientType: 'driver' | 'client', phone: string, vehicleNo?: string) => {
     const saved = localStorage.getItem('chat_logs')
@@ -3282,7 +3338,105 @@ export default function Dispatches() {
                 })}
               </div>
 
-              <form
+                            {showEmbeddedTemplates && (
+                <div style={{
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderTop: '1px solid var(--border-color)',
+                  borderBottom: '1px solid var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem',
+                  maxHeight: '130px',
+                  overflowY: 'auto',
+                  marginBottom: '0.4rem',
+                  borderRadius: 'var(--radius-sm)'
+                }} className="hide-scrollbar">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-secondary)' }}>주요 상용구 목록 (클릭 시 자동 입력)</span>
+                    <button
+                      type="button"
+                      onClick={handleAddEmbeddedTemplate}
+                      style={{
+                        padding: '0.1rem 0.35rem',
+                        fontSize: '0.62rem',
+                        fontWeight: 700,
+                        backgroundColor: 'var(--primary-light)',
+                        color: 'var(--primary)',
+                        border: 'none',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + 추가
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    {embeddedTemplates.map(temp => (
+                      <div
+                        key={temp.id}
+                        onClick={() => {
+                          setEmbeddedChatInput(temp.text);
+                          setShowEmbeddedTemplates(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.35rem 0.5rem',
+                          backgroundColor: 'var(--bg-tertiary)',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          transition: 'all var(--transition-fast)',
+                          fontSize: '0.74rem',
+                          border: '1px solid transparent'
+                        }}
+                        onMouseEnter={(e: any) => {
+                          e.currentTarget.style.borderColor = 'var(--primary)';
+                          e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                        }}
+                        onMouseLeave={(e: any) => {
+                          e.currentTarget.style.borderColor = 'transparent';
+                          e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%', minWidth: 0 }}>
+                          <span style={{
+                            fontSize: '0.58rem',
+                            padding: '0.05rem 0.25rem',
+                            borderRadius: 'var(--radius-sm)',
+                            backgroundColor: temp.category === '정산' ? 'var(--primary-light)' : temp.category === '상하차' ? 'var(--success-light)' : 'var(--warning-light)',
+                            color: temp.category === '정산' ? 'var(--primary)' : temp.category === '상하차' ? 'var(--success)' : 'var(--warning-text)',
+                            fontWeight: 800,
+                            flexShrink: 0
+                          }}>
+                            {temp.category}
+                          </span>
+                          <span style={{ color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {temp.text}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e: any) => handleDeleteEmbeddedTemplate(temp.id, e)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--danger)',
+                            fontSize: '0.68rem',
+                            cursor: 'pointer',
+                            padding: '0.1rem 0.25rem'
+                          }}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+<form
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!embeddedChatInput.trim()) return;
@@ -3354,7 +3508,7 @@ export default function Dispatches() {
                 }}
                 style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}
               >
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                <div style={{ display: 'flex', gap: '0.3rem' }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -3396,6 +3550,26 @@ export default function Dispatches() {
                     }}
                   >
                     <FileText size={14} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEmbeddedTemplates(!showEmbeddedTemplates);
+                    }}
+                    title="상용구 목록"
+                    style={{
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: showEmbeddedTemplates ? 'rgba(234, 179, 8, 0.1)' : 'var(--bg-secondary)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.4rem',
+                      cursor: 'pointer',
+                      color: '#EAB308',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Star size={14} fill={showEmbeddedTemplates ? '#EAB308' : 'none'} style={{ color: '#EAB308' }} />
                   </button>
                 </div>
 
