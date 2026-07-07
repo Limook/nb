@@ -828,8 +828,12 @@ export default function Quotation() {
                               {isExpanded ? '▼' : '▶'}
                             </span>
                             {region.name}
-                            {region.name === originRegion && (
+                            {region.name === originRegion ? (
                               <span style={{ fontSize: '0.65rem', marginLeft: '0.25rem', padding: '0.05rem 0.35rem', backgroundColor: 'var(--primary)', color: '#ffffff', borderRadius: 'var(--radius-sm)' }}>상차</span>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '0.35rem', fontWeight: 700 }}>
+                                ({parentDist.toFixed(0)}km)
+                              </span>
                             )}
                           </td>
                           {TONNAGES.map(tonnage => {
@@ -860,7 +864,12 @@ export default function Quotation() {
                                 }}
                               >
                                 <div>{(calculatedFee / 10000).toFixed(1)}만</div>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '0.1rem', fontWeight: 400 }}>
+                                <div style={{ 
+                                  fontSize: '0.72rem', 
+                                  color: isSelected ? 'var(--primary)' : 'var(--text-secondary)', 
+                                  marginTop: '0.15rem', 
+                                  fontWeight: 700 
+                                }}>
                                   {ratePerKm.toLocaleString()}원/km
                                 </div>
                               </td>
@@ -890,11 +899,21 @@ export default function Quotation() {
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)' }}
                               >
                                 <td style={{ padding: '0.55rem 0.5rem 0.55rem 1.5rem', textAlign: 'left' }}>
-                                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                     <span style={{ color: 'var(--text-tertiary)' }}>↳</span> {district.name.includes(region.name) ? district.name.replace(region.name + ' ', '') : district.name}
                                   </div>
-                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>
-                                    {dist.toFixed(1)}km
+                                  <div style={{ marginTop: '0.25rem' }}>
+                                    <span style={{ 
+                                      display: 'inline-block', 
+                                      padding: '0.15rem 0.45rem', 
+                                      fontSize: '0.7rem', 
+                                      fontWeight: 800, 
+                                      backgroundColor: 'var(--border-color)', 
+                                      color: 'var(--text-primary)', 
+                                      borderRadius: 'var(--radius-sm)' 
+                                    }}>
+                                      {dist.toFixed(1)} km
+                                    </span>
                                   </div>
                                 </td>
                                 {TONNAGES.map(tonnage => {
@@ -931,7 +950,12 @@ export default function Quotation() {
                                       title={tonnage.label + ' 단가: ' + ratePerKm.toLocaleString() + '원/km'}
                                     >
                                       <div>{(calculatedFee / 10000).toFixed(1)}만</div>
-                                      <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '0.1rem', fontWeight: 400 }}>
+                                      <div style={{ 
+                                        fontSize: '0.72rem', 
+                                        color: isSelected ? 'var(--primary)' : 'var(--text-secondary)', 
+                                        marginTop: '0.15rem', 
+                                        fontWeight: 700 
+                                      }}>
                                         {ratePerKm.toLocaleString()}원/km
                                       </div>
                                     </td>
