@@ -4575,67 +4575,35 @@ export default function Dispatches() {
                                     border: '1px solid var(--border-color)',
                                     borderLeft: `4px solid ${alertColors.border}`,
                                     borderRadius: 'var(--radius-md)',
-                                    padding: '0.85rem 1.15rem',
+                                    padding: '0.55rem 0.75rem',
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
                                     display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.5rem'
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '1rem',
+                                    fontSize: '0.8rem'
                                   }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.86rem', fontWeight: 800, color: alertColors.text }}>
-                                        <span>{alertColors.label}</span>
-                                      </div>
-                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>실시간 매칭 AI 어드바이저</span>
-                                    </div>
-                                    
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500, lineHeight: 1.4 }}>
-                                      {alertColors.desc}
-                                    </p>
-
-                                    <div style={{ 
-                                      display: 'grid', 
-                                      gridTemplateColumns: '1fr 1fr 1fr', 
-                                      gap: '0.75rem', 
-                                      marginTop: '0.2rem',
-                                      paddingTop: '0.45rem',
-                                      borderTop: '1px dashed var(--border-color)'
-                                    }}>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>대기 차주 현황</span>
-                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {difficulty === 0 ? '인근 22명 공차 대기' : difficulty === 1 ? '인근 12명 공차 대기' : '인근 3명 미만 대기'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>동일 구간 경쟁 화물</span>
-                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {difficulty === 0 ? '경쟁 화물 없음' : difficulty === 1 ? '경쟁 화물 약 8건' : '동일 조건 화물 30개 이상'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>구간 시장 평균 운임</span>
-                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {avgFee.toLocaleString()}원 <span style={{ fontSize: '0.68rem', fontWeight: 500, color: difficulty === 0 ? '#10B981' : difficulty === 1 ? 'var(--text-secondary)' : '#EF4444' }}>
-                                            ({difficulty === 0 ? '적정' : difficulty === 1 ? '유사' : '평균 이하'})
-                                          </span>
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {difficulty > 0 && (
-                                      <div style={{ 
-                                        fontSize: '0.74rem', 
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+                                      <span style={{ 
+                                        fontWeight: 800, 
                                         color: alertColors.text, 
-                                        backgroundColor: 'rgba(255,255,255,0.7)', 
-                                        padding: '0.35rem 0.65rem', 
+                                        whiteSpace: 'nowrap',
+                                        backgroundColor: `${alertColors.border}15`,
+                                        padding: '0.2rem 0.4rem',
                                         borderRadius: 'var(--radius-sm)',
-                                        marginTop: '0.1rem',
-                                        border: `1px solid ${alertColors.border}22`,
-                                        fontWeight: 600
+                                        fontSize: '0.74rem'
                                       }}>
-                                        💡 추천 제안: {difficulty === 1 ? '운임을 약 1~2만 원 보완하시거나, 상차 대기 시간을 연장하면 즉시 수락률이 90% 이상 증가합니다.' : '빠른 배차를 수락받으려면 운임을 최소 2~3만 원 이상 권장 평균가로 보강하시는 것을 강력 추천해 드립니다.'}
-                                      </div>
-                                    )}
+                                        {difficulty === 0 ? '🟢 원활' : difficulty === 1 ? '🟡 주의' : '🔴 지연우려'}
+                                      </span>
+                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {difficulty === 0 && `대기 22명 | 경쟁 없음 | 평균가(${avgFee.toLocaleString()}원) 적정`}
+                                        {difficulty === 1 && `경쟁 8건. 운임 1~2만원 보완 또는 상차대기 연장 시 수락률 90% 상승!`}
+                                        {difficulty === 2 && `경쟁 30개 이상. 운임 2~3만원 추가하여 평균가(${avgFee.toLocaleString()}원) 보강 권장.`}
+                                      </span>
+                                    </div>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                      AI 어드바이저
+                                    </span>
                                   </div>
                                 );
                               })()}
