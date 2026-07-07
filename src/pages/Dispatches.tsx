@@ -3478,7 +3478,8 @@ export default function Dispatches() {
                       return {
                         ...r,
                         lastUpdated: now.toISOString(),
-                        messages: [...r.messages, newMsg]
+                        messages: [...r.messages, newMsg],
+                        unreadCount: 0
                       };
                     }
                     return r;
@@ -3509,10 +3510,12 @@ export default function Dispatches() {
                     if (saved2) { rooms2 = JSON.parse(saved2); }
                     const updatedRooms2 = rooms2.map((r: any) => {
                       if (r.partnerName === chatRoomRecipient.partnerName && r.partnerType === chatRoomRecipient.partnerType) {
+                        const isActive = (activeLeftPanel === 'chat') && (chatRoomRecipient.partnerName === r.partnerName && chatRoomRecipient.partnerType === r.partnerType);
                         return {
                           ...r,
                           lastUpdated: new Date().toISOString(),
-                          messages: [...r.messages, replyMsg]
+                          messages: [...r.messages, replyMsg],
+                          unreadCount: isActive ? 0 : ((r.unreadCount || 0) + 1)
                         };
                       }
                       return r;
@@ -3549,7 +3552,8 @@ export default function Dispatches() {
                           return {
                             ...r,
                             lastUpdated: now.toISOString(),
-                            messages: [...r.messages, newMsg]
+                            messages: [...r.messages, newMsg],
+                            unreadCount: 0
                           };
                         }
                         return r;
