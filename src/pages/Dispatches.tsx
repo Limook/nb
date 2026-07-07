@@ -5259,18 +5259,17 @@ export default function Dispatches() {
                                      </span>
                                    </h4>
                                   
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+                                  <div style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: '1.2fr 1fr', 
+                                    gap: '1.25rem', 
+                                    flex: 1 
+                                  }}>
                                     
-                                    {/* 1. Route Timeline */}
-                                    <div style={{ 
-                                      display: 'grid',
-                                      gridTemplateColumns: '1fr 1fr',
-                                      gap: '1rem',
-                                      position: 'relative',
-                                      padding: '0.25rem 0'
-                                    }}>
+                                    {/* Left Column: Route Timeline (상차지, 경유지, 하차지) */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                       {/* Origin Block */}
-                                      <div>
+                                      <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
                                         <span style={{ 
                                           display: 'inline-block', 
                                           fontSize: '0.72rem', 
@@ -5289,8 +5288,160 @@ export default function Dispatches() {
                                         </div>
                                       </div>
 
+                                      {/* Waypoints Block */}
+                                      <div style={{
+                                        padding: '0.75rem',
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.5rem'
+                                      }} onClick={e => e.stopPropagation()}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)' }}>경유지 정보 및 관리</span>
+                                          {editingWaypointsId !== dispatch.id ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditingWaypointsId(dispatch.id);
+                                                setEditWaypoints(dispatch.waypoints || []);
+                                              }}
+                                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                                            >
+                                              수정
+                                            </button>
+                                          ) : (
+                                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const saved = localStorage.getItem('dispatches');
+                                                  let items = [];
+                                                  if (saved) { items = JSON.parse(saved); }
+                                                  const updatedItems = items.map((d: any) => {
+                                                    if (d.id === dispatch.id) {
+                                                      return { ...d, waypoints: editWaypoints.filter(w => w.trim() !== '') };
+                                                    }
+                                                    return d;
+                                                  });
+                                                  setDispatches(updatedItems);
+                                                  localStorage.setItem('dispatches', JSON.stringify(updatedItems));
+                                                  setEditingWaypointsId(null);
+                                                }}
+                                                style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                                              >
+                                                저장
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => setEditingWaypointsId(null)}
+                                                style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                                              >
+                                                취소
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {editingWaypointsId === dispatch.id ? (
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            {editWaypoints.map((wp, wIdx) => (
+                                              <div key={wIdx} style={{ position: 'relative', width: '100%' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', backgroundColor: 'var(--primary)', borderRadius: '4px', padding: '0.1rem 0.3rem', flexShrink: 0 }}>경유 {wIdx + 1}</span>
+                                                  <Input
+                                                    style={{ fontSize: '0.82rem', cursor: 'pointer', flex: 1, padding: '0.3rem 0.5rem', height: '30px' }}
+                                                    placeholder={`경유지 ${wIdx + 1} 주소 검색`}
+                                                    value={wp}
+                                                    onClick={() => setActivePostcodeField(activePostcodeField === `edit_waypoint_${wIdx}` ? null : `edit_waypoint_${wIdx}`)}
+                                                    readOnly
+                                                  />
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const nextWps = [...editWaypoints];
+                                                      nextWps.splice(wIdx, 1);
+                                                      setEditWaypoints(nextWps);
+                                                    }}
+                                                    style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                                                  >
+                                                    삭제
+                                                  </button>
+                                                </div>
+                                                {activePostcodeField === `edit_waypoint_${wIdx}` && (
+                                                  <>
+                                                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
+                                                    <div 
+                                                      style={{
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: 0,
+                                                        right: 0,
+                                                        height: '350px',
+                                                        border: '1.5px solid var(--primary)',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        boxShadow: 'var(--shadow-lg)',
+                                                        backgroundColor: 'var(--bg-secondary)',
+                                                        zIndex: 1000,
+                                                        marginTop: '0.25rem',
+                                                        overflow: 'hidden'
+                                                      }}
+                                                      ref={(el) => {
+                                                        if (el) {
+                                                          const daum = (window as any).daum;
+                                                          if (daum && daum.Postcode) {
+                                                            new daum.Postcode({
+                                                              oncomplete: (data: any) => {
+                                                                const addr = data.roadAddress || data.address;
+                                                                const nextWps = [...editWaypoints];
+                                                                nextWps[wIdx] = addr;
+                                                                setEditWaypoints(nextWps);
+                                                                setActivePostcodeField(null);
+                                                              },
+                                                              width: '100%',
+                                                              height: '100%'
+                                                            }).embed(el);
+                                                          }
+                                                        }
+                                                      }}
+                                                    />
+                                                  </>
+                                                )}
+                                              </div>
+                                            ))}
+                                            {editWaypoints.length < 3 && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setEditWaypoints([...editWaypoints, ''])}
+                                                style={{ border: '1px dashed var(--primary)', backgroundColor: 'transparent', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '0.3rem', fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                              >
+                                                <Plus size={12} /> 경유지 추가
+                                              </button>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div>
+                                            {dispatch.waypoints && dispatch.waypoints.length > 0 ? (
+                                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                                {dispatch.waypoints.map((wp: string, wIdx: number) => (
+                                                  <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    {wIdx > 0 && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>&rarr;</span>}
+                                                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+                                                      {wp}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>등록된 경유지가 없습니다.</span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
                                       {/* Destination Block */}
-                                      <div style={{ paddingLeft: '0.5rem', borderLeft: '1px dashed var(--border-color)' }}>
+                                      <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
                                         <span style={{ 
                                           display: 'inline-block', 
                                           fontSize: '0.72rem', 
@@ -5310,200 +5461,51 @@ export default function Dispatches() {
                                       </div>
                                     </div>
 
-                                    {/* Waypoints Manager Card */}
-                                    <div style={{
-                                      marginTop: '0.5rem',
-                                      padding: '0.75rem',
-                                      backgroundColor: 'var(--bg-primary)',
-                                      borderRadius: 'var(--radius-md)',
-                                      border: '1px solid var(--border-color)',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '0.5rem'
-                                    }} onClick={e => e.stopPropagation()}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>경유지 정보 및 관리</span>
-                                        {editingWaypointsId !== dispatch.id ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setEditingWaypointsId(dispatch.id);
-                                              setEditWaypoints(dispatch.waypoints || []);
-                                            }}
-                                            style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                                          >
-                                            수정
-                                          </button>
-                                        ) : (
-                                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const saved = localStorage.getItem('dispatches');
-                                                let items = [];
-                                                if (saved) { items = JSON.parse(saved); }
-                                                const updatedItems = items.map((d: any) => {
-                                                  if (d.id === dispatch.id) {
-                                                    return { ...d, waypoints: editWaypoints.filter(w => w.trim() !== '') };
-                                                  }
-                                                  return d;
-                                                });
-                                                setDispatches(updatedItems);
-                                                localStorage.setItem('dispatches', JSON.stringify(updatedItems));
-                                                setEditingWaypointsId(null);
-                                              }}
-                                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                              저장
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => setEditingWaypointsId(null)}
-                                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                              취소
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {editingWaypointsId === dispatch.id ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                          {editWaypoints.map((wp, wIdx) => (
-                                            <div key={wIdx} style={{ position: 'relative', width: '100%' }}>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', backgroundColor: 'var(--primary)', borderRadius: '4px', padding: '0.1rem 0.3rem', flexShrink: 0 }}>경유 {wIdx + 1}</span>
-                                                <Input
-                                                  style={{ fontSize: '0.82rem', cursor: 'pointer', flex: 1, padding: '0.3rem 0.5rem' }}
-                                                  placeholder={`경유지 ${wIdx + 1} 주소 검색`}
-                                                  value={wp}
-                                                  onClick={() => setActivePostcodeField(activePostcodeField === `edit_waypoint_${wIdx}` ? null : `edit_waypoint_${wIdx}`)}
-                                                  readOnly
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const nextWps = [...editWaypoints];
-                                                    nextWps.splice(wIdx, 1);
-                                                    setEditWaypoints(nextWps);
-                                                  }}
-                                                  style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                                                >
-                                                  삭제
-                                                </button>
-                                              </div>
-                                              {activePostcodeField === `edit_waypoint_${wIdx}` && (
-                                                <>
-                                                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                                                  <div 
-                                                    style={{
-                                                      position: 'absolute',
-                                                      top: '100%',
-                                                      left: 0,
-                                                      right: 0,
-                                                      height: '350px',
-                                                      border: '1.5px solid var(--primary)',
-                                                      borderRadius: 'var(--radius-md)',
-                                                      boxShadow: 'var(--shadow-lg)',
-                                                      backgroundColor: 'var(--bg-secondary)',
-                                                      zIndex: 1000,
-                                                      marginTop: '0.25rem',
-                                                      overflow: 'hidden'
-                                                    }}
-                                                    ref={(el) => {
-                                                      if (el) {
-                                                        const daum = (window as any).daum;
-                                                        if (daum && daum.Postcode) {
-                                                          new daum.Postcode({
-                                                            oncomplete: (data: any) => {
-                                                              const addr = data.roadAddress || data.address;
-                                                              const nextWps = [...editWaypoints];
-                                                              nextWps[wIdx] = addr;
-                                                              setEditWaypoints(nextWps);
-                                                              setActivePostcodeField(null);
-                                                            },
-                                                            width: '100%',
-                                                            height: '100%'
-                                                          }).embed(el);
-                                                        }
-                                                      }
-                                                    }}
-                                                  />
-                                                </>
-                                              )}
-                                            </div>
-                                          ))}
-                                          {editWaypoints.length < 3 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => setEditWaypoints([...editWaypoints, ''])}
-                                              style={{ border: '1px dashed var(--primary)', backgroundColor: 'transparent', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '0.3rem', fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-                                            >
-                                              <Plus size={12} /> 경유지 추가
-                                            </button>
-                                          )}
-                                        </div>
-                                      ) : (
+                                    {/* Right Column: Billing & Settle details, Cargo Type, Memo */}
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      flexDirection: 'column', 
+                                      gap: '0.85rem',
+                                      paddingLeft: '1.25rem',
+                                      borderLeft: '1px dashed var(--border-color)'
+                                    }}>
+                                      <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                                         <div>
-                                          {dispatch.waypoints && dispatch.waypoints.length > 0 ? (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
-                                              {dispatch.waypoints.map((wp: string, wIdx: number) => (
-                                                <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                  {wIdx > 0 && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>&rarr;</span>}
-                                                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
-                                                    {wp}
-                                                  </span>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          ) : (
-                                            <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>등록된 경유지가 없습니다.</span>
-                                          )}
+                                          <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 수단 / 수수료</span>
+                                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                            {dispatch.settleMethod} {dispatch.commission ? "(수수료: " + Number(dispatch.commission).toLocaleString() + "원)" : "(수수료 없음)"}
+                                          </span>
                                         </div>
-                                      )}
-                                    </div>
+                                        
+                                        <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
+                                          <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 예정일</span>
+                                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                            {dispatch.settleDate || '미정'}
+                                          </span>
+                                        </div>
 
-                                    <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
+                                        <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
+                                          <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>화물품목</span>
+                                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--primary)' }}>
+                                            {(dispatch as any).cargoItem || '일반화물'}
+                                          </span>
+                                        </div>
+                                      </div>
 
-                                    {/* 2. Billing & Cargo Details */}
-                                    <div style={{ 
-                                      display: 'grid',
-                                      gridTemplateColumns: '1fr 1fr',
-                                      gap: '0.75rem 1rem',
-                                      padding: '0.25rem 0'
-                                    }}>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 수단 / 수수료</span>
-                                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {dispatch.settleMethod} {dispatch.commission ? "(수수료: " + Number(dispatch.commission).toLocaleString() + "원)" : "(수수료 없음)"}
+                                      {/* Memo Box */}
+                                      <div style={{ 
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-color)',
+                                        borderLeft: '3.5px solid var(--primary)', 
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: '0.75rem',
+                                        fontSize: '0.82rem'
+                                      }}>
+                                        <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>기사 전달사항 및 메모</span>
+                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                                          {(dispatch as any).memo || '특이사항 없음'}
                                         </span>
                                       </div>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 예정일</span>
-                                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {dispatch.settleDate || '미정'}
-                                        </span>
-                                      </div>
-                                      <div style={{ gridColumn: 'span 2', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', marginTop: '0.15rem' }}>
-                                        <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>화물품목</span>
-                                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--primary)' }}>
-                                          {(dispatch as any).cargoItem || '일반화물'}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
-
-                                    {/* 3. Memo Box */}
-                                    <div style={{ 
-                                      borderLeft: '3.5px solid var(--primary)', 
-                                      padding: '0.25rem 0.85rem',
-                                      fontSize: '0.82rem'
-                                    }}>
-                                      <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>기사 전달사항 및 메모</span>
-                                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>
-                                        {(dispatch as any).memo || '특이사항 없음'}
-                                      </span>
                                     </div>
 
                                   </div>
