@@ -137,19 +137,38 @@ export default function Chats() {
   // Clear unread badge on open
   useEffect(() => {
     if (selectedRoomId) {
+      localStorage.setItem('active_chat_room_id', selectedRoomId)
       setChatRooms(prev => {
         const updated = prev.map(r => r.id === selectedRoomId ? { ...r, unreadCount: 0 } : r)
         localStorage.setItem('chat_logs', JSON.stringify(updated))
         return updated
       })
+    } else {
+      localStorage.removeItem('active_chat_room_id')
     }
   }, [selectedRoomId])
 
-  // Filtered rooms
-  const filteredRooms = chatRooms.filter(r => 
-    r.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (r.vehicleNo && r.vehicleNo.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  // Cleanup active room ID tracking on unmount
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem('active_chat_room_id')
+    }
+  }, [])
+
+  // Filtered and sorted rooms (Unread first, then newest first)
+  const filteredRooms = chatRooms
+    .filter(r => 
+      r.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.vehicleNo && r.vehicleNo.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      const unreadA = a.unreadCount > 0 ? 1 : 0
+      const unreadB = b.unreadCount > 0 ? 1 : 0
+      if (unreadA !== unreadB) {
+        return unreadB - unreadA
+      }
+      return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+    })
 
   const saveRooms = (updated: ChatRoom[]) => {
     setChatRooms(updated)
@@ -168,6 +187,7 @@ export default function Chats() {
     if (!selectedRoomId) return
     if (!text && !file) return
 
+    const roomIdWhenSent = selectedRoomId
     const now = new Date()
     const timestampStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const newMsg: Message = {
@@ -179,7 +199,7 @@ export default function Chats() {
     }
 
     const updated = chatRooms.map(room => {
-      if (room.id === selectedRoomId) {
+      if (room.id === roomIdWhenSent) {
         return {
           ...room,
           lastUpdated: now.toISOString(),
@@ -194,7 +214,7 @@ export default function Chats() {
 
     // Simulate reply after 2.5 seconds
     setTimeout(() => {
-      const room = updated.find(r => r.id === selectedRoomId)
+      const room = updated.find(r => r.id === roomIdWhenSent)
       if (!room) return
 
       let replyText = '내용 확인했습니다. 안전하게 배송하겠습니다!'
@@ -226,17 +246,28 @@ export default function Chats() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
 
-      const withReply = chatRooms.map(r => {
-        if (r.id === selectedRoomId) {
-          return {
-            ...r,
-            lastUpdated: new Date().toISOString(),
-            messages: [...r.messages, replyMsg]
+      // Read current state values inside timeout to handle dynamic room switches correctly
+      setChatRooms(prevRooms => {
+        const withReply = prevRooms.map(r => {
+          if (r.id === roomIdWhenSent) {
+            // Read active selection ref at timeout execution time
+            const isActive = window.location.pathname.includes('/chats') && (localStorage.getItem('active_chat_room_id') === roomIdWhenSent)
+            // Wait, we can just use the state variable selectedRoomId if we reference it correctly, 
+            // but react closures capture the initial selectedRoomId value!
+            // To bypass closures, we can store selectedRoomId in a global ref or read from active state updater function:
+            // Yes, standard React way is using functional state updater:
+            return {
+              ...r,
+              lastUpdated: new Date().toISOString(),
+              messages: [...r.messages, replyMsg],
+              unreadCount: isActive ? 0 : (r.unreadCount + 1)
+            }
           }
-        }
-        return r
+          return r
+        })
+        localStorage.setItem('chat_logs', JSON.stringify(withReply))
+        return withReply
       })
-      saveRooms(withReply)
       triggerGlobalNotification(room.partnerName, replyFile ? `${replyFile.name} 첨부파일` : replyText)
     }, 2500)
   }
