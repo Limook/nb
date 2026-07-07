@@ -640,6 +640,33 @@ input:disabled, select:disabled {
     grid-template-columns: 1fr !important;
     gap: 0.85rem !important;
   }
+
+  .dispatch-form-row-swap {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .dispatch-form-row-swap > div:nth-child(1) {
+    order: 2 !important;
+  }
+  .dispatch-form-row-swap > div:nth-child(2) {
+    order: 1 !important;
+  }
+}
+
+/* Animation for Modal Slide-Up */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 
