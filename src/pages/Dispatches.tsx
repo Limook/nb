@@ -5514,6 +5514,10 @@ export default function Dispatches() {
                               width: '100%',
                               height: '100%'
                             }).embed(el);
+                            setTimeout(() => {
+                              const input = document.getElementById('keyboard-mode-input');
+                              if (input) input.focus();
+                            }, 50);
                           }
                         }
                       }}
