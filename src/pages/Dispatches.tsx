@@ -2685,7 +2685,9 @@ export default function Dispatches() {
   const keyboardSteps = [
     { name: '거래처명', field: 'clientName', guide: '거래처명을 입력하세요 (또는 우측 거래처 번호 입력)', optional: true, defaultValue: '일반화주' },
     { name: '상차지', field: 'origin', guide: '상차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
+    { name: '상차일시', field: 'originDate', guide: '상차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 09:00)', optional: true, defaultValue: '' },
     { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
+    { name: '하차일시', field: 'destinationDate', guide: '하차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 12:00)', optional: true, defaultValue: '' },
     { name: '차량스펙', field: 'spec', guide: '차량 스펙을 입력하세요 (또는 우측 스펙 번호 입력)', optional: false, defaultValue: '' },
     { name: '화물실중량', field: 'weight', guide: '화물 실중량을 입력하세요 (또는 우측 중량 번호 입력)', optional: true, defaultValue: '0T' },
     { name: '정산방법', field: 'settleMethod', guide: '정산 방법을 입력하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '인수증' },
@@ -2733,6 +2735,32 @@ export default function Dispatches() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  const getShortcutDateValue = (shortcut: string) => {
+    const now = new Date();
+    let targetDate = new Date();
+    if (shortcut === '지금') {
+      return getLocalDateTimeString(now);
+    }
+    if (shortcut === '오늘') {
+      targetDate.setHours(12, 0, 0, 0);
+    } else if (shortcut === '내일') {
+      targetDate.setDate(now.getDate() + 1);
+      targetDate.setHours(12, 0, 0, 0);
+    } else if (shortcut === '월요일') {
+      const day = now.getDay();
+      const distance = (8 - day) % 7 || 7;
+      targetDate.setDate(now.getDate() + distance);
+      targetDate.setHours(12, 0, 0, 0);
+    } else {
+      const hourMatch = shortcut.match(/(\d+)시간뒤/);
+      if (hourMatch) {
+        const hours = parseInt(hourMatch[1], 10);
+        targetDate.setHours(now.getHours() + hours);
+      }
+    }
+    return getLocalDateTimeString(targetDate);
+  };
+
   const handleKeyboardStepEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
@@ -2760,12 +2788,28 @@ export default function Dispatches() {
           setFormData(prev => ({ ...prev, origin: selected }));
           resolvedValue = selected;
         }
+      } else if (field === 'originDate') {
+        const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
+        const selected = shortcuts[shortcutNum - 1];
+        if (selected) {
+          const dateStr = getShortcutDateValue(selected);
+          setFormData(prev => ({ ...prev, originDate: dateStr }));
+          resolvedValue = dateStr;
+        }
       } else if (field === 'destination') {
         const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
         const selected = recentDests[shortcutNum - 1];
         if (selected) {
           setFormData(prev => ({ ...prev, destination: selected }));
           resolvedValue = selected;
+        }
+      } else if (field === 'destinationDate') {
+        const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
+        const selected = shortcuts[shortcutNum - 1];
+        if (selected) {
+          const dateStr = getShortcutDateValue(selected);
+          setFormData(prev => ({ ...prev, destinationDate: dateStr }));
+          resolvedValue = dateStr;
         }
       } else if (field === 'spec') {
         const selected = commonSpecs[shortcutNum - 1];
@@ -2844,8 +2888,11 @@ export default function Dispatches() {
           alert(`'${currentStepObj.name}'은(는) 필수 입력 항목입니다.`);
           return;
         } else {
-          setFormData(prev => ({ ...prev, [field]: currentStepObj.defaultValue }));
-          resolvedValue = currentStepObj.defaultValue;
+          let defVal = currentStepObj.defaultValue;
+          if (field === 'originDate') defVal = getInitialDates().originDate;
+          if (field === 'destinationDate') defVal = getInitialDates().destinationDate;
+          setFormData(prev => ({ ...prev, [field]: defVal }));
+          resolvedValue = defVal;
         }
       } else {
         if (field === 'spec') {
@@ -2859,6 +2906,13 @@ export default function Dispatches() {
           const numeric = val.replace(/[^0-9]/g, '');
           const formatted = numeric ? Number(numeric).toLocaleString() : '';
           setFormData(prev => ({ ...prev, [field]: formatted }));
+        } else if (field === 'originDate' || field === 'destinationDate') {
+          let cleanedDate = val.replace(' ', 'T');
+          if (cleanedDate.length === 10) {
+            cleanedDate += 'T12:00';
+          }
+          setFormData(prev => ({ ...prev, [field]: cleanedDate }));
+          resolvedValue = cleanedDate;
         } else {
           setFormData(prev => ({ ...prev, [field]: val }));
         }
@@ -5221,6 +5275,41 @@ export default function Dispatches() {
                       </div>
                     );
                   }
+                  if (stepField === 'originDate') {
+                    const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {shortcuts.map((sh, idx) => {
+                          const calculated = getShortcutDateValue(sh).replace('T', ' ');
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.55rem 0.75rem',
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                              }}
+                            >
+                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                                {sh}
+                              </span>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                                {calculated}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+                          💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 14:00)으로 타이핑 후 엔터를 누르세요.
+                        </div>
+                      </div>
+                    );
+                  }
                   if (stepField === 'destination') {
                     const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
                     return (
@@ -5248,6 +5337,41 @@ export default function Dispatches() {
                             추천할 최근 하차지가 없습니다. 직접 입력하세요.
                           </div>
                         )}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'destinationDate') {
+                    const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {shortcuts.map((sh, idx) => {
+                          const calculated = getShortcutDateValue(sh).replace('T', ' ');
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.55rem 0.75rem',
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                              }}
+                            >
+                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                                {sh}
+                              </span>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                                {calculated}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+                          💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 17:00)으로 타이핑 후 엔터를 누르세요.
+                        </div>
                       </div>
                     );
                   }
@@ -5484,7 +5608,7 @@ export default function Dispatches() {
                 })()}
 
                 {/* Embedded Postcode Search for Addresses */}
-                {(keyboardStep === 1 || keyboardStep === 2) && (
+                {(keyboardStep === 1 || keyboardStep === 3) && (
                   <div style={{ marginTop: '0.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
                       🔍 우편번호 검색기 (검색 및 마우스/키보드로 주소 선택 시 자동 입력)
