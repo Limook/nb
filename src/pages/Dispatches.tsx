@@ -1800,6 +1800,18 @@ export default function Dispatches() {
   // Active dispatch ID being assigned a driver
   const [assigningDispatchId, setAssigningDispatchId] = useState<number | null>(null)
   const [activeLeftPanel, setActiveLeftPanel] = useState<'form' | 'chat'>('form')
+  const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
+  const [keyboardStep, setKeyboardStep] = useState<number>(0);
+  const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
+  const [showKeyboardHelper, setShowKeyboardHelper] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    if (registerMode === 'keyboard') {
+      const input = document.getElementById('keyboard-mode-input');
+      if (input) input.focus();
+    }
+  }, [keyboardStep, registerMode]);
+
   const [chatRoomRecipient, setChatRoomRecipient] = useState<{
     partnerName: string
     partnerType: 'driver' | 'client'
@@ -2659,6 +2671,304 @@ export default function Dispatches() {
   }
 
   // Handle assigning/updating a driver and status
+  const commonSpecs = [
+    { label: '11톤 윙바디', tonnage: '11톤', carType: '윙바디' },
+    { label: '5톤 축윙바디', tonnage: '5톤', carType: '축윙바디' },
+    { label: '25톤 카고', tonnage: '25톤', carType: '카고' },
+    { label: '1톤 카고', tonnage: '1톤', carType: '카고' },
+    { label: '5톤 윙바디', tonnage: '5톤', carType: '윙바디' },
+    { label: '1톤 탑차', tonnage: '1톤', carType: '탑차' },
+    { label: '11톤 카고', tonnage: '11톤', carType: '카고' },
+    { label: '25톤 윙바디', tonnage: '25톤', carType: '윙바디' }
+  ];
+
+  const keyboardSteps = [
+    { name: '거래처명', field: 'clientName', guide: '거래처명을 입력하세요 (또는 우측 거래처 번호 입력)', optional: true, defaultValue: '일반화주' },
+    { name: '상차지', field: 'origin', guide: '상차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
+    { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
+    { name: '차량스펙', field: 'spec', guide: '차량 스펙을 입력하세요 (또는 우측 스펙 번호 입력)', optional: false, defaultValue: '' },
+    { name: '화물실중량', field: 'weight', guide: '화물 실중량을 입력하세요 (또는 우측 중량 번호 입력)', optional: true, defaultValue: '0T' },
+    { name: '정산방법', field: 'settleMethod', guide: '정산 방법을 입력하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '인수증' },
+    { name: '정산예정일', field: 'settleDate', guide: '정산 예정일을 입력하세요 (1: 당월말, 2: 익월말 또는 직접 입력 YYYY-MM-DD)', optional: true, defaultValue: '' },
+    { name: '수수료', field: 'commission', guide: '수수료를 입력하세요 (또는 우측 수수료 번호 입력, 없으면 엔터)', optional: true, defaultValue: '0' },
+    { name: '운임', field: 'fee', guide: '운임을 입력하세요 (숫자만 입력 또는 우측 추천 운임 번호 입력)', optional: false, defaultValue: '' },
+    { name: '품목', field: 'cargoItem', guide: '화물 품목을 입력하세요 (또는 우측 품목 번호 입력, 없으면 엔터)', optional: true, defaultValue: '일반화물' },
+    { name: '메모', field: 'memo', guide: '추가 요청사항 및 메모를 입력하세요 (엔터 시 완료)', optional: true, defaultValue: '' }
+  ];
+
+  const parseSpec = (text: string) => {
+    let tonnage = '11톤';
+    let carType = '윙바디';
+    const clean = text.trim();
+    if (!clean) return { tonnage, carType };
+    const matched = commonSpecs.find(s => s.label.replace(/\s+/g, '') === clean.replace(/\s+/g, ''));
+    if (matched) return { tonnage: matched.tonnage, carType: matched.carType };
+    const tonnageMatch = clean.match(/(\d+\.?\d*톤)/);
+    if (tonnageMatch) tonnage = tonnageMatch[1];
+    const types = ['윙바디', '카고', '축윙바디', '탑차', '윙바디축', '트레일러', '냉동탑'];
+    const foundType = types.find(t => clean.includes(t));
+    if (foundType) {
+      carType = foundType;
+    } else {
+      carType = clean.replace(tonnage, '').trim() || '카고';
+    }
+    return { tonnage, carType };
+  };
+
+  const getEndOfCurrentMonth = () => {
+    const d = new Date();
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const getEndOfNextMonth = () => {
+    const d = new Date();
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 2, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleKeyboardStepEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const val = keyboardInputValue.trim();
+    const currentStepObj = keyboardSteps[keyboardStep];
+    const field = currentStepObj.field;
+    let resolvedValue = val;
+    const shortcutNum = parseInt(val, 10);
+    if (!isNaN(shortcutNum) && shortcutNum > 0) {
+      if (field === 'clientName') {
+        const client = clients[shortcutNum - 1];
+        if (client) {
+          setFormData(prev => ({
+            ...prev,
+            clientName: client.name,
+            clientPhone: client.phone || '',
+            clientContact: client.contact || client.contactName || ''
+          }));
+          resolvedValue = client.name;
+        }
+      } else if (field === 'origin') {
+        const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
+        const selected = recentOrigins[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, origin: selected }));
+          resolvedValue = selected;
+        }
+      } else if (field === 'destination') {
+        const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+        const selected = recentDests[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, destination: selected }));
+          resolvedValue = selected;
+        }
+      } else if (field === 'spec') {
+        const selected = commonSpecs[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({
+            ...prev,
+            tonnage: selected.tonnage,
+            carType: selected.carType
+          }));
+          resolvedValue = selected.label;
+        }
+      } else if (field === 'weight') {
+        const weights = ['0T', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
+        const selected = weights[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, weight: selected }));
+          resolvedValue = selected;
+        }
+      } else if (field === 'settleMethod') {
+        const methods = ['인수증', '선불', '착불', '카드'];
+        const selected = methods[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, settleMethod: selected }));
+          resolvedValue = selected;
+        }
+      } else if (field === 'settleDate') {
+        if (shortcutNum === 1) {
+          const date = getEndOfCurrentMonth();
+          setFormData(prev => ({ ...prev, settleDate: date }));
+          resolvedValue = date;
+        } else if (shortcutNum === 2) {
+          const date = getEndOfNextMonth();
+          setFormData(prev => ({ ...prev, settleDate: date }));
+          resolvedValue = date;
+        }
+      } else if (field === 'commission') {
+        const comms = ['0', '10000', '20000', '30000', '50000'];
+        const selected = comms[shortcutNum - 1];
+        if (selected) {
+          const formatted = Number(selected).toLocaleString();
+          setFormData(prev => ({ ...prev, commission: formatted }));
+          resolvedValue = formatted;
+        }
+      } else if (field === 'fee') {
+        const commonFees = [100000, 150000, 200000, 250000, 300000, 350000, 400000];
+        const selected = commonFees[shortcutNum - 1];
+        if (selected) {
+          const formatted = selected.toLocaleString();
+          setFormData(prev => ({ ...prev, fee: formatted }));
+          resolvedValue = formatted;
+        }
+      } else if (field === 'cargoItem') {
+        const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+        const selected = items[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, cargoItem: selected }));
+          resolvedValue = selected;
+        }
+      } else if (field === 'memo') {
+        const memos = [
+          '안전운전 부탁드립니다.',
+          '상하차지 대기 시간 발생 시 연락 필수.',
+          '수수료 세금계산서 발행 요망.',
+          '인수증 빠른 우편 발송 필요.'
+        ];
+        const selected = memos[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, memo: selected }));
+          resolvedValue = selected;
+        }
+      }
+    }
+    if (resolvedValue === val) {
+      if (val === '') {
+        if (!currentStepObj.optional) {
+          alert(`'${currentStepObj.name}'은(는) 필수 입력 항목입니다.`);
+          return;
+        } else {
+          setFormData(prev => ({ ...prev, [field]: currentStepObj.defaultValue }));
+          resolvedValue = currentStepObj.defaultValue;
+        }
+      } else {
+        if (field === 'spec') {
+          const parsed = parseSpec(val);
+          setFormData(prev => ({
+            ...prev,
+            tonnage: parsed.tonnage,
+            carType: parsed.carType
+          }));
+        } else if (field === 'fee' || field === 'commission') {
+          const numeric = val.replace(/[^0-9]/g, '');
+          const formatted = numeric ? Number(numeric).toLocaleString() : '';
+          setFormData(prev => ({ ...prev, [field]: formatted }));
+        } else {
+          setFormData(prev => ({ ...prev, [field]: val }));
+        }
+      }
+    }
+    if (keyboardStep === keyboardSteps.length - 1) {
+      const newId = dispatches.length > 0 ? Math.max(...dispatches.map(d => d.id)) + 1 : 1;
+      let finalTonnage = formData.tonnage;
+      let finalCarType = formData.carType;
+      if (field === 'spec') {
+        const parsed = parseSpec(resolvedValue);
+        finalTonnage = parsed.tonnage;
+        finalCarType = parsed.carType;
+      }
+      let finalClient = formData.clientName.trim();
+      if (field === 'clientName') finalClient = resolvedValue;
+      if (!finalClient) finalClient = '일반화주';
+      let finalOrigin = formData.origin;
+      if (field === 'origin') finalOrigin = resolvedValue;
+      let finalDest = formData.destination;
+      if (field === 'destination') finalDest = resolvedValue;
+      let finalFeeStr = formData.fee;
+      if (field === 'fee') finalFeeStr = resolvedValue;
+      const finalFee = Number(finalFeeStr.replace(/,/g, '')) || 0;
+      let finalSettleMethod = formData.settleMethod;
+      if (field === 'settleMethod') finalSettleMethod = resolvedValue;
+      let finalCommissionStr = formData.commission;
+      if (field === 'commission') finalCommissionStr = resolvedValue;
+      const finalCommission = finalCommissionStr.replace(/,/g, '');
+      let finalSettleDate = formData.settleDate;
+      if (field === 'settleDate') finalSettleDate = resolvedValue;
+      let finalCargoItem = formData.cargoItem;
+      if (field === 'cargoItem') finalCargoItem = resolvedValue;
+      let finalMemo = formData.memo;
+      if (field === 'memo') finalMemo = resolvedValue;
+      const registeredDispatch = {
+        id: newId,
+        client: finalClient,
+        origin: finalOrigin,
+        originDate: formData.originDate,
+        destination: finalDest,
+        destinationDate: formData.destinationDate,
+        waypoints: [],
+        spec: `${finalTonnage} ${finalCarType} ${formData.weight ? `(${formData.weight})` : ''}`.trim(),
+        status: 'dispatching' as DispatchStatus,
+        fee: finalFee,
+        originalFee: finalFee,
+        settleMethod: finalSettleMethod,
+        commission: finalCommission,
+        settleDate: finalSettleDate,
+        cargoItem: finalCargoItem,
+        memo: finalMemo,
+        date: new Date().toISOString(),
+        driverName: '',
+        driverPhone: '',
+        carNumber: ''
+      };
+      const updatedDispatches = [registeredDispatch, ...dispatches];
+      setDispatches(updatedDispatches);
+      localStorage.setItem('dispatches', JSON.stringify(updatedDispatches));
+      const poolItem = {
+        client: finalClient,
+        origin: finalOrigin,
+        destination: finalDest,
+        tonnage: finalTonnage,
+        carType: finalCarType,
+        weight: formData.weight || '0T',
+        fee: finalFee,
+        date: new Date().toISOString()
+      };
+      setHistoryPool([poolItem, ...historyPool]);
+      triggerNotification('배차가 성공적으로 등록되었습니다!');
+      setKeyboardStep(0);
+      setKeyboardInputValue('');
+      const dates = getInitialDates();
+      setFormData({
+        clientName: '',
+        clientPhone: '',
+        clientContact: '',
+        origin: '',
+        originDate: dates.originDate,
+        destination: '',
+        destinationDate: dates.destinationDate,
+        waypoints: [],
+        tonnage: '',
+        carType: '',
+        weight: '',
+        settleMethod: '인수증',
+        fee: '',
+        commission: '',
+        settleDate: '',
+        cargoItem: '',
+        memo: ''
+      });
+      setErrors({});
+    } else {
+      setKeyboardStep(prev => prev + 1);
+      setKeyboardInputValue('');
+    }
+  };
+
+  const handleKeyboardInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && keyboardInputValue === '') {
+      if (keyboardStep > 0) {
+        e.preventDefault();
+        setKeyboardStep(prev => prev - 1);
+      }
+    }
+  };
+
   const handleUpdateDriverAndStatus = (dispatchId: number, status: DispatchStatus) => {
     // If setting to dispatching (resets everything)
     if (status === 'dispatching') {
@@ -3968,21 +4278,107 @@ export default function Dispatches() {
         ) : (
           <>
             <Card className="dispatch-registration-card" style={{ flex: 1, padding: '0.85rem 1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem', border: 'none' }}>
-              <h4 style={{ 
-                fontSize: '0.92rem', 
-                fontWeight: 700, 
-                color: 'var(--text-primary)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.35rem', 
-                borderBottom: '1px solid var(--border-color)', 
-                paddingBottom: '0.5rem', 
-                margin: '0 0 -0.25rem 0' 
-              }}>
-                <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-                운행 등록
-              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 -0.25rem 0' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                  {registerMode === 'keyboard' ? '운행 등록 (키보드)' : '운행 등록'}
+                </h4>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRegisterMode('normal')}
+                    style={{
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid ' + (registerMode === 'normal' ? 'var(--primary)' : 'var(--border-color)'),
+                      backgroundColor: registerMode === 'normal' ? 'var(--primary-light)' : 'transparent',
+                      color: registerMode === 'normal' ? 'var(--primary)' : 'var(--text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    일반
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegisterMode('keyboard');
+                      setKeyboardStep(0);
+                      setKeyboardInputValue('');
+                      setTimeout(() => {
+                        const input = document.getElementById('keyboard-mode-input');
+                        if (input) input.focus();
+                      }, 50);
+                    }}
+                    style={{
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid ' + (registerMode === 'keyboard' ? 'var(--primary)' : 'var(--border-color)'),
+                      backgroundColor: registerMode === 'keyboard' ? 'var(--primary-light)' : 'transparent',
+                      color: registerMode === 'keyboard' ? 'var(--primary)' : 'var(--text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    키보드
+                  </button>
+                </div>
+              </div>
+
+              {registerMode === 'keyboard' && (
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1.5px solid var(--primary)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.85rem 1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.45rem',
+                  boxShadow: '0 4px 12px rgba(49, 130, 246, 0.08)',
+                  marginTop: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>
+                      👉 {keyboardSteps[keyboardStep].name} 입력 차례
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                      (이전 단계로 가려면 Backspace 입력)
+                    </span>
+                  </div>
+                  <Input
+                    id="keyboard-mode-input"
+                    type="text"
+                    placeholder={keyboardSteps[keyboardStep].guide}
+                    value={keyboardInputValue}
+                    onChange={(e) => setKeyboardInputValue(e.target.value)}
+                    onKeyDown={handleKeyboardStepEnter}
+                    onKeyUp={handleKeyboardInputKeyDown}
+                    style={{
+                      height: '42px',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      borderColor: 'var(--primary)',
+                      boxShadow: '0 0 0 2px var(--primary-light)'
+                    }}
+                    autoComplete="off"
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                    <span>{keyboardSteps[keyboardStep].optional ? '✨ 이 항목은 필수값이 아닙니다. (엔터 시 스킵 가능)' : '⚠️ 이 항목은 필수입니다. (값을 반드시 입력하세요)'}</span>
+                    <span>완료: {keyboardStep}/11</span>
+                  </div>
+                </div>
+              )}
           
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.8rem',
+                pointerEvents: registerMode === 'keyboard' ? 'none' : 'auto',
+                opacity: registerMode === 'keyboard' ? 0.7 : 1,
+                transition: 'all var(--transition-fast)'
+              }}>
           {/* 1. 거래처 정보 입력 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -4623,17 +5019,25 @@ export default function Dispatches() {
             </div>
           </div>
 
-          <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-            <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
-            <Button 
-              variant="secondary" 
-              type="button"
-              style={{ width: '80px', padding: '0.7rem', fontSize: '0.82rem' }} 
-              onClick={handleResetForm}
-            >
-              초기화
-            </Button>
-          </div>
+              </div>
+
+              {registerMode === 'keyboard' ? (
+                <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: 'var(--text-tertiary)', fontSize: '0.74rem', fontWeight: 600 }}>
+                  ⌨️ 키보드 전용 입력 모드가 활성화되어 있습니다.
+                </div>
+              ) : (
+                <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                  <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
+                  <Button 
+                    variant="secondary" 
+                    type="button"
+                    style={{ width: '80px', padding: '0.7rem', fontSize: '0.82rem' }} 
+                    onClick={handleResetForm}
+                  >
+                    초기화
+                  </Button>
+                </div>
+              )}
         </Card>
           </>
         )}
@@ -4664,21 +5068,461 @@ export default function Dispatches() {
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-              {activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
+              {registerMode === 'keyboard' && showKeyboardHelper ? '키보드 등록 도우미' : activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
             </span>
-            <Button
-              variant="secondary"
-              style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
-              onClick={() => {
-                if (activeLocationListField) setActiveLocationListField(null);
-                else if (showClientSearch) setShowClientSearch(false);
-                else setShowHistoryPanel(false);
-              }}
-            >
-              {activeLocationListField || showClientSearch ? '닫기' : (window.innerWidth <= 768 ? '닫기' : '접기 ➔')}
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              {registerMode === 'keyboard' && (
+                <Button
+                  variant="outline"
+                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                  onClick={() => setShowKeyboardHelper(!showKeyboardHelper)}
+                >
+                  {showKeyboardHelper ? '운행내역 보기' : '도우미 보기'}
+                </Button>
+              )}
+              <Button
+                variant="secondary"
+                style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
+                onClick={() => {
+                  if (activeLocationListField) setActiveLocationListField(null);
+                  else if (showClientSearch) setShowClientSearch(false);
+                  else setShowHistoryPanel(false);
+                }}
+              >
+                {activeLocationListField || showClientSearch ? '닫기' : (window.innerWidth <= 768 ? '닫기' : '접기 ➔')}
+              </Button>
+            </div>
           </h4>
-          {activeLocationListField ? (
+          {registerMode === 'keyboard' && showKeyboardHelper ? (
+            <div style={{ display: 'flex', gap: '1.25rem', height: '100%', overflow: 'hidden' }} className="animate-slide-down">
+              {/* Left Column: Steps checklist (35% width) */}
+              <div style={{
+                width: '35%',
+                borderRight: '1px solid var(--border-color)',
+                paddingRight: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                overflowY: 'auto'
+              }} className="hide-scrollbar">
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>📌 등록 단계</span>
+                {keyboardSteps.map((step, idx) => {
+                  const isActive = idx === keyboardStep;
+                  const isCompleted = idx < keyboardStep;
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                        border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
+                        transition: 'all var(--transition-fast)',
+                        opacity: isActive || isCompleted ? 1 : 0.5
+                      }}
+                    >
+                      {isCompleted ? (
+                        <Check size={14} style={{ color: 'var(--success)' }} />
+                      ) : isActive ? (
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)' }} />
+                      ) : (
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)' }} />
+                      )}
+                      <span style={{
+                        fontSize: '0.8rem',
+                        fontWeight: isActive ? 800 : 500,
+                        color: isActive ? 'var(--primary)' : isCompleted ? 'var(--text-primary)' : 'var(--text-secondary)'
+                      }}>
+                        {step.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right Column: Numbered Shortcuts (65% width) */}
+              <div style={{
+                width: '65%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                overflowY: 'auto'
+              }} className="hide-scrollbar">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                    ⚡ 단축 입력 리스트
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                    (해당 번호를 치고 Enter를 누르세요)
+                  </span>
+                </div>
+
+                {/* 1. Show shortcuts dynamically depending on stepField */}
+                {(() => {
+                  const stepField = keyboardSteps[keyboardStep].field;
+                  if (stepField === 'clientName') {
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {clients.slice(0, 8).map((client, idx) => (
+                          <div
+                            key={client.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {client.name}
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
+                              {client.phone}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'origin') {
+                    const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {recentOrigins.map((loc, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {loc}
+                            </span>
+                          </div>
+                        ))}
+                        {recentOrigins.length === 0 && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                            추천할 최근 상차지가 없습니다. 직접 입력하세요.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'destination') {
+                    const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {recentDests.map((loc, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {loc}
+                            </span>
+                          </div>
+                        ))}
+                        {recentDests.length === 0 && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                            추천할 최근 하차지가 없습니다. 직접 입력하세요.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'spec') {
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        {commonSpecs.map((spec, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {spec.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'weight') {
+                    const weights = ['0T (스킵)', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        {weights.map((w, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {w}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'settleMethod') {
+                    const methods = ['인수증', '선불', '착불', '카드'];
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        {methods.map((m, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {m}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'settleDate') {
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.55rem 0.75rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-md)'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>1</span>
+                            당월말
+                          </span>
+                          <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                            {getEndOfCurrentMonth()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.55rem 0.75rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-md)'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>2</span>
+                            익월말
+                          </span>
+                          <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                            {getEndOfNextMonth()}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+                          💡 직접 입력을 원하시면 날짜 형식(예: 2026-08-15)으로 직접 타이핑 후 엔터를 누르세요.
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (stepField === 'commission') {
+                    const comms = ['수수료 없음 (0원)', '10,000원', '20,000원', '30,000원', '50,000원'];
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {comms.map((c, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {c}
+                            </span>
+                          </div>
+                        ))}
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+                          💡 직접 임의의 숫자를 타이핑해 입력할 수도 있습니다.
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (stepField === 'fee') {
+                    const commonFees = ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        {commonFees.map((f, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {f}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'cargoItem') {
+                    const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        {items.map((it, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {it}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'memo') {
+                    const memos = [
+                      '안전운전 부탁드립니다.',
+                      '상하차지 대기 시간 발생 시 연락 필수.',
+                      '수수료 세금계산서 발행 요망.',
+                      '인수증 빠른 우편 발송 필요.'
+                    ];
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        {memos.map((m, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.55rem 0.75rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                              {m}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Embedded Postcode Search for Addresses */}
+                {(keyboardStep === 1 || keyboardStep === 2) && (
+                  <div style={{ marginTop: '0.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
+                      🔍 우편번호 검색기 (검색 및 마우스/키보드로 주소 선택 시 자동 입력)
+                    </span>
+                    <div 
+                      style={{
+                        flex: 1,
+                        minHeight: '320px',
+                        border: '1.5px solid var(--primary)',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden'
+                      }}
+                      ref={(el) => {
+                        if (el) {
+                          const daum = (window as any).daum;
+                          if (daum && daum.Postcode) {
+                            el.innerHTML = '';
+                            new daum.Postcode({
+                              oncomplete: (data: any) => {
+                                const addr = data.roadAddress || data.address;
+                                const targetField = keyboardStep === 1 ? 'origin' : 'destination';
+                                setFormData(prev => ({ ...prev, [targetField]: addr }));
+                                setKeyboardInputValue(addr);
+                                const input = document.getElementById('keyboard-mode-input');
+                                if (input) input.focus();
+                              },
+                              width: '100%',
+                              height: '100%'
+                            }).embed(el);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : activeLocationListField ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%', overflow: 'hidden' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 {formData.clientName.trim() 
