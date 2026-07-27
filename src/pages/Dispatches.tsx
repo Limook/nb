@@ -5253,7 +5253,7 @@ export default function Dispatches() {
                   }
                   if (stepField === 'spec') {
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         {commonSpecs.map((spec, idx) => (
                           <div
                             key={idx}
@@ -5278,7 +5278,7 @@ export default function Dispatches() {
                   if (stepField === 'weight') {
                     const weights = ['0T (스킵)', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         {weights.map((w, idx) => (
                           <div
                             key={idx}
@@ -5303,7 +5303,7 @@ export default function Dispatches() {
                   if (stepField === 'settleMethod') {
                     const methods = ['인수증', '선불', '착불', '카드'];
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         {methods.map((m, idx) => (
                           <div
                             key={idx}
@@ -5403,7 +5403,7 @@ export default function Dispatches() {
                   if (stepField === 'fee') {
                     const commonFees = ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         {commonFees.map((f, idx) => (
                           <div
                             key={idx}
@@ -5428,7 +5428,7 @@ export default function Dispatches() {
                   if (stepField === 'cargoItem') {
                     const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         {items.map((it, idx) => (
                           <div
                             key={idx}
