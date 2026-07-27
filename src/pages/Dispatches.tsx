@@ -2695,7 +2695,8 @@ export default function Dispatches() {
     { name: '수수료', field: 'commission', guide: '수수료를 입력하세요 (또는 우측 수수료 번호 입력, 없으면 엔터)', optional: true, defaultValue: '0' },
     { name: '운임', field: 'fee', guide: '운임을 입력하세요 (숫자만 입력 또는 우측 추천 운임 번호 입력)', optional: false, defaultValue: '' },
     { name: '품목', field: 'cargoItem', guide: '화물 품목을 입력하세요 (또는 우측 품목 번호 입력, 없으면 엔터)', optional: true, defaultValue: '일반화물' },
-    { name: '메모', field: 'memo', guide: '추가 요청사항 및 메모를 입력하세요 (엔터 시 완료)', optional: true, defaultValue: '' }
+    { name: '메모', field: 'memo', guide: '추가 요청사항 및 메모를 입력하세요 (엔터 시 최종 확인)', optional: true, defaultValue: '' },
+    { name: '최종 확인', field: 'confirm', guide: '입력 내용을 확인하고 Enter를 눌러 최종 등록하세요 (또는 Backspace로 수정)', optional: true, defaultValue: '등록' }
   ];
 
   const parseSpec = (text: string) => {
@@ -2891,7 +2892,9 @@ export default function Dispatches() {
           let defVal = currentStepObj.defaultValue;
           if (field === 'originDate') defVal = getInitialDates().originDate;
           if (field === 'destinationDate') defVal = getInitialDates().destinationDate;
-          setFormData(prev => ({ ...prev, [field]: defVal }));
+          if (field !== 'confirm') {
+            setFormData(prev => ({ ...prev, [field]: defVal }));
+          }
           resolvedValue = defVal;
         }
       } else {
@@ -2913,7 +2916,7 @@ export default function Dispatches() {
           }
           setFormData(prev => ({ ...prev, [field]: cleanedDate }));
           resolvedValue = cleanedDate;
-        } else {
+        } else if (field !== 'confirm') {
           setFormData(prev => ({ ...prev, [field]: val }));
         }
       }
@@ -5601,6 +5604,130 @@ export default function Dispatches() {
                             </span>
                           </div>
                         ))}
+                      </div>
+                    );
+                  }
+                  if (stepField === 'confirm') {
+                    const formattedOriginDate = formData.originDate ? formData.originDate.replace('T', ' ') : '';
+                    const formattedDestDate = formData.destinationDate ? formData.destinationDate.replace('T', ' ') : '';
+                    return (
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '0.85rem',
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1.5px solid var(--primary)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '1rem',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}>
+                        <div style={{ 
+                          fontSize: '0.9rem', 
+                          fontWeight: 900, 
+                          color: 'var(--primary)', 
+                          borderBottom: '1px solid var(--border-color)', 
+                          paddingBottom: '0.45rem',
+                          marginBottom: '0.2rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}>
+                          📋 등록 내용 최종 확인
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', fontSize: '0.82rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>거래처</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.clientName || '일반화주'}</span>
+                          </div>
+                          
+                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: 'var(--text-secondary)' }}>상차지</span>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.origin}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>상차일시</span>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedOriginDate}</span>
+                            </div>
+                          </div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: 'var(--text-secondary)' }}>하차지</span>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.destination}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>하차일시</span>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedDestDate}</span>
+                            </div>
+                          </div>
+                          
+                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>차량스펙</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '미지정'} {formData.weight ? `(${formData.weight})` : ''}
+                            </span>
+                          </div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>화물품목</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.cargoItem || '일반화물'}</span>
+                          </div>
+                          
+                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>정산방법</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.settleMethod} {formData.settleDate ? `(${formData.settleDate})` : ''}</span>
+                          </div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>수수료</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.commission ? `${formData.commission}원` : '0원'}</span>
+                          </div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>운임료</span>
+                            <span style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1rem' }}>{formData.fee ? `${formData.fee}원` : '0원'}</span>
+                          </div>
+                          
+                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>메모</span>
+                            <div style={{ 
+                              backgroundColor: 'var(--bg-primary)', 
+                              padding: '0.45rem 0.6rem', 
+                              borderRadius: 'var(--radius-sm)', 
+                              fontSize: '0.76rem', 
+                              color: 'var(--text-primary)',
+                              border: '1px solid var(--border-color)',
+                              minHeight: '2.2rem',
+                              whiteSpace: 'pre-wrap'
+                            }}>
+                              {formData.memo || '(입력된 메모 없음)'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ 
+                          marginTop: '0.5rem',
+                          backgroundColor: 'var(--primary-light)', 
+                          padding: '0.6rem 0.8rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          textAlign: 'center', 
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: 'var(--primary)',
+                          border: '1px solid var(--primary)'
+                        }}>
+                          ⌨️ Enter를 한 번 더 누르면 등록이 완료됩니다!
+                        </div>
                       </div>
                     );
                   }
