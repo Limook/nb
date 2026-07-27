@@ -5512,7 +5512,8 @@ export default function Dispatches() {
                                 if (input) input.focus();
                               },
                               width: '100%',
-                              height: '100%'
+                              height: '100%',
+                              focusInput: false
                             }).embed(el);
                             setTimeout(() => {
                               const input = document.getElementById('keyboard-mode-input');
