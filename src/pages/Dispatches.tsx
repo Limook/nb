@@ -3626,12 +3626,12 @@ export default function Dispatches() {
   const renderKeyboardHelper = () => {
     const stepField = keyboardSteps[keyboardStep].field;
     return (
-      <div style={{ display: 'flex', gap: '0', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
-        {/* Left Column: Progress checklist (40% width) */}
+      <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
+        {/* Left Column: Progress checklist (42% width) */}
         <div style={{
-          width: '40%',
-          borderRight: '1.5px solid var(--primary)',
-          paddingRight: '0.5rem',
+          width: '42%',
+          borderRight: '1px solid var(--border-color)',
+          paddingRight: '0.75rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.45rem',
@@ -3646,72 +3646,71 @@ export default function Dispatches() {
               <div
                 key={idx}
                 style={{
-                  position: 'relative',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.15rem',
+                  alignItems: 'center',
                   padding: '0.45rem 0.6rem',
                   borderRadius: 'var(--radius-sm)',
-                                    backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                  border: isActive ? '1.5px solid var(--primary)' : '1.5px solid transparent',
-                  borderRight: isActive ? '1.5px solid var(--primary-light)' : undefined,
-                  borderTopRightRadius: isActive ? '0' : 'var(--radius-sm)',
-                  borderBottomRightRadius: isActive ? '0' : 'var(--radius-sm)',
-                  marginRight: isActive ? '-0.59rem' : '0',
-                  zIndex: isActive ? 5 : 1,
+                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
                   transition: 'all var(--transition-fast)',
                   opacity: isActive || isCompleted ? 1 : 0.5
                 }}
               >
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', position: 'relative', zIndex: 4 }}>
-                  {isCompleted ? (
-                    <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                  ) : isActive ? (
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)', flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
-                  )}
-                  <span style={{
-                    fontSize: '0.78rem',
-                    fontWeight: isActive ? 800 : 600,
-                    color: isActive ? 'var(--primary)' : 'var(--text-secondary)'
-                  }}>
-                    {step.name}
-                  </span>
-                </div>
-                {isCompleted && stepValue && (
-                  <div style={{ 
-                    fontSize: '0.74rem', 
-                    color: 'var(--text-primary)', 
-                    paddingLeft: '1.15rem',
-                    fontWeight: 700,
-                    wordBreak: 'break-all',
-                    position: 'relative',
-                    zIndex: 4
-                  }}>
-                    {stepValue}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  width: '100%',
+                  gap: '0.4rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flexShrink: 0 }}>
+                    {isCompleted ? (
+                      <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                    ) : isActive ? (
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
+                    )}
+                    <span style={{
+                      fontSize: '0.78rem',
+                      fontWeight: isActive ? 800 : 600,
+                      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {step.name}
+                    </span>
                   </div>
-                )}
+                  {isCompleted && stepValue && (
+                    <span style={{
+                      fontSize: '0.74rem',
+                      color: 'var(--text-primary)',
+                      fontWeight: 700,
+                      textAlign: 'right',
+                      marginLeft: 'auto',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '120px'
+                    }} title={stepValue}>
+                      {stepValue}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Right Column: Shortcuts lists / postcode iframe (60% width) */}
+        {/* Right Column: Shortcuts lists / postcode iframe (58% width) */}
         <div style={{
-          width: '60%',
+          width: '58%',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.75rem',
-          border: '1.5px solid var(--primary)',
-          borderLeft: 'none',
-          borderTopLeftRadius: '0',
-          borderBottomLeftRadius: '0',
-          borderTopRightRadius: 'var(--radius-md)',
-          borderBottomRightRadius: 'var(--radius-md)',
-          padding: '0.75rem',
-          backgroundColor: 'var(--primary-light)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.85rem',
+          backgroundColor: 'var(--bg-secondary)',
           overflowY: 'auto'
         }} className="hide-scrollbar">
           {(keyboardStep === 1 || keyboardStep === 3) ? (
@@ -3720,7 +3719,7 @@ export default function Dispatches() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    ⚡ 단축 입력 리스트 (최근 주소 추천)
+                    ⚡ {keyboardSteps[keyboardStep].name} 단축 리스트
                   </span>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                     (번호 입력 + Enter)
@@ -3776,7 +3775,7 @@ export default function Dispatches() {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                  ⚡ 단축 입력 리스트
+                  ⚡ {keyboardSteps[keyboardStep].name} 단축 리스트
                 </span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                   (번호 입력 + Enter)
