@@ -3780,6 +3780,16 @@ export default function Dispatches() {
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedOriginDate}</span>
               </div>
             </div>
+
+            {/* Waypoints */}
+            {(formData.waypoints || []).filter((w: string) => w.trim() !== '').map((waypoint, wIdx) => (
+              <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>경유지 {wIdx + 1}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{waypoint}</span>
+                </div>
+              </div>
+            ))}
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3908,11 +3918,12 @@ export default function Dispatches() {
                   const isActive = step.originalIdx === keyboardStep;
                   
                   // Progressive disclosure for Waypoints
-                  if (step.field === 'waypoint_1' && (!formData.waypoints || !formData.waypoints[0]) && !isActive) {
-                    return false;
-                  }
-                  if (step.field === 'waypoint_2' && (!formData.waypoints || !formData.waypoints[1] || !formData.waypoints[0]) && !isActive) {
-                    return false;
+                  if (step.field.startsWith('waypoint_')) {
+                    const wIdx = parseInt(step.field.split('_')[1], 10);
+                    const hasValue = !!(formData.waypoints && formData.waypoints[wIdx]);
+                    if (!isActive && !hasValue) {
+                      return false;
+                    }
                   }
                   return true;
                 });
