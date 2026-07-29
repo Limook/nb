@@ -1803,15 +1803,38 @@ export default function Dispatches() {
   const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
   const [keyboardStep, setKeyboardStep] = useState<number>(0);
   const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
+  const [showWaypoints, setShowWaypoints] = useState<boolean>(false);
   const lastStepTimeRef = React.useRef<number>(0);
   const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [dateDisplayLabels, setDateDisplayLabels] = useState<{ originDate?: string, destinationDate?: string }>({});
+
+  const keyboardSteps = React.useMemo(() => [
+    { name: '거래처명', field: 'clientName', guide: '거래처명을 입력하세요 (또는 우측 거래처 번호 입력)', optional: true, defaultValue: '일반화주' },
+    { name: '상차지', field: 'origin', guide: '상차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
+    { name: '상차일시', field: 'originDate', guide: '상차일시를 입력하세요 (또는 우측 번호 입력, 예: YYYY-MM-DD 09:00 - 경유지 입력 시 Shift+Enter 입력)', optional: true, defaultValue: '' },
+    ...(showWaypoints ? [
+      { name: '경유지 1', field: 'waypoint_0', guide: '첫 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
+      { name: '경유지 2', field: 'waypoint_1', guide: '두 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
+      { name: '경유지 3', field: 'waypoint_2', guide: '세 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' }
+    ] : []),
+    { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
+    { name: '하차일시', field: 'destinationDate', guide: '하차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 12:00)', optional: true, defaultValue: '' },
+    { name: '차량스펙', field: 'spec', guide: '차량 스펙을 입력하세요 (또는 우측 스펙 번호 입력)', optional: false, defaultValue: '' },
+    { name: '화물실중량', field: 'weight', guide: '화물 실중량을 입력하세요 (또는 우측 중량 번호 입력)', optional: true, defaultValue: '0T' },
+    { name: '정산방법', field: 'settleMethod', guide: '정산 방법을 입력하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '인수증' },
+    { name: '정산예정일', field: 'settleDate', guide: '정산 예정일을 입력하세요 (1: 당월말, 2: 익월말 또는 직접 입력 YYYY-MM-DD)', optional: true, defaultValue: '' },
+    { name: '수수료', field: 'commission', guide: '수수료를 입력하세요 (또는 우측 수수료 번호 입력, 없으면 엔터)', optional: true, defaultValue: '0' },
+    { name: '운임', field: 'fee', guide: '운임을 입력하세요 (숫자만 입력 또는 우측 추천 운임 번호 입력)', optional: false, defaultValue: '' },
+    { name: '품목', field: 'cargoItem', guide: '화물 품목을 입력하세요 (또는 우측 품목 번호 입력, 없으면 엔터)', optional: true, defaultValue: '일반화물' },
+    { name: '메모', field: 'memo', guide: '추가 요청사항 및 메모를 입력하세요 (엔터 시 최종 확인)', optional: true, defaultValue: '' },
+    { name: '최종 확인', field: 'confirm', guide: '입력 내용을 확인하고 Enter를 눌러 최종 등록하세요 (또는 Backspace로 수정)', optional: true, defaultValue: '등록' }
+  ], [showWaypoints]);
 
   const isAddressField = React.useCallback((stepIdx: number) => {
     if (stepIdx < 0 || stepIdx >= keyboardSteps.length) return false;
     const f = keyboardSteps[stepIdx].field;
     return f === 'origin' || f === 'destination' || f.startsWith('waypoint_');
-  }, []);
+  }, [keyboardSteps]);
 
   React.useEffect(() => {
     if (registerMode === 'keyboard') {
@@ -1880,7 +1903,7 @@ export default function Dispatches() {
         if (input2) input2.focus();
       }, 50);
     }
-  }, [keyboardStep]);
+  }, [keyboardStep, keyboardSteps]);
 
   React.useEffect(() => {
     if (isAddressField(keyboardStep) && registerMode === 'keyboard') {
@@ -2765,25 +2788,7 @@ export default function Dispatches() {
     { label: '25톤 윙바디', tonnage: '25톤', carType: '윙바디' }
   ];
 
-  const keyboardSteps = [
-    { name: '거래처명', field: 'clientName', guide: '거래처명을 입력하세요 (또는 우측 거래처 번호 입력)', optional: true, defaultValue: '일반화주' },
-    { name: '상차지', field: 'origin', guide: '상차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
-    { name: '상차일시', field: 'originDate', guide: '상차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 09:00)', optional: true, defaultValue: '' },
-    { name: '경유지 1', field: 'waypoint_0', guide: '첫 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
-    { name: '경유지 2', field: 'waypoint_1', guide: '두 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
-    { name: '경유지 3', field: 'waypoint_2', guide: '세 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
-    { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
-    { name: '하차일시', field: 'destinationDate', guide: '하차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 12:00)', optional: true, defaultValue: '' },
-    { name: '차량스펙', field: 'spec', guide: '차량 스펙을 입력하세요 (또는 우측 스펙 번호 입력)', optional: false, defaultValue: '' },
-    { name: '화물실중량', field: 'weight', guide: '화물 실중량을 입력하세요 (또는 우측 중량 번호 입력)', optional: true, defaultValue: '0T' },
-    { name: '정산방법', field: 'settleMethod', guide: '정산 방법을 입력하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '인수증' },
-    { name: '정산예정일', field: 'settleDate', guide: '정산 예정일을 입력하세요 (1: 당월말, 2: 익월말 또는 직접 입력 YYYY-MM-DD)', optional: true, defaultValue: '' },
-    { name: '수수료', field: 'commission', guide: '수수료를 입력하세요 (또는 우측 수수료 번호 입력, 없으면 엔터)', optional: true, defaultValue: '0' },
-    { name: '운임', field: 'fee', guide: '운임을 입력하세요 (숫자만 입력 또는 우측 추천 운임 번호 입력)', optional: false, defaultValue: '' },
-    { name: '품목', field: 'cargoItem', guide: '화물 품목을 입력하세요 (또는 우측 품목 번호 입력, 없으면 엔터)', optional: true, defaultValue: '일반화물' },
-    { name: '메모', field: 'memo', guide: '추가 요청사항 및 메모를 입력하세요 (엔터 시 최종 확인)', optional: true, defaultValue: '' },
-    { name: '최종 확인', field: 'confirm', guide: '입력 내용을 확인하고 Enter를 눌러 최종 등록하세요 (또는 Backspace로 수정)', optional: true, defaultValue: '등록' }
-  ];
+
 
   const parseSpec = (text: string) => {
     let tonnage = '11톤';
@@ -2924,6 +2929,16 @@ export default function Dispatches() {
     const val = keyboardInputValue.trim();
     const currentStepObj = keyboardSteps[keyboardStep];
     const field = currentStepObj.field;
+    
+    if (field === 'originDate') {
+      if (e.shiftKey) {
+        setShowWaypoints(true);
+      } else {
+        setShowWaypoints(false);
+        setFormData(prev => ({ ...prev, waypoints: [] }));
+      }
+    }
+
     let resolvedValue = val;
     const shortcutNum = parseInt(val, 10);
     if (!isNaN(shortcutNum) && shortcutNum > 0 && /^\d+$/.test(val)) {
@@ -3203,6 +3218,7 @@ export default function Dispatches() {
       lastStepTimeRef.current = Date.now();
       setKeyboardStep(0);
       setKeyboardInputValue('');
+      setShowWaypoints(false);
       const dates = getInitialDates();
       setFormData({
         clientName: '',
@@ -5290,7 +5306,10 @@ export default function Dispatches() {
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
                   <button
                     type="button"
-                    onClick={() => setRegisterMode('normal')}
+                    onClick={() => {
+                      setRegisterMode('normal');
+                      setShowWaypoints(false);
+                    }}
                     style={{
                       padding: '0.2rem 0.5rem',
                       fontSize: '0.72rem',
@@ -5310,6 +5329,7 @@ export default function Dispatches() {
                       setRegisterMode('keyboard');
                       setKeyboardStep(0);
                       setKeyboardInputValue('');
+                      setShowWaypoints(false);
                       setTimeout(() => {
                         const input = document.getElementById('keyboard-mode-input');
                         if (input) input.focus();
