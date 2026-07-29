@@ -1842,8 +1842,30 @@ export default function Dispatches() {
           }
           
           setKeyboardInputValue(addr);
-          const input = document.getElementById('keyboard-mode-input');
-          if (input) input.focus();
+
+          // Asynchronously restore focus and trigger Enter to advance step automatically
+          setTimeout(() => {
+            const input = document.getElementById('keyboard-mode-input');
+            if (input) {
+              const inputEl = input as HTMLInputElement;
+              inputEl.value = addr;
+              inputEl.focus();
+              
+              // Dispatch input change event to update React state synchronously
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+              
+              // Dispatch Enter key event to trigger step submission
+              const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
+              });
+              inputEl.dispatchEvent(enterEvent);
+            }
+          }, 150);
         },
         width: '100%',
         height: '100%',
@@ -2882,6 +2904,17 @@ export default function Dispatches() {
   };
 
   const handleKeyboardStepEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab' || e.key === 'ArrowDown') {
+      const currentStepObj = keyboardSteps[keyboardStep];
+      if (currentStepObj.field === 'origin' || currentStepObj.field === 'destination' || currentStepObj.field.startsWith('waypoint_')) {
+        const iframe = postcodeContainerRef.current?.querySelector('iframe');
+        if (iframe) {
+          e.preventDefault();
+          iframe.focus();
+          return;
+        }
+      }
+    }
     if (e.key !== 'Enter') return;
     e.preventDefault();
     const val = keyboardInputValue.trim();
