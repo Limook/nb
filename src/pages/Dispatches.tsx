@@ -1907,6 +1907,9 @@ export default function Dispatches() {
 
   React.useEffect(() => {
     if (isAddressField(keyboardStep) && registerMode === 'keyboard') {
+      if (/^[1-6]$/.test(keyboardInputValue.trim())) {
+        return;
+      }
       const delay = postcodeContainerRef.current && postcodeContainerRef.current.innerHTML === '' ? 0 : 500;
       const handler = setTimeout(() => {
         if (postcodeContainerRef.current) {
