@@ -1807,6 +1807,12 @@ export default function Dispatches() {
   const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [dateDisplayLabels, setDateDisplayLabels] = useState<{ originDate?: string, destinationDate?: string }>({});
 
+  const isAddressField = React.useCallback((stepIdx: number) => {
+    if (stepIdx < 0 || stepIdx >= keyboardSteps.length) return false;
+    const f = keyboardSteps[stepIdx].field;
+    return f === 'origin' || f === 'destination' || f.startsWith('waypoint_');
+  }, []);
+
   React.useEffect(() => {
     if (registerMode === 'keyboard') {
       const input = document.getElementById('keyboard-mode-input');
@@ -1819,11 +1825,22 @@ export default function Dispatches() {
     if (daum && daum.Postcode) {
       el.innerHTML = '';
       new daum.Postcode({
-        q: query,
         oncomplete: (data: any) => {
           const addr = data.roadAddress || data.address;
-          const targetField = keyboardStep === 1 ? 'origin' : 'destination';
-          setFormData(prev => ({ ...prev, [targetField]: addr }));
+          const currentStepObj = keyboardSteps[keyboardStep];
+          const targetField = currentStepObj.field;
+          
+          if (targetField.startsWith('waypoint_')) {
+            const wIdx = parseInt(targetField.split('_')[1], 10);
+            setFormData(prev => {
+              const wps = [...(prev.waypoints || [])];
+              wps[wIdx] = addr;
+              return { ...prev, waypoints: wps };
+            });
+          } else {
+            setFormData(prev => ({ ...prev, [targetField]: addr }));
+          }
+          
           setKeyboardInputValue(addr);
           const input = document.getElementById('keyboard-mode-input');
           if (input) input.focus();
@@ -1831,7 +1848,7 @@ export default function Dispatches() {
         width: '100%',
         height: '100%',
         focusInput: false
-      }).embed(el);
+      }).embed(el, { q: query });
       
       // Force restore focus to input box after embedding iframe
       const input = document.getElementById('keyboard-mode-input');
@@ -1844,7 +1861,7 @@ export default function Dispatches() {
   }, [keyboardStep]);
 
   React.useEffect(() => {
-    if ((keyboardStep === 1 || keyboardStep === 3) && registerMode === 'keyboard') {
+    if (isAddressField(keyboardStep) && registerMode === 'keyboard') {
       const delay = postcodeContainerRef.current && postcodeContainerRef.current.innerHTML === '' ? 0 : 500;
       const handler = setTimeout(() => {
         if (postcodeContainerRef.current) {
@@ -1853,7 +1870,7 @@ export default function Dispatches() {
       }, delay);
       return () => clearTimeout(handler);
     }
-  }, [keyboardInputValue, keyboardStep, registerMode, initializePostcode]);
+  }, [keyboardInputValue, keyboardStep, registerMode, initializePostcode, isAddressField]);
 
   const [chatRoomRecipient, setChatRoomRecipient] = useState<{
     partnerName: string
@@ -2730,6 +2747,9 @@ export default function Dispatches() {
     { name: '거래처명', field: 'clientName', guide: '거래처명을 입력하세요 (또는 우측 거래처 번호 입력)', optional: true, defaultValue: '일반화주' },
     { name: '상차지', field: 'origin', guide: '상차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
     { name: '상차일시', field: 'originDate', guide: '상차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 09:00)', optional: true, defaultValue: '' },
+    { name: '경유지 1', field: 'waypoint_0', guide: '첫 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
+    { name: '경유지 2', field: 'waypoint_1', guide: '두 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
+    { name: '경유지 3', field: 'waypoint_2', guide: '세 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
     { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
     { name: '하차일시', field: 'destinationDate', guide: '하차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 12:00)', optional: true, defaultValue: '' },
     { name: '차량스펙', field: 'spec', guide: '차량 스펙을 입력하세요 (또는 우측 스펙 번호 입력)', optional: false, defaultValue: '' },
@@ -2901,6 +2921,22 @@ export default function Dispatches() {
             setDateDisplayLabels(prev => ({ ...prev, originDate: undefined }));
           }
         }
+      } else if (field.startsWith('waypoint_')) {
+        const wIdx = parseInt(field.split('_')[1], 10);
+        const recentLocations = Array.from(new Set([
+          ...dispatches.map(d => d.origin),
+          ...dispatches.map(d => d.destination),
+          ...(dispatches.flatMap(d => d.waypoints || []))
+        ])).filter(Boolean).slice(0, 6);
+        const selected = recentLocations[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => {
+            const wps = [...(prev.waypoints || [])];
+            wps[wIdx] = selected;
+            return { ...prev, waypoints: wps };
+          });
+          resolvedValue = selected;
+        }
       } else if (field === 'destination') {
         const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
         const selected = recentDests[shortcutNum - 1];
@@ -3002,7 +3038,16 @@ export default function Dispatches() {
           if (field === 'originDate') defVal = getInitialDates().originDate;
           if (field === 'destinationDate') defVal = getInitialDates().destinationDate;
           if (field !== 'confirm') {
-            setFormData(prev => ({ ...prev, [field]: defVal }));
+            if (field.startsWith('waypoint_')) {
+              const wIdx = parseInt(field.split('_')[1], 10);
+              setFormData(prev => {
+                const wps = [...(prev.waypoints || [])];
+                wps[wIdx] = defVal;
+                return { ...prev, waypoints: wps };
+              });
+            } else {
+              setFormData(prev => ({ ...prev, [field]: defVal }));
+            }
           }
           resolvedValue = defVal;
         }
@@ -3039,6 +3084,13 @@ export default function Dispatches() {
               resolvedValue = cleanedDate;
             }
           }
+        } else if (field.startsWith('waypoint_')) {
+          const wIdx = parseInt(field.split('_')[1], 10);
+          setFormData(prev => {
+            const wps = [...(prev.waypoints || [])];
+            wps[wIdx] = val;
+            return { ...prev, waypoints: wps };
+          });
         } else if (field !== 'confirm') {
           setFormData(prev => ({ ...prev, [field]: val }));
         }
@@ -3081,7 +3133,7 @@ export default function Dispatches() {
         originDate: formData.originDate,
         destination: finalDest,
         destinationDate: formData.destinationDate,
-        waypoints: [],
+        waypoints: (formData.waypoints || []).filter((w: string) => w.trim() !== ''),
         spec: `${finalTonnage} ${finalCarType} ${formData.weight ? `(${formData.weight})` : ''}`.trim(),
         status: 'dispatching' as DispatchStatus,
         fee: finalFee,
@@ -3139,10 +3191,22 @@ export default function Dispatches() {
         } else {
       lastStepTimeRef.current = Date.now();
       let nextStep = keyboardStep + 1;
-      if (nextStep === 9 && formData.settleMethod === '인수증') {
-        setFormData(prev => ({ ...prev, commission: '0' }));
-        nextStep = 10;
+      
+      const currentStepObj = keyboardSteps[keyboardStep];
+      if (currentStepObj.field === 'waypoint_0' && resolvedValue === '') {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+      } else if (currentStepObj.field === 'waypoint_1' && resolvedValue === '') {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+      } else if (currentStepObj.field === 'waypoint_2' && resolvedValue === '') {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
       }
+      
+      const nextStepObj = keyboardSteps[nextStep];
+      if (nextStepObj && nextStepObj.field === 'commission' && formData.settleMethod === '인수증') {
+        setFormData(prev => ({ ...prev, commission: '0' }));
+        nextStep = keyboardSteps.findIndex(s => s.field === 'fee');
+      }
+      
       setKeyboardStep(nextStep);
       setKeyboardInputValue('');
     }
@@ -3159,9 +3223,24 @@ export default function Dispatches() {
         e.preventDefault();
         lastStepTimeRef.current = now;
         let prevStep = keyboardStep - 1;
-        if (prevStep === 9 && formData.settleMethod === '인수증') {
-          prevStep = 8;
+        
+        const currentStepObj = keyboardSteps[keyboardStep];
+        if (currentStepObj.field === 'destination') {
+          if (formData.waypoints && formData.waypoints[1]) {
+            prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
+          } else if (formData.waypoints && formData.waypoints[0]) {
+            prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
+          } else {
+            prevStep = keyboardSteps.findIndex(s => s.field === 'originDate');
+          }
+        } else if (currentStepObj.field === 'waypoint_2') {
+          prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
+        } else if (currentStepObj.field === 'waypoint_1') {
+          prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_0');
+        } else if (currentStepObj.field === 'fee' && formData.settleMethod === '인수증') {
+          prevStep = keyboardSteps.findIndex(s => s.field === 'settleDate');
         }
+        
         setKeyboardStep(prevStep);
       }
     }
@@ -3169,6 +3248,10 @@ export default function Dispatches() {
   const getStepValueString = (field: string) => {
     if (field === 'spec') {
       return formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '';
+    }
+    if (field.startsWith('waypoint_')) {
+      const wIdx = parseInt(field.split('_')[1], 10);
+      return (formData.waypoints && formData.waypoints[wIdx]) || '';
     }
     if (field === 'originDate' || field === 'destinationDate') {
       if (dateDisplayLabels[field as 'originDate' | 'destinationDate']) {
@@ -3211,8 +3294,12 @@ export default function Dispatches() {
         </div>
       );
     }
-    if (stepField === 'origin') {
-      const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
+    if (stepField === 'origin' || stepField.startsWith('waypoint_')) {
+      const recentOrigins = Array.from(new Set([
+        ...dispatches.map(d => d.origin),
+        ...dispatches.map(d => d.destination),
+        ...(dispatches.flatMap(d => d.waypoints || []))
+      ])).filter(Boolean).slice(0, 6);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {recentOrigins.map((loc, idx) => (
@@ -3235,7 +3322,7 @@ export default function Dispatches() {
           ))}
           {recentOrigins.length === 0 && (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-              추천할 최근 상차지가 없습니다. 직접 입력하세요.
+              추천할 최근 주소가 없습니다. 직접 입력하세요.
             </div>
           )}
         </div>
@@ -3715,6 +3802,15 @@ export default function Dispatches() {
           {keyboardSteps.map((step, idx) => {
             const isActive = idx === keyboardStep;
             const isCompleted = idx < keyboardStep;
+            
+            // Progressive disclosure for Waypoints
+            if (step.field === 'waypoint_1' && (!formData.waypoints || !formData.waypoints[0]) && !isActive) {
+              return null;
+            }
+            if (step.field === 'waypoint_2' && (!formData.waypoints || !formData.waypoints[1] || !formData.waypoints[0]) && !isActive) {
+              return null;
+            }
+            
             const stepValue = getStepValueString(step.field);
             return (
               <div
@@ -3787,7 +3883,7 @@ export default function Dispatches() {
           backgroundColor: 'var(--bg-secondary)',
           overflowY: 'auto'
         }} className="hide-scrollbar">
-          {(keyboardStep === 1 || keyboardStep === 3) ? (
+          {isAddressField(keyboardStep) ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {/* Top part: Recent locations shortcuts */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
