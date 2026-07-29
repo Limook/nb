@@ -1869,16 +1869,20 @@ export default function Dispatches() {
         },
         width: '100%',
         height: '100%',
-        focusInput: false
+        focusInput: true
       }).embed(el, { q: query });
       
       // Force restore focus to input box after embedding iframe
       const input = document.getElementById('keyboard-mode-input');
       if (input) input.focus();
-      setTimeout(() => {
-        const input2 = document.getElementById('keyboard-mode-input');
-        if (input2) input2.focus();
-      }, 50);
+      const restoreFocus = () => {
+        const inputEl = document.getElementById('keyboard-mode-input');
+        if (inputEl) inputEl.focus();
+      };
+      setTimeout(restoreFocus, 30);
+      setTimeout(restoreFocus, 100);
+      setTimeout(restoreFocus, 250);
+      setTimeout(restoreFocus, 500);
     }
   }, [keyboardStep]);
 
@@ -2910,7 +2914,11 @@ export default function Dispatches() {
         const iframe = postcodeContainerRef.current?.querySelector('iframe');
         if (iframe) {
           e.preventDefault();
-          iframe.focus();
+          if (iframe.contentWindow) {
+            iframe.contentWindow.focus();
+          } else {
+            iframe.focus();
+          }
           return;
         }
       }
