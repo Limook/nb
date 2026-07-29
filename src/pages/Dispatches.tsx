@@ -3626,12 +3626,12 @@ export default function Dispatches() {
   const renderKeyboardHelper = () => {
     const stepField = keyboardSteps[keyboardStep].field;
     return (
-      <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
-        {/* Left Column: Progress checklist (42% width) */}
+      <div style={{ display: 'flex', gap: '0', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
+        {/* Left Column: Progress checklist (40% width) */}
         <div style={{
-          width: '42%',
-          borderRight: '1px solid var(--border-color)',
-          paddingRight: '0.75rem',
+          width: '40%',
+          borderRight: '1.5px solid var(--primary)',
+          paddingRight: '0.5rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.45rem',
@@ -3652,31 +3652,18 @@ export default function Dispatches() {
                   gap: '0.15rem',
                   padding: '0.45rem 0.6rem',
                   borderRadius: 'var(--radius-sm)',
-                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                                    backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
                   border: isActive ? '1.5px solid var(--primary)' : '1.5px solid transparent',
-                  borderRight: isActive ? 'none' : undefined,
+                  borderRight: isActive ? '1.5px solid var(--primary-light)' : undefined,
                   borderTopRightRadius: isActive ? '0' : 'var(--radius-sm)',
                   borderBottomRightRadius: isActive ? '0' : 'var(--radius-sm)',
-                  marginRight: isActive ? '-0.85rem' : '0',
-                  zIndex: isActive ? 2 : 1,
+                  marginRight: isActive ? '-0.59rem' : '0',
+                  zIndex: isActive ? 5 : 1,
                   transition: 'all var(--transition-fast)',
                   opacity: isActive || isCompleted ? 1 : 0.5
                 }}
               >
-                {isActive && (
-                  <div style={{
-                    position: 'absolute',
-                    right: '-6px',
-                    top: '50%',
-                    transform: 'translateY(-50%) rotate(45deg)',
-                    width: '10px',
-                    height: '10px',
-                    backgroundColor: 'var(--primary-light)',
-                    borderTop: '1.5px solid var(--primary)',
-                    borderRight: '1.5px solid var(--primary)',
-                    zIndex: 3
-                  }} />
-                )}
+                
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', position: 'relative', zIndex: 4 }}>
                   {isCompleted ? (
                     <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
@@ -3711,16 +3698,20 @@ export default function Dispatches() {
           })}
         </div>
 
-        {/* Right Column: Shortcuts lists / postcode iframe (58% width) */}
+        {/* Right Column: Shortcuts lists / postcode iframe (60% width) */}
         <div style={{
-          width: '58%',
+          width: '60%',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.75rem',
           border: '1.5px solid var(--primary)',
-          borderRadius: 'var(--radius-md)',
+          borderLeft: 'none',
+          borderTopLeftRadius: '0',
+          borderBottomLeftRadius: '0',
+          borderTopRightRadius: 'var(--radius-md)',
+          borderBottomRightRadius: 'var(--radius-md)',
           padding: '0.75rem',
-          backgroundColor: 'var(--bg-secondary)',
+          backgroundColor: 'var(--primary-light)',
           overflowY: 'auto'
         }} className="hide-scrollbar">
           {(keyboardStep === 1 || keyboardStep === 3) ? (
