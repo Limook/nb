@@ -1803,7 +1803,7 @@ export default function Dispatches() {
   const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
   const [keyboardStep, setKeyboardStep] = useState<number>(0);
   const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
-  const [showKeyboardHelper, setShowKeyboardHelper] = useState<boolean>(true);
+
 
   React.useEffect(() => {
     if (registerMode === 'keyboard') {
@@ -3024,6 +3024,665 @@ export default function Dispatches() {
         setKeyboardStep(prev => prev - 1);
       }
     }
+  };
+
+  const getStepValueString = (field: string) => {
+    if (field === 'spec') {
+      return formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '';
+    }
+    if (field === 'originDate' || field === 'destinationDate') {
+      const val = formData[field as keyof typeof formData];
+      return typeof val === 'string' ? val.replace('T', ' ') : '';
+    }
+    if (field === 'confirm') return '';
+    const val = formData[field as keyof typeof formData];
+    return typeof val === 'string' ? val : '';
+  };
+
+  const renderKeyboardShortcuts = (stepField: string) => {
+    if (stepField === 'clientName') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {clients.slice(0, 8).map((client, idx) => (
+            <div
+              key={client.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {client.name}
+              </span>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
+                {client.phone}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'origin') {
+      const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {recentOrigins.map((loc, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {loc}
+              </span>
+            </div>
+          ))}
+          {recentOrigins.length === 0 && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+              추천할 최근 상차지가 없습니다. 직접 입력하세요.
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (stepField === 'originDate') {
+      const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {shortcuts.map((sh, idx) => {
+            const calculated = getShortcutDateValue(sh).replace('T', ' ');
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.55rem 0.75rem',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                  {sh}
+                </span>
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                  {calculated}
+                </span>
+              </div>
+            );
+          })}
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+            💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 14:00)으로 타이핑 후 엔터를 누르세요.
+          </div>
+        </div>
+      );
+    }
+    if (stepField === 'destination') {
+      const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {recentDests.map((loc, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {loc}
+              </span>
+            </div>
+          ))}
+          {recentDests.length === 0 && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+              추천할 최근 하차지가 없습니다. 직접 입력하세요.
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (stepField === 'destinationDate') {
+      const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {shortcuts.map((sh, idx) => {
+            const calculated = getShortcutDateValue(sh).replace('T', ' ');
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.55rem 0.75rem',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                  {sh}
+                </span>
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                  {calculated}
+                </span>
+              </div>
+            );
+          })}
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+            💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 17:00)으로 타이핑 후 엔터를 누르세요.
+          </div>
+        </div>
+      );
+    }
+    if (stepField === 'spec') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {commonSpecs.map((spec, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {spec.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'weight') {
+      const weights = ['0T (스킵)', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {weights.map((w, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {w}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'settleMethod') {
+      const methods = ['인수증', '선불', '착불', '카드'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {methods.map((m, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {m}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'settleDate') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.55rem 0.75rem',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)'
+            }}
+          >
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>1</span>
+              당월말
+            </span>
+            <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+              {getEndOfCurrentMonth()}
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.55rem 0.75rem',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)'
+            }}
+          >
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>2</span>
+              익월말
+            </span>
+            <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+              {getEndOfNextMonth()}
+            </span>
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+            💡 직접 입력을 원하시면 날짜 형식(예: 2026-08-15)으로 직접 타이핑 후 엔터를 누르세요.
+          </div>
+        </div>
+      );
+    }
+    if (stepField === 'commission') {
+      const comms = ['수수료 없음 (0원)', '10,000원', '20,000원', '30,000원', '50,000원'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {comms.map((c, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {c}
+              </span>
+            </div>
+          ))}
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
+            💡 직접 임의의 숫자를 타이핑해 입력할 수도 있습니다.
+          </div>
+        </div>
+      );
+    }
+    if (stepField === 'fee') {
+      const commonFees = ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {commonFees.map((f, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {f}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'cargoItem') {
+      const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {items.map((it, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {it}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'memo') {
+      const memos = [
+        '안전운전 부탁드립니다.',
+        '상하차지 대기 시간 발생 시 연락 필수.',
+        '수수료 세금계산서 발행 요망.',
+        '인수증 빠른 우편 발송 필요.'
+      ];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {memos.map((m, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.55rem 0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {m}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (stepField === 'confirm') {
+      const formattedOriginDate = formData.originDate ? formData.originDate.replace('T', ' ') : '';
+      const formattedDestDate = formData.destinationDate ? formData.destinationDate.replace('T', ' ') : '';
+      return (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '0.85rem',
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1.5px solid var(--primary)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1rem',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ 
+            fontSize: '0.9rem', 
+            fontWeight: 900, 
+            color: 'var(--primary)', 
+            borderBottom: '1px solid var(--border-color)', 
+            paddingBottom: '0.45rem',
+            marginBottom: '0.2rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem'
+          }}>
+            📋 등록 내용 최종 확인
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', fontSize: '0.82rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>거래처</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.clientName || '일반화주'}</span>
+            </div>
+            
+            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>상차지</span>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.origin}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>상차일시</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedOriginDate}</span>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>하차지</span>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.destination}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>하차일시</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedDestDate}</span>
+              </div>
+            </div>
+            
+            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>차량스펙</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                {formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '미지정'} {formData.weight ? `(${formData.weight})` : ''}
+              </span>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>화물품목</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.cargoItem || '일반화물'}</span>
+            </div>
+            
+            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>정산방법</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.settleMethod} {formData.settleDate ? `(${formData.settleDate})` : ''}</span>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>수수료</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.commission ? `${formData.commission}원` : '0원'}</span>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>운임료</span>
+              <span style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1rem' }}>{formData.fee ? `${formData.fee}원` : '0원'}</span>
+            </div>
+            
+            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>메모</span>
+              <div style={{ 
+                backgroundColor: 'var(--bg-primary)', 
+                padding: '0.45rem 0.6rem', 
+                borderRadius: 'var(--radius-sm)', 
+                fontSize: '0.76rem', 
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                minHeight: '2.2rem',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {formData.memo || '(입력된 메모 없음)'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ 
+            marginTop: '0.5rem',
+            backgroundColor: 'var(--primary-light)', 
+            padding: '0.6rem 0.8rem', 
+            borderRadius: 'var(--radius-md)', 
+            textAlign: 'center', 
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            color: 'var(--primary)'
+          }}>
+            ⌨️ Enter를 한 번 더 누르면 등록이 완료됩니다!
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderKeyboardHelper = () => {
+    const stepField = keyboardSteps[keyboardStep].field;
+    return (
+      <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
+        {/* Left Column: Progress checklist (42% width) */}
+        <div style={{
+          width: '42%',
+          borderRight: '1px solid var(--border-color)',
+          paddingRight: '0.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.45rem',
+          overflowY: 'auto'
+        }} className="hide-scrollbar">
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>📌 등록 단계</span>
+          {keyboardSteps.map((step, idx) => {
+            const isActive = idx === keyboardStep;
+            const isCompleted = idx < keyboardStep;
+            const stepValue = getStepValueString(step.field);
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.15rem',
+                  padding: '0.45rem 0.6rem',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
+                  transition: 'all var(--transition-fast)',
+                  opacity: isActive || isCompleted ? 1 : 0.5
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {isCompleted ? (
+                    <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                  ) : isActive ? (
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
+                  )}
+                  <span style={{
+                    fontSize: '0.78rem',
+                    fontWeight: isActive ? 800 : 600,
+                    color: isActive ? 'var(--primary)' : 'var(--text-secondary)'
+                  }}>
+                    {step.name}
+                  </span>
+                </div>
+                {isCompleted && stepValue && (
+                  <div style={{ 
+                    fontSize: '0.74rem', 
+                    color: 'var(--text-primary)', 
+                    paddingLeft: '1.15rem',
+                    fontWeight: 700,
+                    wordBreak: 'break-all'
+                  }}>
+                    {stepValue}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right Column: Shortcuts lists / postcode iframe (58% width) */}
+        <div style={{
+          width: '58%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          overflowY: 'auto'
+        }} className="hide-scrollbar">
+          {(keyboardStep === 1 || keyboardStep === 3) ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.3rem' }}>
+                🔍 우편번호 검색기 (주소 선택 시 자동 입력)
+              </span>
+              <div 
+                style={{
+                  flex: 1,
+                  minHeight: '260px',
+                  border: '1.5px solid var(--primary)',
+                  borderRadius: 'var(--radius-md)',
+                  overflow: 'hidden'
+                }}
+                ref={(el) => {
+                  if (el) {
+                    const daum = (window as any).daum;
+                    if (daum && daum.Postcode) {
+                      el.innerHTML = '';
+                      new daum.Postcode({
+                        oncomplete: (data: any) => {
+                          const addr = data.roadAddress || data.address;
+                          const targetField = keyboardStep === 1 ? 'origin' : 'destination';
+                          setFormData(prev => ({ ...prev, [targetField]: addr }));
+                          setKeyboardInputValue(addr);
+                          const input = document.getElementById('keyboard-mode-input');
+                          if (input) input.focus();
+                        },
+                        width: '100%',
+                        height: '100%',
+                        focusInput: false
+                      }).embed(el);
+                      setTimeout(() => {
+                        const input = document.getElementById('keyboard-mode-input');
+                        if (input) input.focus();
+                      }, 50);
+                    }
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                  ⚡ 단축 입력 리스트
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                  (번호 입력 + Enter)
+                </span>
+              </div>
+              {renderKeyboardShortcuts(stepField)}
+            </>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const handleUpdateDriverAndStatus = (dispatchId: number, status: DispatchStatus) => {
@@ -4334,7 +4993,7 @@ export default function Dispatches() {
           </div>
         ) : (
           <>
-            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '0.85rem 1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem', border: 'none' }}>
+            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '0.85rem 1rem', overflowY: registerMode === 'keyboard' ? 'hidden' : 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem', border: 'none', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 -0.25rem 0' }}>
                 <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
                   <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
@@ -4384,58 +5043,60 @@ export default function Dispatches() {
                 </div>
               </div>
 
-              {registerMode === 'keyboard' && (
-                <div style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1.5px solid var(--primary)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '0.85rem 1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.45rem',
-                  boxShadow: '0 4px 12px rgba(49, 130, 246, 0.08)',
-                  marginTop: '0.5rem'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>
-                      👉 {keyboardSteps[keyboardStep].name} 입력 차례
-                    </span>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                      (이전 단계로 가려면 Backspace 입력)
-                    </span>
+              {registerMode === 'keyboard' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
+                  {/* Guided Input Box */}
+                  <div style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1.5px solid var(--primary)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem 0.95rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 12px rgba(49, 130, 246, 0.08)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>
+                        👉 {keyboardSteps[keyboardStep].name} 입력 차례
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                        (이전 단계로 가려면 Backspace 입력)
+                      </span>
+                    </div>
+                    <Input
+                      id="keyboard-mode-input"
+                      type="text"
+                      placeholder={keyboardSteps[keyboardStep].guide}
+                      value={keyboardInputValue}
+                      onChange={(e) => setKeyboardInputValue(e.target.value)}
+                      onKeyDown={handleKeyboardStepEnter}
+                      onKeyUp={handleKeyboardInputKeyDown}
+                      style={{
+                        height: '40px',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        borderColor: 'var(--primary)',
+                        boxShadow: '0 0 0 2px var(--primary-light)'
+                      }}
+                      autoComplete="off"
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                      <span>{keyboardSteps[keyboardStep].optional ? '✨ 이 항목은 필수값이 아닙니다. (엔터 시 스킵 가능)' : '⚠️ 이 항목은 필수입니다. (값을 반드시 입력하세요)'}</span>
+                      <span>완료: {keyboardStep}/{keyboardSteps.length}</span>
+                    </div>
                   </div>
-                  <Input
-                    id="keyboard-mode-input"
-                    type="text"
-                    placeholder={keyboardSteps[keyboardStep].guide}
-                    value={keyboardInputValue}
-                    onChange={(e) => setKeyboardInputValue(e.target.value)}
-                    onKeyDown={handleKeyboardStepEnter}
-                    onKeyUp={handleKeyboardInputKeyDown}
-                    style={{
-                      height: '42px',
-                      fontSize: '0.92rem',
-                      fontWeight: 700,
-                      borderColor: 'var(--primary)',
-                      boxShadow: '0 0 0 2px var(--primary-light)'
-                    }}
-                    autoComplete="off"
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
-                    <span>{keyboardSteps[keyboardStep].optional ? '✨ 이 항목은 필수값이 아닙니다. (엔터 시 스킵 가능)' : '⚠️ 이 항목은 필수입니다. (값을 반드시 입력하세요)'}</span>
-                    <span>완료: {keyboardStep}/11</span>
-                  </div>
+
+                  {/* 2-Column Helper Panel */}
+                  {renderKeyboardHelper()}
                 </div>
-              )}
-          
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.8rem',
-                pointerEvents: registerMode === 'keyboard' ? 'none' : 'auto',
-                opacity: registerMode === 'keyboard' ? 0.7 : 1,
-                transition: 'all var(--transition-fast)'
-              }}>
+              ) : (
+                <>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.8rem'
+                  }}>
           {/* 1. 거래처 정보 입력 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -5077,24 +5738,22 @@ export default function Dispatches() {
           </div>
 
               </div>
+            </>
+          )}
 
-              {registerMode === 'keyboard' ? (
-                <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: 'var(--text-tertiary)', fontSize: '0.74rem', fontWeight: 600 }}>
-                  ⌨️ 키보드 전용 입력 모드가 활성화되어 있습니다.
-                </div>
-              ) : (
-                <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                  <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
-                  <Button 
-                    variant="secondary" 
-                    type="button"
-                    style={{ width: '80px', padding: '0.7rem', fontSize: '0.82rem' }} 
-                    onClick={handleResetForm}
-                  >
-                    초기화
-                  </Button>
-                </div>
-              )}
+          {registerMode !== 'keyboard' && (
+            <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+              <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
+              <Button 
+                variant="secondary" 
+                type="button"
+                style={{ width: '80px', padding: '0.7rem', fontSize: '0.82rem' }} 
+                onClick={handleResetForm}
+              >
+                초기화
+              </Button>
+            </div>
+          )}
         </Card>
           </>
         )}
@@ -5125,18 +5784,10 @@ export default function Dispatches() {
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-              {registerMode === 'keyboard' && showKeyboardHelper ? '키보드 등록 도우미' : activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
+              {activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              {registerMode === 'keyboard' && (
-                <Button
-                  variant="outline"
-                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                  onClick={() => setShowKeyboardHelper(!showKeyboardHelper)}
-                >
-                  {showKeyboardHelper ? '운행내역 보기' : '도우미 보기'}
-                </Button>
-              )}
+              
               <Button
                 variant="secondary"
                 style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
@@ -5150,635 +5801,7 @@ export default function Dispatches() {
               </Button>
             </div>
           </h4>
-          {registerMode === 'keyboard' && showKeyboardHelper ? (
-            <div style={{ display: 'flex', gap: '1.25rem', height: '100%', overflow: 'hidden' }} className="animate-slide-down">
-              {/* Left Column: Steps checklist (35% width) */}
-              <div style={{
-                width: '35%',
-                borderRight: '1px solid var(--border-color)',
-                paddingRight: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-                overflowY: 'auto'
-              }} className="hide-scrollbar">
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>📌 등록 단계</span>
-                {keyboardSteps.map((step, idx) => {
-                  const isActive = idx === keyboardStep;
-                  const isCompleted = idx < keyboardStep;
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 0.65rem',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                        border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
-                        transition: 'all var(--transition-fast)',
-                        opacity: isActive || isCompleted ? 1 : 0.5
-                      }}
-                    >
-                      {isCompleted ? (
-                        <Check size={14} style={{ color: 'var(--success)' }} />
-                      ) : isActive ? (
-                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)' }} />
-                      ) : (
-                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)' }} />
-                      )}
-                      <span style={{
-                        fontSize: '0.8rem',
-                        fontWeight: isActive ? 800 : 500,
-                        color: isActive ? 'var(--primary)' : isCompleted ? 'var(--text-primary)' : 'var(--text-secondary)'
-                      }}>
-                        {step.name}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Right Column: Numbered Shortcuts (65% width) */}
-              <div style={{
-                width: '65%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-                overflowY: 'auto'
-              }} className="hide-scrollbar">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    ⚡ 단축 입력 리스트
-                  </span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-                    (해당 번호를 치고 Enter를 누르세요)
-                  </span>
-                </div>
-
-                {/* 1. Show shortcuts dynamically depending on stepField */}
-                {(() => {
-                  const stepField = keyboardSteps[keyboardStep].field;
-                  if (stepField === 'clientName') {
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {clients.slice(0, 8).map((client, idx) => (
-                          <div
-                            key={client.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {client.name}
-                            </span>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
-                              {client.phone}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'origin') {
-                    const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {recentOrigins.map((loc, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {loc}
-                            </span>
-                          </div>
-                        ))}
-                        {recentOrigins.length === 0 && (
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-                            추천할 최근 상차지가 없습니다. 직접 입력하세요.
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'originDate') {
-                    const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {shortcuts.map((sh, idx) => {
-                          const calculated = getShortcutDateValue(sh).replace('T', ' ');
-                          return (
-                            <div
-                              key={idx}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.55rem 0.75rem',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: 'var(--radius-md)'
-                              }}
-                            >
-                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                                {sh}
-                              </span>
-                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                                {calculated}
-                              </span>
-                            </div>
-                          );
-                        })}
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-                          💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 14:00)으로 타이핑 후 엔터를 누르세요.
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (stepField === 'destination') {
-                    const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {recentDests.map((loc, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {loc}
-                            </span>
-                          </div>
-                        ))}
-                        {recentDests.length === 0 && (
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-                            추천할 최근 하차지가 없습니다. 직접 입력하세요.
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'destinationDate') {
-                    const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {shortcuts.map((sh, idx) => {
-                          const calculated = getShortcutDateValue(sh).replace('T', ' ');
-                          return (
-                            <div
-                              key={idx}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.55rem 0.75rem',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: 'var(--radius-md)'
-                              }}
-                            >
-                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                                {sh}
-                              </span>
-                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                                {calculated}
-                              </span>
-                            </div>
-                          );
-                        })}
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-                          💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 17:00)으로 타이핑 후 엔터를 누르세요.
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (stepField === 'spec') {
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {commonSpecs.map((spec, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {spec.label}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'weight') {
-                    const weights = ['0T (스킵)', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {weights.map((w, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {w}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'settleMethod') {
-                    const methods = ['인수증', '선불', '착불', '카드'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {methods.map((m, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {m}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'settleDate') {
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.55rem 0.75rem',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 'var(--radius-md)'
-                          }}
-                        >
-                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>1</span>
-                            당월말
-                          </span>
-                          <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                            {getEndOfCurrentMonth()}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.55rem 0.75rem',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 'var(--radius-md)'
-                          }}
-                        >
-                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>2</span>
-                            익월말
-                          </span>
-                          <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                            {getEndOfNextMonth()}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-                          💡 직접 입력을 원하시면 날짜 형식(예: 2026-08-15)으로 직접 타이핑 후 엔터를 누르세요.
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (stepField === 'commission') {
-                    const comms = ['수수료 없음 (0원)', '10,000원', '20,000원', '30,000원', '50,000원'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {comms.map((c, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {c}
-                            </span>
-                          </div>
-                        ))}
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-                          💡 직접 임의의 숫자를 타이핑해 입력할 수도 있습니다.
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (stepField === 'fee') {
-                    const commonFees = ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {commonFees.map((f, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {f}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'cargoItem') {
-                    const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {items.map((it, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {it}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'memo') {
-                    const memos = [
-                      '안전운전 부탁드립니다.',
-                      '상하차지 대기 시간 발생 시 연락 필수.',
-                      '수수료 세금계산서 발행 요망.',
-                      '인수증 빠른 우편 발송 필요.'
-                    ];
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {memos.map((m, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.75rem',
-                              backgroundColor: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 'var(--radius-md)'
-                            }}
-                          >
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                              {m}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (stepField === 'confirm') {
-                    const formattedOriginDate = formData.originDate ? formData.originDate.replace('T', ' ') : '';
-                    const formattedDestDate = formData.destinationDate ? formData.destinationDate.replace('T', ' ') : '';
-                    return (
-                      <div style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '0.85rem',
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1.5px solid var(--primary)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                        boxShadow: 'var(--shadow-sm)'
-                      }}>
-                        <div style={{ 
-                          fontSize: '0.9rem', 
-                          fontWeight: 900, 
-                          color: 'var(--primary)', 
-                          borderBottom: '1px solid var(--border-color)', 
-                          paddingBottom: '0.45rem',
-                          marginBottom: '0.2rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.35rem'
-                        }}>
-                          📋 등록 내용 최종 확인
-                        </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', fontSize: '0.82rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>거래처</span>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.clientName || '일반화주'}</span>
-                          </div>
-                          
-                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>상차지</span>
-                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.origin}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>상차일시</span>
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedOriginDate}</span>
-                            </div>
-                          </div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>하차지</span>
-                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.destination}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>하차일시</span>
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedDestDate}</span>
-                            </div>
-                          </div>
-                          
-                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>차량스펙</span>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '미지정'} {formData.weight ? `(${formData.weight})` : ''}
-                            </span>
-                          </div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>화물품목</span>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.cargoItem || '일반화물'}</span>
-                          </div>
-                          
-                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>정산방법</span>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.settleMethod} {formData.settleDate ? `(${formData.settleDate})` : ''}</span>
-                          </div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>수수료</span>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.commission ? `${formData.commission}원` : '0원'}</span>
-                          </div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>운임료</span>
-                            <span style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1rem' }}>{formData.fee ? `${formData.fee}원` : '0원'}</span>
-                          </div>
-                          
-                          <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>메모</span>
-                            <div style={{ 
-                              backgroundColor: 'var(--bg-primary)', 
-                              padding: '0.45rem 0.6rem', 
-                              borderRadius: 'var(--radius-sm)', 
-                              fontSize: '0.76rem', 
-                              color: 'var(--text-primary)',
-                              border: '1px solid var(--border-color)',
-                              minHeight: '2.2rem',
-                              whiteSpace: 'pre-wrap'
-                            }}>
-                              {formData.memo || '(입력된 메모 없음)'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{ 
-                          marginTop: '0.5rem',
-                          backgroundColor: 'var(--primary-light)', 
-                          padding: '0.6rem 0.8rem', 
-                          borderRadius: 'var(--radius-md)', 
-                          textAlign: 'center', 
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          color: 'var(--primary)',
-                          border: '1px solid var(--primary)'
-                        }}>
-                          ⌨️ Enter를 한 번 더 누르면 등록이 완료됩니다!
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                {/* Embedded Postcode Search for Addresses */}
-                {(keyboardStep === 1 || keyboardStep === 3) && (
-                  <div style={{ marginTop: '0.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
-                      🔍 우편번호 검색기 (검색 및 마우스/키보드로 주소 선택 시 자동 입력)
-                    </span>
-                    <div 
-                      style={{
-                        flex: 1,
-                        minHeight: '320px',
-                        border: '1.5px solid var(--primary)',
-                        borderRadius: 'var(--radius-md)',
-                        overflow: 'hidden'
-                      }}
-                      ref={(el) => {
-                        if (el) {
-                          const daum = (window as any).daum;
-                          if (daum && daum.Postcode) {
-                            el.innerHTML = '';
-                            new daum.Postcode({
-                              oncomplete: (data: any) => {
-                                const addr = data.roadAddress || data.address;
-                                const targetField = keyboardStep === 1 ? 'origin' : 'destination';
-                                setFormData(prev => ({ ...prev, [targetField]: addr }));
-                                setKeyboardInputValue(addr);
-                                const input = document.getElementById('keyboard-mode-input');
-                                if (input) input.focus();
-                              },
-                              width: '100%',
-                              height: '100%',
-                              focusInput: false
-                            }).embed(el);
-                            setTimeout(() => {
-                              const input = document.getElementById('keyboard-mode-input');
-                              if (input) input.focus();
-                            }, 50);
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : activeLocationListField ? (
+          {activeLocationListField ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%', overflow: 'hidden' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 {formData.clientName.trim() 
