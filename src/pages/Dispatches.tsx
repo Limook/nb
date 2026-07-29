@@ -1803,6 +1803,7 @@ export default function Dispatches() {
   const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
   const [keyboardStep, setKeyboardStep] = useState<number>(0);
   const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
+  const lastStepTimeRef = React.useRef<number>(0);
 
 
   React.useEffect(() => {
@@ -2762,6 +2763,61 @@ export default function Dispatches() {
     return getLocalDateTimeString(targetDate);
   };
 
+  const parseKoreanTime = (timeStr: string): string | null => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const datePrefix = `${yyyy}-${mm}-${dd}`;
+
+    const clean = timeStr.trim();
+
+    // 1. Matches: "오전/오후 N시", "오전/오후 N시 M분", "오전/오후 N시M분"
+    const kornTimeRegex = /^(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*분?)?$/;
+    const matchKorn = clean.match(kornTimeRegex);
+    if (matchKorn) {
+      const meridiem = matchKorn[1]; // "오전", "오후", or undefined
+      let hour = parseInt(matchKorn[2], 10);
+      const min = matchKorn[3] ? parseInt(matchKorn[3], 10) : 0;
+
+      if (meridiem === '오후' && hour < 12) {
+        hour += 12;
+      } else if (meridiem === '오전' && hour === 12) {
+        hour = 0;
+      }
+      
+      const hhStr = String(hour).padStart(2, '0');
+      const mmStr = String(min).padStart(2, '0');
+      return `${datePrefix}T${hhStr}:${mmStr}`;
+    }
+
+    // 2. Matches 24h hour only: "13시", "9시" (without 오전/오후 prefix)
+    const hourOnlyRegex = /^(\d+)\s*시$/;
+    const matchHour = clean.match(hourOnlyRegex);
+    if (matchHour) {
+      const hour = parseInt(matchHour[1], 10);
+      if (hour >= 0 && hour <= 23) {
+        const hhStr = String(hour).padStart(2, '0');
+        return `${datePrefix}T${hhStr}:00`;
+      }
+    }
+
+    // 3. Matches standard time colon format: "13:00", "09:30", "13:30"
+    const colonRegex = /^(\d{1,2}):(\d{2})$/;
+    const matchColon = clean.match(colonRegex);
+    if (matchColon) {
+      const hour = parseInt(matchColon[1], 10);
+      const min = parseInt(matchColon[2], 10);
+      if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59) {
+        const hhStr = String(hour).padStart(2, '0');
+        const mmStr = String(min).padStart(2, '0');
+        return `${datePrefix}T${hhStr}:${mmStr}`;
+      }
+    }
+
+    return null;
+  };
+
   const handleKeyboardStepEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
@@ -2770,7 +2826,7 @@ export default function Dispatches() {
     const field = currentStepObj.field;
     let resolvedValue = val;
     const shortcutNum = parseInt(val, 10);
-    if (!isNaN(shortcutNum) && shortcutNum > 0) {
+    if (!isNaN(shortcutNum) && shortcutNum > 0 && /^\d+$/.test(val)) {
       if (field === 'clientName') {
         const client = clients[shortcutNum - 1];
         if (client) {
@@ -2910,12 +2966,18 @@ export default function Dispatches() {
           const formatted = numeric ? Number(numeric).toLocaleString() : '';
           setFormData(prev => ({ ...prev, [field]: formatted }));
         } else if (field === 'originDate' || field === 'destinationDate') {
-          let cleanedDate = val.replace(' ', 'T');
-          if (cleanedDate.length === 10) {
-            cleanedDate += 'T12:00';
+          const parsedTime = parseKoreanTime(val);
+          if (parsedTime) {
+            setFormData(prev => ({ ...prev, [field]: parsedTime }));
+            resolvedValue = parsedTime;
+          } else {
+            let cleanedDate = val.replace(' ', 'T');
+            if (cleanedDate.length === 10) {
+              cleanedDate += 'T12:00';
+            }
+            setFormData(prev => ({ ...prev, [field]: cleanedDate }));
+            resolvedValue = cleanedDate;
           }
-          setFormData(prev => ({ ...prev, [field]: cleanedDate }));
-          resolvedValue = cleanedDate;
         } else if (field !== 'confirm') {
           setFormData(prev => ({ ...prev, [field]: val }));
         }
@@ -2988,6 +3050,7 @@ export default function Dispatches() {
       };
       setHistoryPool([poolItem, ...historyPool]);
       triggerNotification('배차가 성공적으로 등록되었습니다!');
+      lastStepTimeRef.current = Date.now();
       setKeyboardStep(0);
       setKeyboardInputValue('');
       const dates = getInitialDates();
@@ -3012,6 +3075,7 @@ export default function Dispatches() {
       });
       setErrors({});
     } else {
+      lastStepTimeRef.current = Date.now();
       setKeyboardStep(prev => prev + 1);
       setKeyboardInputValue('');
     }
@@ -3019,8 +3083,14 @@ export default function Dispatches() {
 
   const handleKeyboardInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && keyboardInputValue === '') {
+      const now = Date.now();
+      if (now - lastStepTimeRef.current < 450) {
+        e.preventDefault();
+        return;
+      }
       if (keyboardStep > 0) {
         e.preventDefault();
+        lastStepTimeRef.current = now;
         setKeyboardStep(prev => prev - 1);
       }
     }
@@ -3576,18 +3646,38 @@ export default function Dispatches() {
               <div
                 key={idx}
                 style={{
+                  position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.15rem',
                   padding: '0.45rem 0.6rem',
                   borderRadius: 'var(--radius-sm)',
                   backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
+                  border: isActive ? '1.5px solid var(--primary)' : '1.5px solid transparent',
+                  borderRight: isActive ? 'none' : undefined,
+                  borderTopRightRadius: isActive ? '0' : 'var(--radius-sm)',
+                  borderBottomRightRadius: isActive ? '0' : 'var(--radius-sm)',
+                  marginRight: isActive ? '-0.85rem' : '0',
+                  zIndex: isActive ? 2 : 1,
                   transition: 'all var(--transition-fast)',
                   opacity: isActive || isCompleted ? 1 : 0.5
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                {isActive && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '-6px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '10px',
+                    height: '10px',
+                    backgroundColor: 'var(--primary-light)',
+                    borderTop: '1.5px solid var(--primary)',
+                    borderRight: '1.5px solid var(--primary)',
+                    zIndex: 3
+                  }} />
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', position: 'relative', zIndex: 4 }}>
                   {isCompleted ? (
                     <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
                   ) : isActive ? (
@@ -3609,7 +3699,9 @@ export default function Dispatches() {
                     color: 'var(--text-primary)', 
                     paddingLeft: '1.15rem',
                     fontWeight: 700,
-                    wordBreak: 'break-all'
+                    wordBreak: 'break-all',
+                    position: 'relative',
+                    zIndex: 4
                   }}>
                     {stepValue}
                   </div>
@@ -3625,47 +3717,69 @@ export default function Dispatches() {
           display: 'flex',
           flexDirection: 'column',
           gap: '0.75rem',
+          border: '1.5px solid var(--primary)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem',
+          backgroundColor: 'var(--bg-secondary)',
           overflowY: 'auto'
         }} className="hide-scrollbar">
           {(keyboardStep === 1 || keyboardStep === 3) ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.3rem' }}>
-                🔍 우편번호 검색기 (주소 선택 시 자동 입력)
-              </span>
-              <div 
-                style={{
-                  flex: 1,
-                  minHeight: '260px',
-                  border: '1.5px solid var(--primary)',
-                  borderRadius: 'var(--radius-md)',
-                  overflow: 'hidden'
-                }}
-                ref={(el) => {
-                  if (el) {
-                    const daum = (window as any).daum;
-                    if (daum && daum.Postcode) {
-                      el.innerHTML = '';
-                      new daum.Postcode({
-                        oncomplete: (data: any) => {
-                          const addr = data.roadAddress || data.address;
-                          const targetField = keyboardStep === 1 ? 'origin' : 'destination';
-                          setFormData(prev => ({ ...prev, [targetField]: addr }));
-                          setKeyboardInputValue(addr);
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Top part: Recent locations shortcuts */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                    ⚡ 단축 입력 리스트 (최근 주소 추천)
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                    (번호 입력 + Enter)
+                  </span>
+                </div>
+                {renderKeyboardShortcuts(stepField)}
+              </div>
+
+              {/* Divider */}
+              <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.15rem 0' }} />
+
+              {/* Bottom part: Daum postcode search */}
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '260px', overflow: 'hidden' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
+                  🔍 우편번호 검색기 (검색 및 주소 클릭 시 자동 입력)
+                </span>
+                <div 
+                  style={{
+                    flex: 1,
+                    border: '1.5px solid var(--primary)',
+                    borderRadius: 'var(--radius-md)',
+                    overflow: 'hidden'
+                  }}
+                  ref={(el) => {
+                    if (el) {
+                      const daum = (window as any).daum;
+                      if (daum && daum.Postcode) {
+                        el.innerHTML = '';
+                        new daum.Postcode({
+                          oncomplete: (data: any) => {
+                            const addr = data.roadAddress || data.address;
+                            const targetField = keyboardStep === 1 ? 'origin' : 'destination';
+                            setFormData(prev => ({ ...prev, [targetField]: addr }));
+                            setKeyboardInputValue(addr);
+                            const input = document.getElementById('keyboard-mode-input');
+                            if (input) input.focus();
+                          },
+                          width: '100%',
+                          height: '100%',
+                          focusInput: false
+                        }).embed(el);
+                        setTimeout(() => {
                           const input = document.getElementById('keyboard-mode-input');
                           if (input) input.focus();
-                        },
-                        width: '100%',
-                        height: '100%',
-                        focusInput: false
-                      }).embed(el);
-                      setTimeout(() => {
-                        const input = document.getElementById('keyboard-mode-input');
-                        if (input) input.focus();
-                      }, 50);
+                        }, 50);
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
           ) : (
             <>
