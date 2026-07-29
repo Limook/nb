@@ -3868,76 +3868,131 @@ export default function Dispatches() {
           overflowY: 'auto'
         }} className="hide-scrollbar">
           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>📌 등록 단계</span>
-          {keyboardSteps.map((step, idx) => {
-            const isActive = idx === keyboardStep;
-            const isCompleted = idx < keyboardStep;
-            
-            // Progressive disclosure for Waypoints
-            if (step.field === 'waypoint_1' && (!formData.waypoints || !formData.waypoints[0]) && !isActive) {
-              return null;
-            }
-            if (step.field === 'waypoint_2' && (!formData.waypoints || !formData.waypoints[1] || !formData.waypoints[0]) && !isActive) {
-              return null;
-            }
-            
-            const stepValue = getStepValueString(step.field);
-            return (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0.45rem 0.6rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
-                  transition: 'all var(--transition-fast)',
-                  opacity: isActive || isCompleted ? 1 : 0.5
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  width: '100%',
-                  gap: '0.4rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flexShrink: 0 }}>
-                    {isCompleted ? (
-                      <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                    ) : isActive ? (
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)', flexShrink: 0 }} />
-                    ) : (
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
-                    )}
-                    <span style={{
-                      fontSize: '0.78rem',
-                      fontWeight: isActive ? 800 : 600,
-                      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {step.name}
-                    </span>
+          {(() => {
+            const groups = [
+              {
+                name: '의뢰처 정보',
+                fields: ['clientName']
+              },
+              {
+                name: '상/하차 및 경로',
+                fields: ['origin', 'originDate', 'waypoint_0', 'waypoint_1', 'waypoint_2', 'destination', 'destinationDate']
+              },
+              {
+                name: '차량 및 화물 정보',
+                fields: ['spec', 'weight']
+              },
+              {
+                name: '정산 정보',
+                fields: ['settleMethod', 'settleDate', 'commission', 'fee']
+              },
+              {
+                name: '기타 정보',
+                fields: ['cargoItem', 'memo', 'confirm']
+              }
+            ];
+
+            return groups.map((group, gIdx) => {
+              const groupSteps = keyboardSteps
+                .map((step, idx) => ({ ...step, originalIdx: idx }))
+                .filter(step => {
+                  if (!group.fields.includes(step.field)) return false;
+                  const isActive = step.originalIdx === keyboardStep;
+                  
+                  // Progressive disclosure for Waypoints
+                  if (step.field === 'waypoint_1' && (!formData.waypoints || !formData.waypoints[0]) && !isActive) {
+                    return false;
+                  }
+                  if (step.field === 'waypoint_2' && (!formData.waypoints || !formData.waypoints[1] || !formData.waypoints[0]) && !isActive) {
+                    return false;
+                  }
+                  return true;
+                });
+
+              if (groupSteps.length === 0) return null;
+
+              return (
+                <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.4rem' }}>
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    color: 'var(--text-tertiary)',
+                    marginTop: '0.2rem',
+                    marginBottom: '0.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}>
+                    <span>{group.name}</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(0,0,0,0.06)' }} />
                   </div>
-                  {isCompleted && stepValue && (
-                    <span style={{
-                      fontSize: '0.74rem',
-                      color: 'var(--text-primary)',
-                      fontWeight: 700,
-                      textAlign: 'right',
-                      marginLeft: 'auto',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '220px'
-                    }} title={stepValue}>
-                      {stepValue}
-                    </span>
-                  )}
+                  {groupSteps.map((step) => {
+                    const idx = step.originalIdx;
+                    const isActive = idx === keyboardStep;
+                    const isCompleted = idx < keyboardStep;
+                    const stepValue = getStepValueString(step.field);
+
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '0.35rem 0.5rem',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                          border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
+                          transition: 'all var(--transition-fast)',
+                          opacity: isActive || isCompleted ? 1 : 0.5
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          width: '100%',
+                          gap: '0.4rem'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flexShrink: 0 }}>
+                            {isCompleted ? (
+                              <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                            ) : isActive ? (
+                              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)', flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
+                            )}
+                            <span style={{
+                              fontSize: '0.78rem',
+                              fontWeight: isActive ? 800 : 600,
+                              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {step.name}
+                            </span>
+                          </div>
+                          {isCompleted && stepValue && (
+                            <span style={{
+                              fontSize: '0.74rem',
+                              color: 'var(--text-primary)',
+                              fontWeight: 700,
+                              textAlign: 'right',
+                              marginLeft: 'auto',
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '220px'
+                            }} title={stepValue}>
+                              {stepValue}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
 
         {/* Right Column: Shortcuts lists / postcode iframe (58% width) */}
