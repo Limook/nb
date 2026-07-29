@@ -3705,6 +3705,7 @@ export default function Dispatches() {
           width: '42%',
           borderRight: '1px solid var(--border-color)',
           paddingRight: '0.75rem',
+          paddingTop: '0.85rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.45rem',
