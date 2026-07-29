@@ -1907,10 +1907,11 @@ export default function Dispatches() {
 
   React.useEffect(() => {
     if (isAddressField(keyboardStep) && registerMode === 'keyboard') {
-      if (/^[1-6]$/.test(keyboardInputValue.trim())) {
-        return;
+      const isShortcutNum = /^[1-9]$/.test(keyboardInputValue.trim());
+      let delay = postcodeContainerRef.current && postcodeContainerRef.current.innerHTML === '' ? 0 : 500;
+      if (isShortcutNum) {
+        delay = 1200; // 1.2s delay for shortcut numbers (1-9)
       }
-      const delay = postcodeContainerRef.current && postcodeContainerRef.current.innerHTML === '' ? 0 : 500;
       const handler = setTimeout(() => {
         if (postcodeContainerRef.current) {
           initializePostcode(postcodeContainerRef.current, keyboardInputValue);
