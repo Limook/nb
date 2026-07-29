@@ -1813,9 +1813,9 @@ export default function Dispatches() {
     { name: '상차지', field: 'origin', guide: '상차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
     { name: '상차일시', field: 'originDate', guide: '상차일시를 입력하세요 (또는 우측 번호 입력, 예: YYYY-MM-DD 09:00 - 경유지 입력 시 Shift+Enter 입력)', optional: true, defaultValue: '' },
     ...(showWaypoints ? [
-      { name: '경유지 1', field: 'waypoint_0', guide: '첫 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
-      { name: '경유지 2', field: 'waypoint_1', guide: '두 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
-      { name: '경유지 3', field: 'waypoint_2', guide: '세 번째 경유지 주소를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' }
+      { name: '경유지 1', field: 'waypoint_0', guide: '첫 번째 경유지 주소를 입력하세요 (Enter: 하차지로 이동, Shift+Enter: 경유지 2 추가)', optional: true, defaultValue: '' },
+      { name: '경유지 2', field: 'waypoint_1', guide: '두 번째 경유지 주소를 입력하세요 (Enter: 하차지로 이동, Shift+Enter: 경유지 3 추가)', optional: true, defaultValue: '' },
+      { name: '경유지 3', field: 'waypoint_2', guide: '세 번째 경유지 주소를 입력하세요 (Enter/Shift+Enter: 하차지로 이동)', optional: true, defaultValue: '' }
     ] : []),
     { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
     { name: '하차일시', field: 'destinationDate', guide: '하차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 12:00)', optional: true, defaultValue: '' },
@@ -3246,11 +3246,19 @@ export default function Dispatches() {
       let nextStep = keyboardStep + 1;
       
       const currentStepObj = keyboardSteps[keyboardStep];
-      if (currentStepObj.field === 'waypoint_0' && resolvedValue === '') {
-        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
-      } else if (currentStepObj.field === 'waypoint_1' && resolvedValue === '') {
-        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
-      } else if (currentStepObj.field === 'waypoint_2' && resolvedValue === '') {
+      if (currentStepObj.field === 'waypoint_0') {
+        if (e.shiftKey) {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
+        } else {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+        }
+      } else if (currentStepObj.field === 'waypoint_1') {
+        if (e.shiftKey) {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
+        } else {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+        }
+      } else if (currentStepObj.field === 'waypoint_2') {
         nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
       }
       
@@ -3279,12 +3287,16 @@ export default function Dispatches() {
         
         const currentStepObj = keyboardSteps[keyboardStep];
         if (currentStepObj.field === 'destination') {
-          if (formData.waypoints && formData.waypoints[1]) {
-            prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
-          } else if (formData.waypoints && formData.waypoints[0]) {
-            prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
-          } else {
+          if (!showWaypoints) {
             prevStep = keyboardSteps.findIndex(s => s.field === 'originDate');
+          } else {
+            if (formData.waypoints && formData.waypoints[2]) {
+              prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
+            } else if (formData.waypoints && formData.waypoints[1]) {
+              prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
+            } else {
+              prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_0');
+            }
           }
         } else if (currentStepObj.field === 'waypoint_2') {
           prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
