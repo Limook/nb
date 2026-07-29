@@ -1805,6 +1805,7 @@ export default function Dispatches() {
   const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
   const lastStepTimeRef = React.useRef<number>(0);
   const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const [dateDisplayLabels, setDateDisplayLabels] = useState<{ originDate?: string, destinationDate?: string }>({});
 
   React.useEffect(() => {
     if (registerMode === 'keyboard') {
@@ -1831,16 +1832,25 @@ export default function Dispatches() {
         height: '100%',
         focusInput: false
       }).embed(el);
+      
+      // Force restore focus to input box after embedding iframe
+      const input = document.getElementById('keyboard-mode-input');
+      if (input) input.focus();
+      setTimeout(() => {
+        const input2 = document.getElementById('keyboard-mode-input');
+        if (input2) input2.focus();
+      }, 50);
     }
   }, [keyboardStep]);
 
   React.useEffect(() => {
     if ((keyboardStep === 1 || keyboardStep === 3) && registerMode === 'keyboard') {
+      const delay = postcodeContainerRef.current && postcodeContainerRef.current.innerHTML === '' ? 0 : 500;
       const handler = setTimeout(() => {
         if (postcodeContainerRef.current) {
           initializePostcode(postcodeContainerRef.current, keyboardInputValue);
         }
-      }, 400);
+      }, delay);
       return () => clearTimeout(handler);
     }
   }, [keyboardInputValue, keyboardStep, registerMode, initializePostcode]);
@@ -2627,6 +2637,7 @@ export default function Dispatches() {
     })
     setErrors({})
     setActiveLocationListField(null)
+    setDateDisplayLabels({})
   }
 
   const handleDispatchSubmit = (e: React.MouseEvent) => {
@@ -2884,6 +2895,11 @@ export default function Dispatches() {
           const dateStr = getShortcutDateValue(selected);
           setFormData(prev => ({ ...prev, originDate: dateStr }));
           resolvedValue = dateStr;
+          if (['지금', '오늘', '내일', '월요일'].includes(selected)) {
+            setDateDisplayLabels(prev => ({ ...prev, originDate: selected }));
+          } else {
+            setDateDisplayLabels(prev => ({ ...prev, originDate: undefined }));
+          }
         }
       } else if (field === 'destination') {
         const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
@@ -2899,6 +2915,11 @@ export default function Dispatches() {
           const dateStr = getShortcutDateValue(selected);
           setFormData(prev => ({ ...prev, destinationDate: dateStr }));
           resolvedValue = dateStr;
+          if (['오늘', '내일', '월요일'].includes(selected)) {
+            setDateDisplayLabels(prev => ({ ...prev, destinationDate: selected }));
+          } else {
+            setDateDisplayLabels(prev => ({ ...prev, destinationDate: undefined }));
+          }
         }
       } else if (field === 'spec') {
         const selected = commonSpecs[shortcutNum - 1];
@@ -2998,17 +3019,25 @@ export default function Dispatches() {
           const formatted = numeric ? Number(numeric).toLocaleString() : '';
           setFormData(prev => ({ ...prev, [field]: formatted }));
         } else if (field === 'originDate' || field === 'destinationDate') {
-          const parsedTime = parseKoreanTime(val);
-          if (parsedTime) {
-            setFormData(prev => ({ ...prev, [field]: parsedTime }));
-            resolvedValue = parsedTime;
+          if (['지금', '오늘', '내일', '월요일'].includes(val)) {
+            const dateStr = getShortcutDateValue(val);
+            setFormData(prev => ({ ...prev, [field]: dateStr }));
+            resolvedValue = dateStr;
+            setDateDisplayLabels(prev => ({ ...prev, [field]: val }));
           } else {
-            let cleanedDate = val.replace(' ', 'T');
-            if (cleanedDate.length === 10) {
-              cleanedDate += 'T12:00';
+            setDateDisplayLabels(prev => ({ ...prev, [field]: undefined }));
+            const parsedTime = parseKoreanTime(val);
+            if (parsedTime) {
+              setFormData(prev => ({ ...prev, [field]: parsedTime }));
+              resolvedValue = parsedTime;
+            } else {
+              let cleanedDate = val.replace(' ', 'T');
+              if (cleanedDate.length === 10) {
+                cleanedDate += 'T12:00';
+              }
+              setFormData(prev => ({ ...prev, [field]: cleanedDate }));
+              resolvedValue = cleanedDate;
             }
-            setFormData(prev => ({ ...prev, [field]: cleanedDate }));
-            resolvedValue = cleanedDate;
           }
         } else if (field !== 'confirm') {
           setFormData(prev => ({ ...prev, [field]: val }));
@@ -3106,6 +3135,7 @@ export default function Dispatches() {
         memo: ''
       });
       setErrors({});
+      setDateDisplayLabels({});
         } else {
       lastStepTimeRef.current = Date.now();
       let nextStep = keyboardStep + 1;
@@ -3141,6 +3171,9 @@ export default function Dispatches() {
       return formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '';
     }
     if (field === 'originDate' || field === 'destinationDate') {
+      if (dateDisplayLabels[field as 'originDate' | 'destinationDate']) {
+        return dateDisplayLabels[field as 'originDate' | 'destinationDate']!;
+      }
       const val = formData[field as keyof typeof formData];
       return typeof val === 'string' ? val.replace('T', ' ') : '';
     }
@@ -3784,13 +3817,7 @@ export default function Dispatches() {
                     overflow: 'hidden',
                     backgroundColor: 'var(--bg-primary)'
                   }}
-                  ref={(el) => {
-                    postcodeContainerRef.current = el;
-                    if (el && !el.dataset.initialized) {
-                      el.dataset.initialized = 'true';
-                      initializePostcode(el, keyboardInputValue);
-                    }
-                  }}
+                  ref={postcodeContainerRef}
                 />
               </div>
             </div>
