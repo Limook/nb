@@ -1804,7 +1804,7 @@ export default function Dispatches() {
   const [keyboardStep, setKeyboardStep] = useState<number>(0);
   const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
   const lastStepTimeRef = React.useRef<number>(0);
-
+  const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     if (registerMode === 'keyboard') {
@@ -1812,6 +1812,38 @@ export default function Dispatches() {
       if (input) input.focus();
     }
   }, [keyboardStep, registerMode]);
+
+  const initializePostcode = React.useCallback((el: HTMLDivElement, query: string) => {
+    const daum = (window as any).daum;
+    if (daum && daum.Postcode) {
+      el.innerHTML = '';
+      new daum.Postcode({
+        q: query,
+        oncomplete: (data: any) => {
+          const addr = data.roadAddress || data.address;
+          const targetField = keyboardStep === 1 ? 'origin' : 'destination';
+          setFormData(prev => ({ ...prev, [targetField]: addr }));
+          setKeyboardInputValue(addr);
+          const input = document.getElementById('keyboard-mode-input');
+          if (input) input.focus();
+        },
+        width: '100%',
+        height: '100%',
+        focusInput: false
+      }).embed(el);
+    }
+  }, [keyboardStep]);
+
+  React.useEffect(() => {
+    if ((keyboardStep === 1 || keyboardStep === 3) && registerMode === 'keyboard') {
+      const handler = setTimeout(() => {
+        if (postcodeContainerRef.current) {
+          initializePostcode(postcodeContainerRef.current, keyboardInputValue);
+        }
+      }, 400);
+      return () => clearTimeout(handler);
+    }
+  }, [keyboardInputValue, keyboardStep, registerMode, initializePostcode]);
 
   const [chatRoomRecipient, setChatRoomRecipient] = useState<{
     partnerName: string
@@ -3749,31 +3781,14 @@ export default function Dispatches() {
                     flex: 1,
                     border: '1.5px solid var(--primary)',
                     borderRadius: 'var(--radius-md)',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    backgroundColor: 'var(--bg-primary)'
                   }}
                   ref={(el) => {
-                    if (el) {
-                      const daum = (window as any).daum;
-                      if (daum && daum.Postcode) {
-                        el.innerHTML = '';
-                        new daum.Postcode({
-                          oncomplete: (data: any) => {
-                            const addr = data.roadAddress || data.address;
-                            const targetField = keyboardStep === 1 ? 'origin' : 'destination';
-                            setFormData(prev => ({ ...prev, [targetField]: addr }));
-                            setKeyboardInputValue(addr);
-                            const input = document.getElementById('keyboard-mode-input');
-                            if (input) input.focus();
-                          },
-                          width: '100%',
-                          height: '100%',
-                          focusInput: false
-                        }).embed(el);
-                        setTimeout(() => {
-                          const input = document.getElementById('keyboard-mode-input');
-                          if (input) input.focus();
-                        }, 50);
-                      }
+                    postcodeContainerRef.current = el;
+                    if (el && !el.dataset.initialized) {
+                      el.dataset.initialized = 'true';
+                      initializePostcode(el, keyboardInputValue);
                     }
                   }}
                 />
