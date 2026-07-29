@@ -3115,6 +3115,13 @@ export default function Dispatches() {
             tonnage: parsed.tonnage,
             carType: parsed.carType
           }));
+        } else if (field === 'weight') {
+          let resolvedWeight = val.replace(/T/gi, '톤');
+          if (resolvedWeight && !resolvedWeight.includes('톤')) {
+            resolvedWeight = `${resolvedWeight}톤`;
+          }
+          setFormData(prev => ({ ...prev, weight: resolvedWeight }));
+          resolvedValue = resolvedWeight;
         } else if (field === 'fee' || field === 'commission') {
           const numeric = val.replace(/[^0-9]/g, '');
           const formatted = numeric ? Number(numeric).toLocaleString() : '';
@@ -3335,7 +3342,14 @@ export default function Dispatches() {
     }
     if (field === 'weight') {
       const val = formData.weight;
-      return typeof val === 'string' && val ? val.replace(/T/gi, '톤') : '';
+      if (typeof val === 'string' && val) {
+        let cleaned = val.replace(/T/gi, '톤');
+        if (!cleaned.includes('톤')) {
+          cleaned = `${cleaned}톤`;
+        }
+        return cleaned;
+      }
+      return '';
     }
     if (field === 'confirm') return '';
     const val = formData[field as keyof typeof formData];
@@ -5993,6 +6007,16 @@ export default function Dispatches() {
                 placeholder="화물실중량" 
                 value={formData.weight}
                 onChange={e => handleInputChange('weight', e.target.value)}
+                onBlur={e => {
+                  let val = e.target.value.trim();
+                  if (val) {
+                    val = val.replace(/T/gi, '톤');
+                    if (!val.includes('톤')) {
+                      val = `${val}톤`;
+                    }
+                    handleInputChange('weight', val);
+                  }
+                }}
                 style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
               />
             </div>
