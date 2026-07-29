@@ -3024,7 +3024,7 @@ export default function Dispatches() {
           resolvedValue = selected.label;
         }
       } else if (field === 'weight') {
-        const weights = ['0T', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
+        const weights = ['0톤', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
         const selected = weights[shortcutNum - 1];
         if (selected) {
           setFormData(prev => ({ ...prev, weight: selected }));
@@ -3329,6 +3329,14 @@ export default function Dispatches() {
       const val = formData[field as keyof typeof formData];
       return typeof val === 'string' ? val.replace('T', ' ') : '';
     }
+    if (field === 'fee' || field === 'commission') {
+      const val = formData[field as keyof typeof formData];
+      return typeof val === 'string' && val ? `${val}원` : '';
+    }
+    if (field === 'weight') {
+      const val = formData.weight;
+      return typeof val === 'string' && val ? val.replace(/T/gi, '톤') : '';
+    }
     if (field === 'confirm') return '';
     const val = formData[field as keyof typeof formData];
     return typeof val === 'string' ? val : '';
@@ -3522,7 +3530,7 @@ export default function Dispatches() {
       );
     }
     if (stepField === 'weight') {
-      const weights = ['0T (스킵)', '1T', '5T', '8T', '10T', '15T', '20T', '25T'];
+      const weights = ['0톤 (스킵)', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {weights.map((w, idx) => (
@@ -3860,14 +3868,14 @@ export default function Dispatches() {
         <div style={{
           width: '42%',
           borderRight: '1px solid var(--border-color)',
-          paddingRight: '0.75rem',
-          paddingTop: '0.85rem',
+          paddingRight: '0.5rem',
+          paddingTop: '0.2rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.45rem',
+          gap: '0.1rem',
           overflowY: 'auto'
         }} className="hide-scrollbar">
-          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>📌 등록 단계</span>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>📌 등록 단계</span>
           {(() => {
             const groups = [
               {
@@ -3912,16 +3920,16 @@ export default function Dispatches() {
               if (groupSteps.length === 0) return null;
 
               return (
-                <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.4rem' }}>
+                <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.08rem', marginBottom: '0.2rem' }}>
                   <div style={{
-                    fontSize: '0.7rem',
+                    fontSize: '0.64rem',
                     fontWeight: 800,
                     color: 'var(--text-tertiary)',
-                    marginTop: '0.2rem',
-                    marginBottom: '0.2rem',
+                    marginTop: '0.05rem',
+                    marginBottom: '0.05rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.3rem'
+                    gap: '0.2rem'
                   }}>
                     <span>{group.name}</span>
                     <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(0,0,0,0.06)' }} />
@@ -3938,7 +3946,7 @@ export default function Dispatches() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          padding: '0.35rem 0.5rem',
+                          padding: '0.14rem 0.35rem',
                           borderRadius: 'var(--radius-sm)',
                           backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
                           border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
@@ -3955,14 +3963,14 @@ export default function Dispatches() {
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flexShrink: 0 }}>
                             {isCompleted ? (
-                              <Check size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                              <Check size={12} style={{ color: 'var(--success)', flexShrink: 0 }} />
                             ) : isActive ? (
-                              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 6px var(--primary)', flexShrink: 0 }} />
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 4px var(--primary)', flexShrink: 0 }} />
                             ) : (
-                              <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
                             )}
                             <span style={{
-                              fontSize: '0.78rem',
+                              fontSize: '0.74rem',
                               fontWeight: isActive ? 800 : 600,
                               color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
                               whiteSpace: 'nowrap'
@@ -3972,7 +3980,7 @@ export default function Dispatches() {
                           </div>
                           {isCompleted && stepValue && (
                             <span style={{
-                              fontSize: '0.74rem',
+                              fontSize: '0.72rem',
                               color: 'var(--text-primary)',
                               fontWeight: 700,
                               textAlign: 'right',
