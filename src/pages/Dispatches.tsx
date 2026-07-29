@@ -3074,15 +3074,20 @@ export default function Dispatches() {
         memo: ''
       });
       setErrors({});
-    } else {
+        } else {
       lastStepTimeRef.current = Date.now();
-      setKeyboardStep(prev => prev + 1);
+      let nextStep = keyboardStep + 1;
+      if (nextStep === 9 && formData.settleMethod === '인수증') {
+        setFormData(prev => ({ ...prev, commission: '0' }));
+        nextStep = 10;
+      }
+      setKeyboardStep(nextStep);
       setKeyboardInputValue('');
     }
   };
 
-  const handleKeyboardInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && keyboardInputValue === '') {
+    const handleKeyboardInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && e.shiftKey && keyboardInputValue === '') {
       const now = Date.now();
       if (now - lastStepTimeRef.current < 450) {
         e.preventDefault();
@@ -3091,11 +3096,14 @@ export default function Dispatches() {
       if (keyboardStep > 0) {
         e.preventDefault();
         lastStepTimeRef.current = now;
-        setKeyboardStep(prev => prev - 1);
+        let prevStep = keyboardStep - 1;
+        if (prevStep === 9 && formData.settleMethod === '인수증') {
+          prevStep = 8;
+        }
+        setKeyboardStep(prevStep);
       }
     }
   };
-
   const getStepValueString = (field: string) => {
     if (field === 'spec') {
       return formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '';
@@ -3719,7 +3727,7 @@ export default function Dispatches() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    ⚡ {keyboardSteps[keyboardStep].name} 단축 리스트
+                    ⚡ {keyboardSteps[keyboardStep].name}
                   </span>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                     (번호 입력 + Enter)
@@ -3775,7 +3783,7 @@ export default function Dispatches() {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                  ⚡ {keyboardSteps[keyboardStep].name} 단축 리스트
+                  ⚡ {keyboardSteps[keyboardStep].name}
                 </span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                   (번호 입력 + Enter)
@@ -5165,7 +5173,7 @@ export default function Dispatches() {
                         👉 {keyboardSteps[keyboardStep].name} 입력 차례
                       </span>
                       <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                        (이전 단계로 가려면 Backspace 입력)
+                        (이전 단계로 가려면 Shift+Backspace 입력)
                       </span>
                     </div>
                     <Input
