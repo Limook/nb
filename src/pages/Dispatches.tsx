@@ -1,1472 +1,62 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
-import { Plus, Search, Check, Route, ChevronDown, ChevronUp } from 'lucide-react'
-import type { DispatchStatus } from './dispatch/types'
-import { initialHistoricalDispatches, dummyDrivers, tonnages, carTypes } from './dispatch/constants'
-import { PostcodeIframe } from './dispatch/components/PostcodeIframe'
+import { Plus, Search, Check, Route } from 'lucide-react'
+import type { DispatchStatus, Dispatch } from './dispatch/types'
+import { initialHistoricalDispatches, dummyDrivers, initialClientsList } from './dispatch/constants'
 import { DispatchChatDrawer } from './dispatch/components/DispatchChatDrawer'
+import { KeyboardRegisterPanel } from './dispatch/components/KeyboardRegisterPanel'
+import { StandardRegisterForm } from './dispatch/components/StandardRegisterForm'
+import { DispatchFilters } from './dispatch/components/DispatchFilters'
+import { DispatchTable } from './dispatch/components/DispatchTable'
 import {
   useDispatchKeyboard,
   getShortcutDateValue,
-  getEndOfCurrentMonth,
-  getEndOfNextMonth,
   formatPhone
 } from './dispatch/hooks/useDispatchKeyboard'
+
 export default function Dispatches() {
-
-
-
-
-  const addDaysAndFormat = (baseStr: string, days: number) => {
-    const dateObj = baseStr ? new Date(baseStr.substring(0, 10)) : new Date();
-    if (isNaN(dateObj.getTime())) return '';
-    dateObj.setDate(dateObj.getDate() + days);
-    const yyyy = dateObj.getFullYear();
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+  const [notification, setNotification] = useState<string | null>(null);
+  const triggerNotification = (message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 3000);
   };
-
-  const formatEndOfMonth = (baseStr: string, offsetMonths: number) => {
-    const dateObj = baseStr ? new Date(baseStr.substring(0, 10)) : new Date();
-    if (isNaN(dateObj.getTime())) return '';
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth();
-    const lastDay = new Date(year, month + offsetMonths + 1, 0);
-    const yyyy = lastDay.getFullYear();
-    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
-    const dd = String(lastDay.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-
 
   // Dispatches state (Database representation in memory)
-  const [dispatches, setDispatches] = useState<any[]>(() => {
-    const saved = localStorage.getItem('dispatches')
-    const initialItems = saved ? JSON.parse(saved) : [
-  {
-    "id": 1,
-    "client": "가온물류",
-    "origin": "서울 마포구 독막로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경북 구미시 3공단로",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "loaded",
-    "fee": 200000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-01",
-    "cargoItem": "철강",
-    "memo": "특이사항 없음",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "김차주",
-    "driverPhone": "010-1001-2001",
-    "carNumber": "서울81바1001"
-  },
-  {
-    "id": 2,
-    "client": "나래물산",
-    "origin": "경기 화성시 동탄산단로",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "대구 달서구 성서공단로",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatched",
-    "fee": 250000,
-    "settleMethod": "선불",
-    "commission": "12500",
-    "settleDate": "2026-08-02",
-    "cargoItem": "기계",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "이기사",
-    "driverPhone": "010-1002-2002",
-    "carNumber": "경기82사1002"
-  },
-  {
-    "id": 3,
-    "client": "다솜유통",
-    "origin": "경기 안산시 단원구",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "경남 창원시 성산구",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatching",
-    "fee": 300000,
-    "settleMethod": "착불",
-    "commission": "15000",
-    "settleDate": "2026-08-03",
-    "cargoItem": "박스",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 4,
-    "client": "라온제나",
-    "origin": "서울 영등포구 여의나루로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "부산 강서구 녹산산단로",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "cancelled",
-    "fee": 350000,
-    "settleMethod": "카드",
-    "commission": "17500",
-    "settleDate": "2026-07-04",
-    "cargoItem": "빠레트",
-    "memo": "안전운전 필수",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "최차주",
-    "driverPhone": "010-1004-2004",
-    "carNumber": "부산84바1004"
-  },
-  {
-    "id": 5,
-    "client": "마루아라",
-    "origin": "부산 강서구 과학산단로",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "경북 포항시 남구 괴동로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "completed",
-    "fee": 400000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-05",
-    "cargoItem": "철강",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "정기사",
-    "driverPhone": "010-1005-2005",
-    "carNumber": "대구85사1005"
-  },
-  {
-    "id": 6,
-    "client": "바른로지스",
-    "origin": "세종 연서면 공단로",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "서울 금천구 가산디지털로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "loaded",
-    "fee": 450000,
-    "settleMethod": "선불",
-    "commission": "22500",
-    "settleDate": "2026-08-06",
-    "cargoItem": "기계",
-    "memo": "특이사항 없음",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "강차주",
-    "driverPhone": "010-1006-2006",
-    "carNumber": "대전86아1006"
-  },
-  {
-    "id": 7,
-    "client": "새솔산업",
-    "origin": "울산 남구 장생포로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "충남 서산시 대산읍",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatched",
-    "fee": 500000,
-    "settleMethod": "착불",
-    "commission": "25000",
-    "settleDate": "2026-08-01",
-    "cargoItem": "박스",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "조기사",
-    "driverPhone": "010-1007-2007",
-    "carNumber": "울산87바1007"
-  },
-  {
-    "id": 8,
-    "client": "아라글로벌",
-    "origin": "전남 장성군 물류로",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "경북 경산시 진량읍",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatching",
-    "fee": 550000,
-    "settleMethod": "카드",
-    "commission": "27500",
-    "settleDate": "2026-07-02",
-    "cargoItem": "빠레트",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 9,
-    "client": "자람무역",
-    "origin": "경북 구미시 수출대로",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "서울 강남구 학동로",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "cancelled",
-    "fee": 600000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-03",
-    "cargoItem": "철강",
-    "memo": "안전운전 필수",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "장기사",
-    "driverPhone": "010-1009-2009",
-    "carNumber": "세종89아1009"
-  },
-  {
-    "id": 10,
-    "client": "하랑로지스",
-    "origin": "서울 송파구 양재대로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "충남 당진시 송악읍",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "completed",
-    "fee": 150000,
-    "settleMethod": "선불",
-    "commission": "7500",
-    "settleDate": "2026-08-04",
-    "cargoItem": "기계",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "임차주",
-    "driverPhone": "010-1010-2010",
-    "carNumber": "경기90바1010"
-  },
-  {
-    "id": 11,
-    "client": "가온물류",
-    "origin": "경기 김포시 고촌읍",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "전남 여수시 여수산단로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "loaded",
-    "fee": 200000,
-    "settleMethod": "착불",
-    "commission": "10000",
-    "settleDate": "2026-08-05",
-    "cargoItem": "박스",
-    "memo": "특이사항 없음",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "한기사",
-    "driverPhone": "010-1011-2011",
-    "carNumber": "서울91사1011"
-  },
-  {
-    "id": 12,
-    "client": "나래물산",
-    "origin": "경기 평택시 포승읍",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "울산 남구 산단로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatched",
-    "fee": 250000,
-    "settleMethod": "카드",
-    "commission": "12500",
-    "settleDate": "2026-07-06",
-    "cargoItem": "빠레트",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "오차주",
-    "driverPhone": "010-1012-2012",
-    "carNumber": "인천92아1012"
-  },
-  {
-    "id": 13,
-    "client": "다솜유통",
-    "origin": "인천 연수구 송도과학로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경기 파주시 문산읍",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatching",
-    "fee": 300000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-01",
-    "cargoItem": "철강",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 14,
-    "client": "라온제나",
-    "origin": "서울 성동구 아차산로",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "충남 아산시 배방읍",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "cancelled",
-    "fee": 350000,
-    "settleMethod": "선불",
-    "commission": "17500",
-    "settleDate": "2026-08-02",
-    "cargoItem": "기계",
-    "memo": "안전운전 필수",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "신차주",
-    "driverPhone": "010-1014-2014",
-    "carNumber": "대구94사1014"
-  },
-  {
-    "id": 15,
-    "client": "마루아라",
-    "origin": "경남 양산시 어곡산단로",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "서울 영등포구 경인로",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "completed",
-    "fee": 400000,
-    "settleMethod": "착불",
-    "commission": "20000",
-    "settleDate": "2026-08-03",
-    "cargoItem": "박스",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "권기사",
-    "driverPhone": "010-1015-2015",
-    "carNumber": "대전95아1015"
-  },
-  {
-    "id": 16,
-    "client": "바른로지스",
-    "origin": "대전 대덕구 대화로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "경기 이천시 대장로",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "loaded",
-    "fee": 450000,
-    "settleMethod": "카드",
-    "commission": "22500",
-    "settleDate": "2026-07-04",
-    "cargoItem": "빠레트",
-    "memo": "특이사항 없음",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "황차주",
-    "driverPhone": "010-1016-2016",
-    "carNumber": "울산96바1016"
-  },
-  {
-    "id": 17,
-    "client": "새솔산업",
-    "origin": "울산 북구 효자로",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "전북 군산시 외항로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatched",
-    "fee": 500000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-05",
-    "cargoItem": "철강",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "안기사",
-    "driverPhone": "010-1017-2017",
-    "carNumber": "광주97사1017"
-  },
-  {
-    "id": 18,
-    "client": "아라글로벌",
-    "origin": "전북 전주시 덕진구",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "인천 중구 서해대로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatching",
-    "fee": 550000,
-    "settleMethod": "선불",
-    "commission": "27500",
-    "settleDate": "2026-08-06",
-    "cargoItem": "기계",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 19,
-    "client": "자람무역",
-    "origin": "대구 서구 와룡로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경기 파주시 탄현면",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "cancelled",
-    "fee": 600000,
-    "settleMethod": "착불",
-    "commission": "30000",
-    "settleDate": "2026-08-01",
-    "cargoItem": "박스",
-    "memo": "안전운전 필수",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "전기사",
-    "driverPhone": "010-1019-2019",
-    "carNumber": "경기99바1019"
-  },
-  {
-    "id": 20,
-    "client": "하랑로지스",
-    "origin": "경기 광주시 초월읍",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "경남 김해시 골든루트로",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "completed",
-    "fee": 150000,
-    "settleMethod": "카드",
-    "commission": "7500",
-    "settleDate": "2026-07-02",
-    "cargoItem": "빠레트",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "홍차주",
-    "driverPhone": "010-1020-2020",
-    "carNumber": "서울79사1020"
-  },
-  {
-    "id": 21,
-    "client": "가온물류",
-    "origin": "인천 중구 서해대로",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "부산 해운대구 우동",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "loaded",
-    "fee": 200000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-03",
-    "cargoItem": "철강",
-    "memo": "특이사항 없음",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "김차주",
-    "driverPhone": "010-1001-2001",
-    "carNumber": "서울81바1001"
-  },
-  {
-    "id": 22,
-    "client": "나래물산",
-    "origin": "경기 성남시 분당구",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "충남 천안시 서북구",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatched",
-    "fee": 250000,
-    "settleMethod": "선불",
-    "commission": "12500",
-    "settleDate": "2026-08-04",
-    "cargoItem": "기계",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "이기사",
-    "driverPhone": "010-1002-2002",
-    "carNumber": "경기82사1002"
-  },
-  {
-    "id": 23,
-    "client": "다솜유통",
-    "origin": "인천 중구 아암대로",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "충북 청주시 흥덕구",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatching",
-    "fee": 300000,
-    "settleMethod": "착불",
-    "commission": "15000",
-    "settleDate": "2026-08-05",
-    "cargoItem": "박스",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 24,
-    "client": "라온제나",
-    "origin": "경기 김포시 대곶면",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "광주 광산구 하남산단로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "cancelled",
-    "fee": 350000,
-    "settleMethod": "카드",
-    "commission": "17500",
-    "settleDate": "2026-07-06",
-    "cargoItem": "빠레트",
-    "memo": "안전운전 필수",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "최차주",
-    "driverPhone": "010-1004-2004",
-    "carNumber": "부산84바1004"
-  },
-  {
-    "id": 25,
-    "client": "마루아라",
-    "origin": "부산 사하구 신평로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경기 평택시 경기대로",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "completed",
-    "fee": 400000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-01",
-    "cargoItem": "철강",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "정기사",
-    "driverPhone": "010-1005-2005",
-    "carNumber": "대구85사1005"
-  },
-  {
-    "id": 26,
-    "client": "바른로지스",
-    "origin": "충북 청주시 청원구",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "경남 창원시 진해구",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "loaded",
-    "fee": 450000,
-    "settleMethod": "선불",
-    "commission": "22500",
-    "settleDate": "2026-08-02",
-    "cargoItem": "기계",
-    "memo": "특이사항 없음",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "강차주",
-    "driverPhone": "010-1006-2006",
-    "carNumber": "대전86아1006"
-  },
-  {
-    "id": 27,
-    "client": "새솔산업",
-    "origin": "경남 양산시 웅상대로",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "경기 시흥시 공단대로",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatched",
-    "fee": 500000,
-    "settleMethod": "착불",
-    "commission": "25000",
-    "settleDate": "2026-08-03",
-    "cargoItem": "박스",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "조기사",
-    "driverPhone": "010-1007-2007",
-    "carNumber": "울산87바1007"
-  },
-  {
-    "id": 28,
-    "client": "아라글로벌",
-    "origin": "광주 광산구 사암로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "경기 용인시 처인구",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatching",
-    "fee": 550000,
-    "settleMethod": "카드",
-    "commission": "27500",
-    "settleDate": "2026-07-04",
-    "cargoItem": "빠레트",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 29,
-    "client": "자람무역",
-    "origin": "경북 칠곡군 왜관읍",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "전남 목포시 삼학로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "cancelled",
-    "fee": 600000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-05",
-    "cargoItem": "철강",
-    "memo": "안전운전 필수",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "장기사",
-    "driverPhone": "010-1009-2009",
-    "carNumber": "세종89아1009"
-  },
-  {
-    "id": 30,
-    "client": "하랑로지스",
-    "origin": "경기 용인시 백암면",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "부산 사상구 백양대로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "completed",
-    "fee": 150000,
-    "settleMethod": "선불",
-    "commission": "7500",
-    "settleDate": "2026-08-06",
-    "cargoItem": "기계",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "임차주",
-    "driverPhone": "010-1010-2010",
-    "carNumber": "경기90바1010"
-  },
-  {
-    "id": 31,
-    "client": "가온물류",
-    "origin": "서울 마포구 독막로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경북 구미시 3공단로",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "loaded",
-    "fee": 200000,
-    "settleMethod": "착불",
-    "commission": "10000",
-    "settleDate": "2026-08-01",
-    "cargoItem": "박스",
-    "memo": "특이사항 없음",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "한기사",
-    "driverPhone": "010-1011-2011",
-    "carNumber": "서울91사1011"
-  },
-  {
-    "id": 32,
-    "client": "나래물산",
-    "origin": "경기 화성시 동탄산단로",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "대구 달서구 성서공단로",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatched",
-    "fee": 250000,
-    "settleMethod": "카드",
-    "commission": "12500",
-    "settleDate": "2026-07-02",
-    "cargoItem": "빠레트",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "오차주",
-    "driverPhone": "010-1012-2012",
-    "carNumber": "인천92아1012"
-  },
-  {
-    "id": 33,
-    "client": "다솜유통",
-    "origin": "경기 안산시 단원구",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "경남 창원시 성산구",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatching",
-    "fee": 300000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-03",
-    "cargoItem": "철강",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 34,
-    "client": "라온제나",
-    "origin": "서울 영등포구 여의나루로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "부산 강서구 녹산산단로",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "cancelled",
-    "fee": 350000,
-    "settleMethod": "선불",
-    "commission": "17500",
-    "settleDate": "2026-08-04",
-    "cargoItem": "기계",
-    "memo": "안전운전 필수",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "신차주",
-    "driverPhone": "010-1014-2014",
-    "carNumber": "대구94사1014"
-  },
-  {
-    "id": 35,
-    "client": "마루아라",
-    "origin": "부산 강서구 과학산단로",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "경북 포항시 남구 괴동로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "completed",
-    "fee": 400000,
-    "settleMethod": "착불",
-    "commission": "20000",
-    "settleDate": "2026-08-05",
-    "cargoItem": "박스",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "권기사",
-    "driverPhone": "010-1015-2015",
-    "carNumber": "대전95아1015"
-  },
-  {
-    "id": 36,
-    "client": "바른로지스",
-    "origin": "세종 연서면 공단로",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "서울 금천구 가산디지털로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "loaded",
-    "fee": 450000,
-    "settleMethod": "카드",
-    "commission": "22500",
-    "settleDate": "2026-07-06",
-    "cargoItem": "빠레트",
-    "memo": "특이사항 없음",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "황차주",
-    "driverPhone": "010-1016-2016",
-    "carNumber": "울산96바1016"
-  },
-  {
-    "id": 37,
-    "client": "새솔산업",
-    "origin": "울산 남구 장생포로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "충남 서산시 대산읍",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatched",
-    "fee": 500000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-01",
-    "cargoItem": "철강",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "안기사",
-    "driverPhone": "010-1017-2017",
-    "carNumber": "광주97사1017"
-  },
-  {
-    "id": 38,
-    "client": "아라글로벌",
-    "origin": "전남 장성군 물류로",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "경북 경산시 진량읍",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatching",
-    "fee": 550000,
-    "settleMethod": "선불",
-    "commission": "27500",
-    "settleDate": "2026-08-02",
-    "cargoItem": "기계",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 39,
-    "client": "자람무역",
-    "origin": "경북 구미시 수출대로",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "서울 강남구 학동로",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "cancelled",
-    "fee": 600000,
-    "settleMethod": "착불",
-    "commission": "30000",
-    "settleDate": "2026-08-03",
-    "cargoItem": "박스",
-    "memo": "안전운전 필수",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "전기사",
-    "driverPhone": "010-1019-2019",
-    "carNumber": "경기99바1019"
-  },
-  {
-    "id": 40,
-    "client": "하랑로지스",
-    "origin": "서울 송파구 양재대로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "충남 당진시 송악읍",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "completed",
-    "fee": 150000,
-    "settleMethod": "카드",
-    "commission": "7500",
-    "settleDate": "2026-07-04",
-    "cargoItem": "빠레트",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "홍차주",
-    "driverPhone": "010-1020-2020",
-    "carNumber": "서울79사1020"
-  },
-  {
-    "id": 41,
-    "client": "가온물류",
-    "origin": "경기 김포시 고촌읍",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "전남 여수시 여수산단로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "loaded",
-    "fee": 200000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-05",
-    "cargoItem": "철강",
-    "memo": "특이사항 없음",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "김차주",
-    "driverPhone": "010-1001-2001",
-    "carNumber": "서울81바1001"
-  },
-  {
-    "id": 42,
-    "client": "나래물산",
-    "origin": "경기 평택시 포승읍",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "울산 남구 산단로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatched",
-    "fee": 250000,
-    "settleMethod": "선불",
-    "commission": "12500",
-    "settleDate": "2026-08-06",
-    "cargoItem": "기계",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "이기사",
-    "driverPhone": "010-1002-2002",
-    "carNumber": "경기82사1002"
-  },
-  {
-    "id": 43,
-    "client": "다솜유통",
-    "origin": "인천 연수구 송도과학로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경기 파주시 문산읍",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatching",
-    "fee": 300000,
-    "settleMethod": "착불",
-    "commission": "15000",
-    "settleDate": "2026-08-01",
-    "cargoItem": "박스",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 44,
-    "client": "라온제나",
-    "origin": "서울 성동구 아차산로",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "충남 아산시 배방읍",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "cancelled",
-    "fee": 350000,
-    "settleMethod": "카드",
-    "commission": "17500",
-    "settleDate": "2026-07-02",
-    "cargoItem": "빠레트",
-    "memo": "안전운전 필수",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "최차주",
-    "driverPhone": "010-1004-2004",
-    "carNumber": "부산84바1004"
-  },
-  {
-    "id": 45,
-    "client": "마루아라",
-    "origin": "경남 양산시 어곡산단로",
-    "originDate": "2026-07-03T11:00:00",
-    "destination": "서울 영등포구 경인로",
-    "destinationDate": "2026-07-03T16:00:00",
-    "spec": "11톤 카고",
-    "status": "completed",
-    "fee": 400000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-03",
-    "cargoItem": "철강",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-03T09:00:00",
-    "driverName": "정기사",
-    "driverPhone": "010-1005-2005",
-    "carNumber": "대구85사1005"
-  },
-  {
-    "id": 46,
-    "client": "바른로지스",
-    "origin": "대전 대덕구 대화로",
-    "originDate": "2026-07-04T11:00:00",
-    "destination": "경기 이천시 대장로",
-    "destinationDate": "2026-07-04T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "loaded",
-    "fee": 450000,
-    "settleMethod": "선불",
-    "commission": "22500",
-    "settleDate": "2026-08-04",
-    "cargoItem": "기계",
-    "memo": "특이사항 없음",
-    "date": "2026-07-04T09:00:00",
-    "driverName": "강차주",
-    "driverPhone": "010-1006-2006",
-    "carNumber": "대전86아1006"
-  },
-  {
-    "id": 47,
-    "client": "새솔산업",
-    "origin": "울산 북구 효자로",
-    "originDate": "2026-07-05T11:00:00",
-    "destination": "전북 군산시 외항로",
-    "destinationDate": "2026-07-05T16:00:00",
-    "spec": "11톤 카고",
-    "status": "dispatched",
-    "fee": 500000,
-    "settleMethod": "착불",
-    "commission": "25000",
-    "settleDate": "2026-08-05",
-    "cargoItem": "박스",
-    "memo": "시간 엄수 바랍니다",
-    "date": "2026-07-05T09:00:00",
-    "driverName": "조기사",
-    "driverPhone": "010-1007-2007",
-    "carNumber": "울산87바1007"
-  },
-  {
-    "id": 48,
-    "client": "아라글로벌",
-    "origin": "전북 전주시 덕진구",
-    "originDate": "2026-07-06T11:00:00",
-    "destination": "인천 중구 서해대로",
-    "destinationDate": "2026-07-06T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "dispatching",
-    "fee": 550000,
-    "settleMethod": "카드",
-    "commission": "27500",
-    "settleDate": "2026-07-06",
-    "cargoItem": "빠레트",
-    "memo": "지게차 하차 필요",
-    "date": "2026-07-06T09:00:00",
-    "driverName": "",
-    "driverPhone": "",
-    "carNumber": ""
-  },
-  {
-    "id": 49,
-    "client": "자람무역",
-    "origin": "대구 서구 와룡로",
-    "originDate": "2026-07-01T11:00:00",
-    "destination": "경기 파주시 탄현면",
-    "destinationDate": "2026-07-01T16:00:00",
-    "spec": "11톤 카고",
-    "status": "cancelled",
-    "fee": 600000,
-    "settleMethod": "인수증",
-    "commission": "",
-    "settleDate": "2026-08-01",
-    "cargoItem": "철강",
-    "memo": "안전운전 필수",
-    "date": "2026-07-01T09:00:00",
-    "driverName": "장기사",
-    "driverPhone": "010-1009-2009",
-    "carNumber": "세종89아1009"
-  },
-  {
-    "id": 50,
-    "client": "하랑로지스",
-    "origin": "경기 광주시 초월읍",
-    "originDate": "2026-07-02T11:00:00",
-    "destination": "경남 김해시 골든루트로",
-    "destinationDate": "2026-07-02T16:00:00",
-    "spec": "5톤 윙바디",
-    "status": "completed",
-    "fee": 150000,
-    "settleMethod": "선불",
-    "commission": "7500",
-    "settleDate": "2026-08-02",
-    "cargoItem": "기계",
-    "memo": "상하차 전 기사 통화 요망",
-    "date": "2026-07-02T09:00:00",
-    "driverName": "임차주",
-    "driverPhone": "010-1010-2010",
-    "carNumber": "경기90바1010"
-  }
-]
-    return initialItems.map((item: any) => ({
-      ...item,
-      originalFee: item.originalFee || item.fee
+  const [dispatches, setDispatches] = useState<Dispatch[]>(() => {
+    const saved = localStorage.getItem('dispatches');
+    if (saved) return JSON.parse(saved);
+    return initialHistoricalDispatches.map((item: any, index: number) => ({
+      id: index + 1,
+      client: item.client,
+      origin: item.origin,
+      originDate: item.originDate || item.date || '2026-07-01T11:00:00',
+      destination: item.destination,
+      destinationDate: item.destinationDate || item.date || '2026-07-01T16:00:00',
+      spec: item.spec || `${item.tonnage || '5톤'} ${item.carType || '윙바디'}`,
+      status: item.status || (index % 5 === 0 ? 'dispatching' : index % 5 === 1 ? 'dispatched' : index % 5 === 2 ? 'loaded' : index % 5 === 3 ? 'completed' : 'cancelled'),
+      fee: item.fee,
+      originalFee: item.fee,
+      settleMethod: item.settleMethod || '인수증',
+      commission: item.commission || '0',
+      settleDate: item.settleDate || '2026-07-15',
+      cargoItem: item.cargoItem || '철강',
+      memo: item.memo || '특이사항 없음',
+      date: item.date ? item.date.substring(0, 10) : '2026-07-01',
+      waypoints: item.waypoints || []
     }));
-  })
+  });
 
-  React.useEffect(() => {
-    localStorage.setItem('dispatches', JSON.stringify(dispatches))
-  }, [dispatches])
+  useEffect(() => {
+    localStorage.setItem('dispatches', JSON.stringify(dispatches));
+  }, [dispatches]);
 
   // Recommendations data source state
-  const [historyPool, setHistoryPool] = useState(initialHistoricalDispatches)
+  const [historyPool] = useState(initialHistoricalDispatches);
 
-  // Validation highlights state
-
-
-  // Client save modal state
-  const [showClientModal, setShowClientModal] = useState(false)
-  const [clientModalData, setClientModalData] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    businessNo: '',
-    ceoName: '',
-    contactName: '',
-    contactPhone: ''
-  })
-
-  // Table expanded row state
-  const [expandedId, setExpandedId] = useState<number | null>(null)
-
-  // Active dispatch ID being assigned a driver
-  const [assigningDispatchId, setAssigningDispatchId] = useState<number | null>(null)
-  const [activeLeftPanel, setActiveLeftPanel] = useState<'form' | 'chat'>('form')
-  const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  const [chatRoomRecipient, setChatRoomRecipient] = useState<{
-    partnerName: string
-    partnerType: 'driver' | 'client'
-    phone: string
-    vehicleNo?: string
-  } | null>(null)
-
-
-
-
-
-
-
-
-
-
-
-
-
-  const loadOrCreateChatRoom = (recipientName: string, recipientType: 'driver' | 'client', phone: string, vehicleNo?: string) => {
-    const saved = localStorage.getItem('chat_logs')
-    let rooms = []
-    if (saved) {
-      try { rooms = JSON.parse(saved); } catch (e) { rooms = []; }
-    }
-    let room = rooms.find((r: any) => r.partnerName === recipientName && r.partnerType === recipientType)
-    if (!room) {
-      const newRoom = {
-        id: 'room_' + Date.now(),
-        partnerName: recipientName,
-        partnerType: recipientType,
-        vehicleNo,
-        phone,
-        unreadCount: 0,
-        lastUpdated: new Date().toISOString(),
-        messages: [
-          { id: 'init', sender: 'dispatcher', text: `안녕하세요, ${recipientName}님. 이번 배차 관련하여 문의사항 있으시면 남겨주세요.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-        ]
-      }
-      rooms.unshift(newRoom)
-      localStorage.setItem('chat_logs', JSON.stringify(rooms))
-      room = newRoom
-    }
-    setChatRoomRecipient({
-      partnerName: recipientName,
-      partnerType: recipientType,
-      phone,
-      vehicleNo
-    })
-    setActiveLeftPanel('chat')
-  }
-  const [expandedDriverId, setExpandedDriverId] = useState<number | null>(null)
-  const [adjustTargetMap, setAdjustTargetMap] = useState<Record<number, 'fee' | 'commission'>>({})
-  const [blinkRow, setBlinkRow] = useState<{ id: number; status: DispatchStatus } | null>(null)
-
-  const triggerBlink = (dispatchId: number, status: DispatchStatus) => {
-    setBlinkRow({ id: dispatchId, status });
-    setTimeout(() => {
-      setBlinkRow(prev => prev && prev.id === dispatchId ? null : prev);
-    }, 1200);
-  };
-
-  React.useEffect(() => {
-    if (expandedId !== null) {
-      setTimeout(() => {
-        const el = document.getElementById(`expanded-row-${expandedId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 120);
-    }
-  }, [expandedId]);
-
-  // Load quote details from Quotation page if any
-  React.useEffect(() => {
-    const pendingQuoteStr = localStorage.getItem('pending_quote');
-    if (pendingQuoteStr) {
-      try {
-        const pendingQuote = JSON.parse(pendingQuoteStr);
-        setFormData(prev => ({
-          ...prev,
-          origin: pendingQuote.origin || '',
-          destination: pendingQuote.destination || '',
-          tonnage: String(pendingQuote.tonnage || ''),
-          carType: pendingQuote.carType || '',
-          fee: pendingQuote.fee ? String(pendingQuote.fee) : '',
-        }));
-        localStorage.removeItem('pending_quote');
-        setTimeout(() => {
-          triggerNotification('견적 계산기로부터 요금과 상/하차지 정보가 적용되었습니다!');
-        }, 300);
-      } catch (err) {
-        console.error('Failed to parse pending_quote:', err);
-      }
-    }
-  }, []);
-
-  // Table filters state
-  const [dateFilterType, setDateFilterType] = useState('전체') // 전체, 오늘, 이번주, 지난주, 이번달, 지난달, 직접선택
-  const [customStartDate, setCustomStartDate] = useState('')
-  const [customEndDate, setCustomEndDate] = useState('')
-  const [statusFilter, setStatusFilter] = useState('전체') // 전체, 배차중, 배차완료, 배차취소, 상차완료, 하차완료, 운행완료
-
-  // Temporary driver input state inside expanded card
-  const [driverInput, setDriverInput] = useState({
-    carNumber: '',
-    driverName: '',
-    driverPhone: ''
-  })
-
-  const [notification, setNotification] = useState<string | null>(null)
-
-  // Search filter state for dispatch history
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searchFilter, setSearchFilter] = useState('')
-
-  // Client search view states
-  const [showClientSearch, setShowClientSearch] = useState(false)
-
-  // Embedded Postcode dropdown state
-  const [activePostcodeField, setActivePostcodeField] = useState<string | null>(null)
-  const [editingWaypointsId, setEditingWaypointsId] = useState<number | null>(null)
-  const [editWaypoints, setEditWaypoints] = useState<string[]>([])
-
-  // Location list view state ('origin' | 'destination' | 'both' | null)
-
-  const [clientSearchTerm, setClientSearchTerm] = useState('')
-  const [clientSearchFilter, setClientSearchFilter] = useState('')
-  const [showHistoryPanel, setShowHistoryPanel] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true)
-
-  // Scroll to history list when toggled open on mobile
-  React.useEffect(() => {
-    if (showHistoryPanel && window.innerWidth <= 768) {
-      setTimeout(() => {
-        const el = document.querySelector('.dispatch-right-area');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
-  }, [showHistoryPanel]);
-
-  // Quick fee inline editing states
-  const [editingFeeId, setEditingFeeId] = useState<number | null>(null)
-  const [editingFeeValue, setEditingFeeValue] = useState('')
-  const [editingCommissionValue, setEditingCommissionValue] = useState('')
-
-  const handleQuickFeeSave = (id: number) => {
-    if (editingFeeId !== id) return
-    const rawFee = Number(editingFeeValue.replace(/,/g, ''))
-    const rawCommission = editingCommissionValue.replace(/,/g, '')
-
-    if (isNaN(rawFee) || rawFee <= 0) {
-      alert('올바른 운임 금액을 입력해 주세요.')
-      return
-    }
-
-    setDispatches(prev => prev.map(d => {
-      if (d.id === id) {
-        return {
-          ...d,
-          fee: rawFee,
-          commission: rawCommission
-        }
-      }
-      return d
-    }))
-
-    triggerNotification('운임 및 수수료 정보가 수정 완료되었습니다!')
-    setEditingFeeId(null)
-  }
-
-  const handleResetFilters = () => {
-    setSearchTerm('')
-    setSearchFilter('')
-    setDateFilterType('전체')
-    setStatusFilter('전체')
-    setCustomStartDate('')
-    setCustomEndDate('')
-    triggerNotification('필터 조건이 모두 초기화되었습니다!')
-  }
-
+  // Clients state
   const [clients, setClients] = useState<any[]>(() => {
-    const saved = localStorage.getItem('clients')
-    const initialList = saved ? JSON.parse(saved) : [
-  {
-    "id": 1,
-    "name": "가온물류",
-    "contact": "박대리",
-    "phone": "02-345-6789",
-    "businessNo": "101-81-23456",
-    "routes": 5,
-    "origins": [
-      "서울 마포구 독막로",
-      "경기 김포시 고촌읍",
-      "인천 중구 서해대로"
-    ],
-    "destinations": [
-      "부산 해운대구 우동",
-      "경북 구미시 3공단로",
-      "전남 여수시 여수산단로"
-    ]
-  },
-  {
-    "id": 2,
-    "name": "나래물산",
-    "contact": "최과장",
-    "phone": "031-701-2345",
-    "businessNo": "202-82-34567",
-    "routes": 5,
-    "origins": [
-      "경기 성남시 분당구",
-      "경기 화성시 동탄산단로",
-      "경기 평택시 포승읍"
-    ],
-    "destinations": [
-      "울산 남구 산단로",
-      "충남 천안시 서북구",
-      "대구 달서구 성서공단로"
-    ]
-  },
-  {
-    "id": 3,
-    "name": "다솜유통",
-    "contact": "정주임",
-    "phone": "032-811-0987",
-    "businessNo": "303-83-45678",
-    "routes": 5,
-    "origins": [
-      "인천 연수구 송도과학로",
-      "인천 중구 아암대로",
-      "경기 안산시 단원구"
-    ],
-    "destinations": [
-      "경남 창원시 성산구",
-      "경기 파주시 문산읍",
-      "충북 청주시 흥덕구"
-    ]
-  },
-  {
-    "id": 4,
-    "name": "라온제나",
-    "contact": "이대리",
-    "phone": "02-789-0123",
-    "businessNo": "404-84-56789",
-    "routes": 5,
-    "origins": [
-      "서울 영등포구 여의나루로",
-      "서울 성동구 아차산로",
-      "경기 김포시 대곶면"
-    ],
-    "destinations": [
-      "광주 광산구 하남산단로",
-      "부산 강서구 녹산산단로",
-      "충남 아산시 배방읍"
-    ]
-  },
-  {
-    "id": 5,
-    "name": "마루아라",
-    "contact": "조과장",
-    "phone": "051-505-1122",
-    "businessNo": "505-85-67890",
-    "routes": 5,
-    "origins": [
-      "부산 사하구 신평로",
-      "부산 강서구 과학산단로",
-      "경남 양산시 어곡산단로"
-    ],
-    "destinations": [
-      "서울 영등포구 경인로",
-      "경기 평택시 경기대로",
-      "경북 포항시 남구 괴동로"
-    ]
-  },
-  {
-    "id": 6,
-    "name": "바른로지스",
-    "contact": "윤주임",
-    "phone": "042-482-1234",
-    "businessNo": "606-86-78901",
-    "routes": 5,
-    "origins": [
-      "대전 대덕구 대화로",
-      "충북 청주시 청원구",
-      "세종 연서면 공단로"
-    ],
-    "destinations": [
-      "서울 금천구 가산디지털로",
-      "경기 이천시 대장로",
-      "경남 창원시 진해구"
-    ]
-  },
-  {
-    "id": 7,
-    "name": "새솔산업",
-    "contact": "임대리",
-    "phone": "052-251-5678",
-    "businessNo": "707-87-89012",
-    "routes": 5,
-    "origins": [
-      "울산 남구 장생포로",
-      "울산 북구 효자로",
-      "경남 양산시 웅상대로"
-    ],
-    "destinations": [
-      "경기 시흥시 공단대로",
-      "충남 서산시 대산읍",
-      "전북 군산시 외항로"
-    ]
-  },
-  {
-    "id": 8,
-    "name": "아라글로벌",
-    "contact": "송과장",
-    "phone": "062-360-1212",
-    "businessNo": "808-88-90123",
-    "routes": 5,
-    "origins": [
-      "광주 광산구 사암로",
-      "전남 장성군 물류로",
-      "전북 전주시 덕진구"
-    ],
-    "destinations": [
-      "인천 중구 서해대로",
-      "경기 용인시 처인구",
-      "경북 경산시 진량읍"
-    ]
-  },
-  {
-    "id": 9,
-    "name": "자람무역",
-    "contact": "서대리",
-    "phone": "053-421-4321",
-    "businessNo": "909-89-01234",
-    "routes": 5,
-    "origins": [
-      "대구 서구 와룡로",
-      "경북 칠곡군 왜관읍",
-      "경북 구미시 수출대로"
-    ],
-    "destinations": [
-      "서울 강남구 학동로",
-      "경기 파주시 탄현면",
-      "전남 목포시 삼학로"
-    ]
-  },
-  {
-    "id": 10,
-    "name": "하랑로지스",
-    "contact": "홍주임",
-    "phone": "02-2233-4455",
-    "businessNo": "110-90-12345",
-    "routes": 5,
-    "origins": [
-      "서울 송파구 양재대로",
-      "경기 광주시 초월읍",
-      "경기 용인시 백암면"
-    ],
-    "destinations": [
-      "부산 사상구 백양대로",
-      "충남 당진시 송악읍",
-      "경남 김해시 골든루트로"
-    ]
-  }
-    ]
+    const saved = localStorage.getItem('clients');
+    const initialList = saved ? JSON.parse(saved) : initialClientsList;
     const candidateItems = ['철강', '기계부품', '박스화물', '화학제품', '목재', '플라스틱', '의류', '가구', '식품', '전자제품'];
     return initialList.map((c: any, index: number) => {
       let items = c.items || [];
@@ -1481,286 +71,87 @@ export default function Dispatches() {
         }
         items = selected;
       }
-      return {
-        ...c,
-        origins: c.origins || [],
-        destinations: c.destinations || [],
-        items
-      }
-    })
-  })
-
-  React.useEffect(() => {
-    localStorage.setItem('clients', JSON.stringify(clients))
-  }, [clients])
-
-  // Dynamic recommendation logic based on historical dispatch data
-  const getRecommendations = () => {
-    const client = formData.clientName.trim()
-
-    // Helper to map active dispatches to the same format as historyPool
-    const mapDispatchToPoolItem = (d: any) => {
-      let tonnage = '';
-      let carType = '';
-      if (d.spec) {
-        const parts = d.spec.trim().split(/\s+/);
-        tonnage = parts[0] || '';
-        carType = parts[1] || '';
-      }
-      return {
-        client: d.client || '',
-        origin: d.origin || '',
-        destination: d.destination || '',
-        tonnage,
-        carType,
-        weight: '',
-        fee: typeof d.fee === 'number' ? d.fee : (Number(d.fee) || 0),
-        date: d.date || ''
-      };
-    };
-
-    // Combine historyPool and active dispatches (loaded from localStorage) as the source pool
-    const combinedPool = [
-      ...dispatches.map(mapDispatchToPoolItem),
-      ...historyPool
-    ];
-
-    const pool = client 
-      ? combinedPool.filter(d => d.client === client)
-      : combinedPool
-
-    // 1. Routes (origin -> destination)
-    const routesMap: Record<string, { count: number, origin: string, destination: string }> = {}
-    // 2. Origins
-    const originsMap: Record<string, number> = {}
-    // 3. Destinations
-    const destMap: Record<string, number> = {}
-
-    pool.forEach(item => {
-      // Route
-      const rKey = `${item.origin}→${item.destination}`
-      if (!routesMap[rKey]) routesMap[rKey] = { count: 0, origin: item.origin, destination: item.destination }
-      routesMap[rKey].count++
-
-      // Origin
-      originsMap[item.origin] = (originsMap[item.origin] || 0) + 1
-
-      // Destination
-      destMap[item.destination] = (destMap[item.destination] || 0) + 1
-    })
-
-    const topRoutes = Object.values(routesMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3)
-
-    const topOrigins = Object.entries(originsMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(entry => entry[0])
-
-    const topDestinations = Object.entries(destMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(entry => entry[0])
-
-    // Hybrid Spec Recommendation System:
-    // 1. Get client-specific spec counts
-    const clientSpecsMap: Record<string, { count: number, tonnage: string, carType: string, weight: string }> = {};
-    const overallSpecsMap: Record<string, { count: number, tonnage: string, carType: string, weight: string }> = {};
-
-    combinedPool.forEach(item => {
-      const sKey = `${item.tonnage}|${item.carType}`; // Ignore weight completely
-      
-      // Overall stats
-      if (!overallSpecsMap[sKey]) {
-        overallSpecsMap[sKey] = { count: 0, tonnage: item.tonnage, carType: item.carType, weight: '' };
-      }
-      overallSpecsMap[sKey].count++;
-
-      // Client stats
-      if (client && item.client === client) {
-        if (!clientSpecsMap[sKey]) {
-          clientSpecsMap[sKey] = { count: 0, tonnage: item.tonnage, carType: item.carType, weight: '' };
-        }
-        clientSpecsMap[sKey].count++;
-      }
+      return { ...c, items };
     });
+  });
 
-    const clientSpecsList = Object.values(clientSpecsMap).sort((a, b) => b.count - a.count);
-    const overallSpecsList = Object.values(overallSpecsMap).sort((a, b) => b.count - a.count);
+  useEffect(() => {
+    localStorage.setItem('clients', JSON.stringify(clients));
+  }, [clients]);
 
-    const uniqueSpecsList: Array<{ count: number, tonnage: string, carType: string, weight: string, isClientSpec?: boolean }> = [];
-    const seenKeys = new Set<string>();
+  // Client save modal state
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [clientModalData, setClientModalData] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    businessNo: '',
+    ceoName: '',
+    contactName: '',
+    contactPhone: ''
+  });
 
-    // Add client specs first with explicit flag
-    clientSpecsList.forEach(spec => {
-      const dKey = `${spec.tonnage}|\f${spec.carType}`.replace('\\f', '');
-      if (!seenKeys.has(dKey)) {
-        seenKeys.add(dKey);
-        uniqueSpecsList.push({ ...spec, isClientSpec: true });
-      }
-    });
+  // Table & Driver state
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [driverInput, setDriverInput] = useState({
+    carNumber: '',
+    driverName: '',
+    driverPhone: ''
+  });
+  const [blinkRow, setBlinkRow] = useState<{ id: number; status: string } | null>(null);
+  const [editingFeeId, setEditingFeeId] = useState<number | null>(null);
+  const [editingFeeValue, setEditingFeeValue] = useState('');
+  const [editingCommissionValue, setEditingCommissionValue] = useState('');
+  const [editingWaypointsId, setEditingWaypointsId] = useState<number | null>(null);
+  const [editWaypoints, setEditWaypoints] = useState<string[]>([]);
+  const [adjustTargetMap, setAdjustTargetMap] = useState<Record<number, 'fee' | 'commission'>>({});
+  const [assigningDispatchId, setAssigningDispatchId] = useState<number | null>(null);
+  const [activePostcodeField, setActivePostcodeField] = useState<string | null>(null);
 
-    // Add overall specs with explicit flag
-    overallSpecsList.forEach(spec => {
-      if (uniqueSpecsList.length >= 5) return;
-      const dKey = `${spec.tonnage}|\f${spec.carType}`.replace('\\f', '');
-      if (!seenKeys.has(dKey)) {
-        seenKeys.add(dKey);
-        uniqueSpecsList.push({ ...spec, isClientSpec: false });
-      }
-    });
+  // Filters state
+  const [showHistoryPanel, setShowHistoryPanel] = useState(true);
+  const [dateFilterType, setDateFilterType] = useState('전체');
+  const [statusFilter, setStatusFilter] = useState('전체');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
-    // If still less than 5 unique specs, pull from popular standard specs to ensure 5 chips are always displayed
-    const defaultSpecs = [
-      { count: 0, tonnage: '1톤', carType: '카고', weight: '' },
-      { count: 0, tonnage: '1톤', carType: '탑차', weight: '' },
-      { count: 0, tonnage: '2.5톤', carType: '카고', weight: '' },
-      { count: 0, tonnage: '3.5톤', carType: '윙바디', weight: '' },
-      { count: 0, tonnage: '5톤', carType: '카고', weight: '' },
-      { count: 0, tonnage: '5톤', carType: '윙바디', weight: '' },
-      { count: 0, tonnage: '11톤', carType: '카고', weight: '' }
-    ];
+  // Client search in history panel
+  const [showClientSearch, setShowClientSearch] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [clientSearchFilter, setClientSearchFilter] = useState('');
 
-    defaultSpecs.forEach(spec => {
-      if (uniqueSpecsList.length >= 5) return;
-      const dKey = `${spec.tonnage}|\f${spec.carType}`.replace('\\f', '');
-      if (!seenKeys.has(dKey)) {
-        seenKeys.add(dKey);
-        uniqueSpecsList.push({ ...spec, isClientSpec: false });
-      }
-    });
+  // Chat Drawer states
+  const [activeLeftPanel, setActiveLeftPanel] = useState<'form' | 'chat'>('form');
+  const [chatRoomRecipient, setChatRoomRecipient] = useState<{
+    partnerName: string;
+    partnerType: 'driver' | 'client';
+    phone: string;
+    vehicleNo?: string;
+  } | null>(null);
+  const [chatRooms, setChatRooms] = useState<any[]>(() => {
+    const saved = localStorage.getItem('dispatch_chat_rooms');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-    // Split back to client-specific vs overall using isClientSpec flag (100% robust)
-    const clientPart = uniqueSpecsList.filter(spec => (spec as any).isClientSpec);
-    const overallPart = uniqueSpecsList.filter(spec => !(spec as any).isClientSpec);
-
-    // Sort individually in ascending order so that when combined, the most frequent is on the right-most.
-    clientPart.reverse();
-    overallPart.reverse();
-
-    const topSpecs = [...overallPart, ...clientPart];
-
-    return { topRoutes, topOrigins, topDestinations, topSpecs }
-  }
-
-  const { topRoutes, topOrigins, topDestinations, topSpecs } = getRecommendations()
-
-  // Dynamic fee recommendation based on client/origin/destination
-
-
-
-
-
-
-
-
-
-  const handleInputChange = (field: string, value: string) => {
-    let formatted = value;
-    if (field === 'clientPhone') {
-      formatted = formatPhone(value);
-    } else if (field === 'fee' || field === 'commission') {
-      formatted = formatAmount(value);
-    }
-
-    setFormData(prev => ({ ...prev, [field]: formatted }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: false }))
-    }
-  }
-
-  const handleRecommendClient = (name: string, phone: string, contact: string) => {
-    setFormData(prev => ({
-      ...prev,
-      clientName: name,
-      clientPhone: formatPhone(phone),
-      clientContact: contact
-    }))
-    setActiveLocationListField('both')
-    if (window.innerWidth > 768) {
-      setShowHistoryPanel(true);
-    }
-  }
-
-  const handleRecommendSpec = (tonnage: string, type: string, weight: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tonnage,
-      carType: type,
-      weight
-    }))
-    setErrors(prev => ({ ...prev, tonnage: false, carType: false }))
-  }
-
-  const handleRecommendLocation = (field: 'origin' | 'destination', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-    setErrors(prev => ({ ...prev, [field]: false }))
-  }
-
-  const handleRecommendRoute = (origin: string, destination: string) => {
-    setFormData(prev => ({
-      ...prev,
-      origin,
-      destination
-    }))
-    setErrors(prev => ({ ...prev, origin: false, destination: false }))
-  }
-
-
-
-  const handleDateShortcut = (field: 'originDate' | 'destinationDate', shortcut: string) => {
-    const now = new Date()
-    let targetDate = new Date()
-
-    if (shortcut === '지금') {
-      const formatted = now.toISOString().slice(0, 16)
-      setFormData(prev => ({ ...prev, [field]: formatted }))
-      return
-    }
-    
-    if (shortcut === '오늘') {
-      targetDate.setHours(12, 0, 0, 0)
-    } else if (shortcut === '내일') {
-      targetDate.setDate(now.getDate() + 1)
-      targetDate.setHours(12, 0, 0, 0)
-    } else if (shortcut === '월요일') {
-      const day = now.getDay()
-      const distance = (8 - day) % 7 || 7 
-      targetDate.setDate(now.getDate() + distance)
-      targetDate.setHours(12, 0, 0, 0)
-    }
-
-    const year = targetDate.getFullYear()
-    const month = String(targetDate.getMonth() + 1).padStart(2, '0')
-    const date = String(targetDate.getDate()).padStart(2, '0')
-    const hours = String(targetDate.getHours()).padStart(2, '0')
-    const minutes = '00'
-
-    const formatted = `${year}-${month}-${date}T${hours}:${minutes}`
-    setFormData(prev => ({ ...prev, [field]: formatted }))
-  }
-
-  const triggerNotification = (message: string) => {
-    setNotification(message)
-    setTimeout(() => setNotification(null), 3000)
-  }
   const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
 
+  // useDispatchKeyboard hook integration
   const {
     formData,
     setFormData,
     errors,
     setErrors,
+    showWaypoints,
     setShowWaypoints,
     keyboardStep,
     setKeyboardStep,
     keyboardInputValue,
     setKeyboardInputValue,
     keyboardShortcutHighlightIndex,
+    setKeyboardShortcutHighlightIndex,
     activeLocationListField,
     setActiveLocationListField,
     keyboardSteps,
@@ -1777,925 +168,433 @@ export default function Dispatches() {
     dispatches,
     setDispatches,
     historyPool,
-    setHistoryPool,
+    setHistoryPool: () => {},
     triggerNotification,
     postcodeContainerRef,
     registerMode
   });
 
-    const getFeeRecommendations = () => {
-    const client = formData.clientName.trim()
-    const origin = formData.origin.trim()
-    const destination = formData.destination.trim()
+  // Helper Methods
+  const getFeeRecommendations = () => {
+    const client = formData.clientName.trim();
+    const origin = formData.origin.trim();
+    const destination = formData.destination.trim();
 
-    let pool = historyPool
+    let recentFee = 0;
+    let frequentFee = 0;
+
+    const saved = localStorage.getItem('dispatches');
+    let pool = historyPool;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          pool = parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     if (client) {
-      pool = pool.filter(d => d.client === client)
-    }
-    if (origin) {
-      pool = pool.filter(d => d.origin.includes(origin) || origin.includes(d.origin))
-    }
-    if (destination) {
-      pool = pool.filter(d => d.destination.includes(destination) || destination.includes(d.destination))
-    }
-
-    // Fallback if matching pool is too small (e.g. no exact match)
-    if (pool.length === 0) {
-      pool = client ? historyPool.filter(d => d.client === client) : historyPool
+      const clientPool = pool.filter(d => d.client === client);
+      if (clientPool.length > 0) {
+        recentFee = clientPool[clientPool.length - 1].fee;
+        const feeCounts: Record<number, number> = {};
+        clientPool.forEach(d => {
+          feeCounts[d.fee] = (feeCounts[d.fee] || 0) + 1;
+        });
+        const sortedFees = Object.entries(feeCounts).sort((a, b) => b[1] - a[1]);
+        frequentFee = Number(sortedFees[0][0]);
+      }
     }
 
-    if (pool.length === 0) return { recentFee: null, frequentFee: null }
+    if ((!recentFee || !frequentFee) && origin && destination) {
+      const originDong = origin.split(' ').slice(0, 2).join(' ');
+      const destDong = destination.split(' ').slice(0, 2).join(' ');
+      const routePool = pool.filter(d => 
+        d.origin.includes(originDong) && d.destination.includes(destDong)
+      );
 
-    // Recent Fee
-    const sortedByDate = [...pool].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    const recentFee = sortedByDate[0]?.fee || null
+      if (routePool.length > 0) {
+        if (!recentFee) recentFee = routePool[routePool.length - 1].fee;
+        if (!frequentFee) {
+          const feeCounts: Record<number, number> = {};
+          routePool.forEach(d => {
+            feeCounts[d.fee] = (feeCounts[d.fee] || 0) + 1;
+          });
+          const sortedFees = Object.entries(feeCounts).sort((a, b) => b[1] - a[1]);
+          frequentFee = Number(sortedFees[0][0]);
+        }
+      }
+    }
 
-    // Frequent Fee
-    const counts: Record<number, number> = {}
-    pool.forEach(d => {
-      counts[d.fee] = (counts[d.fee] || 0) + 1
-    })
-    const sortedByFreq = Object.entries(counts).sort((a, b) => b[1] - a[1])
-    const frequentFee = sortedByFreq[0] ? Number(sortedByFreq[0][0]) : null
+    return { recentFee, frequentFee };
+  };
 
-    return { recentFee, frequentFee }
-  }
   const { recentFee, frequentFee } = getFeeRecommendations();
-  const hasOtherInfo = !!(formData.clientName.trim() || formData.origin.trim() || formData.destination.trim());
 
-    const formatAmount = (val: string) => {
+  const formatAmount = (val: string) => {
     const digits = val.replace(/\D/g, '');
     if (!digits) return '';
     return Number(digits).toLocaleString();
   };
 
-
-
-
-  const handleSaveClient = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newClient = {
-      id: clients.length + 1,
-      name: clientModalData.name,
-      contact: clientModalData.contactName || '미기재',
-      phone: clientModalData.phone || '미기재',
-      businessNo: clientModalData.businessNo || '미기재',
-      routes: 0,
-      origins: [],
-      destinations: []
-    }
-    setClients(prev => [...prev, newClient])
-    triggerNotification(`거래처 [${clientModalData.name}] 정보가 성공적으로 저장되었습니다!`)
-    setShowClientModal(false)
-  }
-
-  const handleSelectClient = (client: typeof clients[0]) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      clientName: client.name,
-      clientPhone: formatPhone(client.phone),
-      clientContact: client.contact
-    }))
-    setErrors(prev => ({ ...prev, clientName: false }))
-    setShowClientSearch(false)
-    setActiveLocationListField('both')
-    triggerNotification(`거래처 [${client.name}]이(가) 선택되었습니다.`)
-  }
+      [field]: value
+    }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: false }));
+    }
+  };
 
+  const handleRecommendClient = (name: string, phone: string, contact: string) => {
+    setFormData(prev => ({
+      ...prev,
+      clientName: name,
+      clientPhone: phone,
+      clientContact: contact
+    }));
+    setErrors(prev => ({ ...prev, clientName: false }));
+    triggerNotification(`거래처 [${name}] 정보가 자동 추천되었습니다.`);
+  };
 
+  const handleRecommendSpec = (tonnage: string, carType: string, weight: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tonnage,
+      carType,
+      weight
+    }));
+    triggerNotification(`차량 스펙 [${tonnage} ${carType} (${weight})]이 추천되었습니다.`);
+  };
 
+  const handleRecommendLocation = (field: 'origin' | 'destination', loc: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: loc
+    }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: false }));
+    }
+    triggerNotification(`${field === 'origin' ? '상차지' : '하차지'}로 [${loc}] 주소가 자동 지정되었습니다.`);
+  };
 
+  const handleRecommendRoute = (origin: string, destination: string) => {
+    setFormData(prev => ({
+      ...prev,
+      origin,
+      destination
+    }));
+    setErrors(prev => ({ ...prev, origin: false, destination: false }));
+    triggerNotification(`추천 구간 주소가 상하차지에 입력되었습니다.`);
+  };
 
-  // Handle assigning/updating a driver and status
+  const handleDateShortcut = (field: 'originDate' | 'destinationDate' | 'settleDate', type: string) => {
+    const formatted = getShortcutDateValue(type);
+    if (formatted) {
+      handleInputChange(field, formatted);
+    }
+  };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-  const renderKeyboardShortcuts = (stepField: string) => {
-    const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
-      const isHighlighted = idx === keyboardShortcutHighlightIndex;
-      return (
-        <div
-          key={idx}
-          className="keyboard-shortcut-item"
-          onClick={() => handleSelectShortcutByIndex(idx)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: justify,
-            padding: '0.55rem 0.75rem',
-            backgroundColor: isHighlighted ? 'rgba(49, 130, 246, 0.12)' : 'var(--bg-secondary)',
-            border: isHighlighted ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: isHighlighted ? '0 2px 6px rgba(49, 130, 246, 0.15)' : 'none',
-            cursor: 'pointer'
-          }}
-        >
-          {children}
-        </div>
-      );
+  const loadOrCreateChatRoom = (name: string, type: 'driver' | 'client', phone: string, carNumber = '') => {
+    const existing = chatRooms.find(r => r.recipientName === name && r.type === type);
+    const recipientObj = {
+      partnerName: name,
+      partnerType: type,
+      phone: phone,
+      vehicleNo: carNumber
     };
-
-    if (stepField === 'clientName') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {clients.slice(0, 8).map((client, idx) => renderShortcutWrapper(idx, (
-            <>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {client.name}
-              </span>
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
-                {client.phone}
-              </span>
-            </>
-          )))}
-        </div>
-      );
+    if (existing) {
+      setChatRoomRecipient(recipientObj);
+      setActiveLeftPanel('chat');
+    } else {
+      const newRoom = {
+        id: Date.now(),
+        recipientName: name,
+        type,
+        phone,
+        carNumber,
+        messages: [
+          {
+            id: 1,
+            sender: 'system',
+            text: `${name}님과의 대화방이 개설되었습니다.`,
+            time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            unread: false
+          }
+        ]
+      };
+      const updated = [...chatRooms, newRoom];
+      setChatRooms(updated);
+      localStorage.setItem('dispatch_chat_rooms', JSON.stringify(updated));
+      setChatRoomRecipient(recipientObj);
+      setActiveLeftPanel('chat');
     }
-    if (stepField === 'origin' || stepField.startsWith('waypoint_')) {
-      const recentOrigins = Array.from(new Set([
-        ...dispatches.map(d => d.origin),
-        ...dispatches.map(d => d.destination),
-        ...(dispatches.flatMap(d => d.waypoints || []))
-      ])).filter(Boolean).slice(0, 6);
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {recentOrigins.map((loc, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {loc}
-            </span>
-          ), 'flex-start'))}
-          {recentOrigins.length === 0 && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-              추천할 최근 주소가 없습니다. 직접 입력하세요.
-            </div>
-          )}
-        </div>
-      );
-    }
-    if (stepField === 'originDate') {
-      const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {shortcuts.map((sh, idx) => {
-            const calculated = getShortcutDateValue(sh).replace('T', ' ');
-            return renderShortcutWrapper(idx, (
-              <>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                  {sh}
-                </span>
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                  {calculated}
-                </span>
-              </>
-            ));
-          })}
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-            💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 14:00)으로 타이핑 후 엔터를 누르세요.
-          </div>
-        </div>
-      );
-    }
-    if (stepField === 'destination') {
-      const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {recentDests.map((loc, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {loc}
-            </span>
-          ), 'flex-start'))}
-          {recentDests.length === 0 && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-              추천할 최근 하차지가 없습니다. 직접 입력하세요.
-            </div>
-          )}
-        </div>
-      );
-    }
-    if (stepField === 'destinationDate') {
-      const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {shortcuts.map((sh, idx) => {
-            const calculated = getShortcutDateValue(sh).replace('T', ' ');
-            return renderShortcutWrapper(idx, (
-              <>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                  {sh}
-                </span>
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                  {calculated}
-                </span>
-              </>
-            ));
-          })}
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-            💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 17:00)으로 타이핑 후 엔터를 누르세요.
-          </div>
-        </div>
-      );
-    }
-    if (stepField === 'tonnage') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {tonnages.map((t, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {t}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'carType') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {carTypes.map((ct, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {ct}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'weight') {
-      const weights = ['0톤 (스킵)', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {weights.map((w, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {w}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'settleMethod') {
-      const methods = ['인수증', '선불', '착불', '카드'];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {methods.map((m, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {m}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'settleDate') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {renderShortcutWrapper(0, (
-            <>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>1</span>
-                당월말
-              </span>
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                {getEndOfCurrentMonth()}
-              </span>
-            </>
-          ))}
-          {renderShortcutWrapper(1, (
-            <>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>2</span>
-                익월말
-              </span>
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-                {getEndOfNextMonth()}
-              </span>
-            </>
-          ))}
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-            💡 직접 입력을 원하시면 날짜 형식(예: 2026-08-15)으로 직접 타이핑 후 엔터를 누르세요.
-          </div>
-        </div>
-      );
-    }
-    if (stepField === 'commission') {
-      const comms = ['수수료 없음 (0원)', '10,000원', '20,000원', '30,000원', '50,000원'];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {comms.map((c, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {c}
-            </span>
-          ), 'flex-start'))}
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
-            💡 직접 임의의 숫자를 타이핑해 입력할 수도 있습니다.
-          </div>
-        </div>
-      );
-    }
-    if (stepField === 'fee') {
-      const commonFees = ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {commonFees.map((f, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {f}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'cargoItem') {
-      const items = getShortcutsData('cargoItem');
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {items.map((it, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {it}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'memo') {
-      const memos = [
-        '안전운전 부탁드립니다.',
-        '상하차지 대기 시간 발생 시 연락 필수.',
-        '수수료 세금계산서 발행 요망.',
-        '인수증 빠른 우편 발송 필요.'
-      ];
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {memos.map((m, idx) => renderShortcutWrapper(idx, (
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {m}
-            </span>
-          ), 'flex-start'))}
-        </div>
-      );
-    }
-    if (stepField === 'confirm') {
-      const formattedOriginDate = formData.originDate ? formData.originDate.replace('T', ' ') : '';
-      const formattedDestDate = formData.destinationDate ? formData.destinationDate.replace('T', ' ') : '';
-      return (
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '0.85rem',
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1.5px solid var(--primary)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1rem',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <div style={{ 
-            fontSize: '0.9rem', 
-            fontWeight: 900, 
-            color: 'var(--primary)', 
-            borderBottom: '1px solid var(--border-color)', 
-            paddingBottom: '0.45rem',
-            marginBottom: '0.2rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem'
-          }}>
-            📋 등록 내용 최종 확인
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', fontSize: '0.82rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>거래처</span>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.clientName || '일반화주'}</span>
-            </div>
-            
-            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>상차지</span>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.origin}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>상차일시</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedOriginDate}</span>
-              </div>
-            </div>
-
-            {/* Waypoints */}
-            {(formData.waypoints || []).filter((w: string) => w.trim() !== '').map((waypoint, wIdx) => (
-              <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>경유지 {wIdx + 1}</span>
-                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{waypoint}</span>
-                </div>
-              </div>
-            ))}
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.15rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>하차지</span>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formData.destination}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.74rem' }}>하차일시</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.76rem' }}>{formattedDestDate}</span>
-              </div>
-            </div>
-            
-            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>차량스펙</span>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                {formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '미지정'} {formData.weight ? `(${formData.weight})` : ''}
-              </span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>화물품목</span>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.cargoItem || '일반화물'}</span>
-            </div>
-            
-            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>정산방법</span>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.settleMethod} {formData.settleDate ? `(${formData.settleDate})` : ''}</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>수수료</span>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.commission ? `${formData.commission}원` : '0원'}</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>운임료</span>
-              <span style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1rem' }}>{formData.fee ? `${formData.fee}원` : '0원'}</span>
-            </div>
-            
-            <div style={{ borderBottom: '1px dashed var(--border-color)', margin: '0.25rem 0' }}></div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>메모</span>
-              <div style={{ 
-                backgroundColor: 'var(--bg-primary)', 
-                padding: '0.45rem 0.6rem', 
-                borderRadius: 'var(--radius-sm)', 
-                fontSize: '0.76rem', 
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
-                minHeight: '2.2rem',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {formData.memo || '(입력된 메모 없음)'}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ 
-            marginTop: '0.5rem',
-            backgroundColor: 'var(--primary-light)', 
-            padding: '0.6rem 0.8rem', 
-            borderRadius: 'var(--radius-md)', 
-            textAlign: 'center', 
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: 'var(--primary)'
-          }}>
-            ⌨️ Enter를 한 번 더 누르면 등록이 완료됩니다!
-          </div>
-        </div>
-      );
-    }
-    return null;
   };
 
-  const renderKeyboardHelper = () => {
-    const stepField = keyboardSteps[keyboardStep].field;
-    return (
-      <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
-        {/* Left Column: Progress checklist (42% width) */}
-        <div style={{
-          width: '42%',
-          borderRight: '1px solid var(--border-color)',
-          paddingRight: '0.5rem',
-          paddingTop: '0.2rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.1rem',
-          overflowY: 'auto'
-        }} className="hide-scrollbar">
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>📌 등록 단계</span>
-          {(() => {
-            const groups = [
-              {
-                name: '의뢰처 정보',
-                fields: ['clientName']
-              },
-              {
-                name: '상/하차 및 경로',
-                fields: ['origin', 'originDate', 'waypoint_0', 'waypoint_1', 'waypoint_2', 'destination', 'destinationDate']
-              },
-              {
-                name: '차량 및 화물 정보',
-                fields: ['tonnage', 'carType', 'weight']
-              },
-              {
-                name: '정산 정보',
-                fields: ['settleMethod', 'settleDate', 'commission', 'fee']
-              },
-              {
-                name: '기타 정보',
-                fields: ['cargoItem', 'memo', 'confirm']
-              }
-            ];
+  const handleUpdateDriverAndStatus = (id: number, status: DispatchStatus) => {
+    const original = dispatches.find(d => d.id === id);
+    if (!original) return;
 
-            return groups.map((group, gIdx) => {
-              const groupSteps = keyboardSteps
-                .map((step, idx) => ({ ...step, originalIdx: idx }))
-                .filter(step => {
-                  if (!group.fields.includes(step.field)) return false;
-                  const isActive = step.originalIdx === keyboardStep;
-                  
-                  // Progressive disclosure for Waypoints
-                  if (step.field.startsWith('waypoint_')) {
-                    const wIdx = parseInt(step.field.split('_')[1], 10);
-                    const hasValue = !!(formData.waypoints && formData.waypoints[wIdx]);
-                    if (!isActive && !hasValue) {
-                      return false;
-                    }
-                  }
-                  return true;
-                });
-
-              if (groupSteps.length === 0) return null;
-
-              return (
-                <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.08rem', marginBottom: '0.2rem' }}>
-                  <div style={{
-                    fontSize: '0.64rem',
-                    fontWeight: 800,
-                    color: 'var(--text-tertiary)',
-                    marginTop: '0.05rem',
-                    marginBottom: '0.05rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.2rem'
-                  }}>
-                    <span>{group.name}</span>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(0,0,0,0.06)' }} />
-                  </div>
-                  {groupSteps.map((step) => {
-                    const idx = step.originalIdx;
-                    const isActive = idx === keyboardStep;
-                    const isCompleted = idx < keyboardStep;
-                    const stepValue = getStepValueString(step.field);
-
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '0.14rem 0.35rem',
-                          borderRadius: 'var(--radius-sm)',
-                          backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                          border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
-                          transition: 'all var(--transition-fast)',
-                          opacity: isActive || isCompleted ? 1 : 0.5
-                        }}
-                      >
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          width: '100%',
-                          gap: '0.4rem'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flexShrink: 0 }}>
-                            {isCompleted ? (
-                              <Check size={12} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                            ) : isActive ? (
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 4px var(--primary)', flexShrink: 0 }} />
-                            ) : (
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', border: '1.5px solid var(--text-tertiary)', flexShrink: 0 }} />
-                            )}
-                            <span style={{
-                              fontSize: '0.74rem',
-                              fontWeight: isActive ? 800 : 600,
-                              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {step.name}
-                            </span>
-                          </div>
-                          {isCompleted && stepValue && (
-                            <span style={{
-                              fontSize: '0.72rem',
-                              color: 'var(--text-primary)',
-                              fontWeight: 700,
-                              textAlign: 'right',
-                              marginLeft: 'auto',
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden',
-                              whiteSpace: 'nowrap',
-                              maxWidth: '220px'
-                            }} title={stepValue}>
-                              {stepValue}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            });
-          })()}
-        </div>
-
-        {/* Right Column: Shortcuts lists / postcode iframe (58% width) */}
-        <div style={{
-          width: '58%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.85rem',
-          backgroundColor: 'var(--bg-secondary)',
-          overflowY: 'auto'
-        }} className="hide-scrollbar">
-          {isAddressField(keyboardStep) ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {/* Top part: Recent locations shortcuts */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    ⚡ {keyboardSteps[keyboardStep].name}
-                  </span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                    (번호 입력 + Enter)
-                  </span>
-                </div>
-                {renderKeyboardShortcuts(stepField)}
-              </div>
-
-              {/* Divider */}
-              <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.15rem 0' }} />
-
-              {/* Bottom part: Daum postcode search */}
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '260px', overflow: 'hidden' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
-                  🔍 우편번호 검색기 (검색 및 주소 클릭 시 자동 입력)
-                </span>
-                <PostcodeIframe containerRef={postcodeContainerRef} isVisible={true} style={{ flex: 1 }} />
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                  ⚡ {keyboardSteps[keyboardStep].name}
-                </span>
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                  (번호 입력 + Enter)
-                </span>
-              </div>
-              {renderKeyboardShortcuts(stepField)}
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const handleUpdateDriverAndStatus = (dispatchId: number, status: DispatchStatus) => {
-    // If setting to dispatching (resets everything)
-    if (status === 'dispatching') {
-      setDispatches(prev => prev.map(d => {
-        if (d.id === dispatchId) {
-          return {
-            ...d,
-            status,
-            carNumber: '',
-            driverName: '',
-            driverPhone: ''
-          }
-        }
-        return d
-      }))
-      setDriverInput({ carNumber: '', driverName: '', driverPhone: '' })
-      triggerNotification('배차가 대기 상태로 환원되고 차주 정보가 초기화되었습니다.')
-      triggerBlink(dispatchId, 'dispatching')
-      return
+    let updatedDriver = {};
+    if (status !== 'dispatching' && status !== 'cancelled') {
+      updatedDriver = {
+        carNumber: driverInput.carNumber || original.carNumber,
+        driverName: driverInput.driverName || original.driverName,
+        driverPhone: driverInput.driverPhone || original.driverPhone
+      };
+    } else {
+      updatedDriver = {
+        carNumber: '',
+        driverName: '',
+        driverPhone: ''
+      };
     }
 
-    // If setting to cancelled (resets everything and changes status)
-    if (status === 'cancelled') {
-      setDispatches(prev => prev.map(d => {
-        if (d.id === dispatchId) {
-          return {
-            ...d,
-            status,
-            carNumber: '',
-            driverName: '',
-            driverPhone: ''
-          }
-        }
-        return d
-      }))
-      setDriverInput({ carNumber: '', driverName: '', driverPhone: '' })
-      triggerNotification('배차가 취소 상태로 변경되고 차주 정보가 초기화되었습니다.')
-      triggerBlink(dispatchId, 'cancelled')
-      return
-    }
-
-    // Otherwise require driver details
-    if (!driverInput.carNumber.trim() || !driverInput.driverName.trim() || !driverInput.driverPhone.trim()) {
-      alert('배차/운행 처리를 위해 차량번호, 차주명, 차주 연락처를 모두 입력해야 합니다.')
-      return
-    }
-
-    setDispatches(prev => prev.map(d => {
-      if (d.id === dispatchId) {
+    const updated = dispatches.map(d => {
+      if (d.id === id) {
         return {
           ...d,
-          status,
-          carNumber: driverInput.carNumber,
-          driverName: driverInput.driverName,
-          driverPhone: driverInput.driverPhone
-        }
+          ...updatedDriver,
+          status
+        };
       }
-      return d
-    }))
+      return d;
+    });
 
-    triggerNotification(`차주 정보 및 배차 상태가 [${getStatusLabel(status)}]로 설정되었습니다.`)
-    triggerBlink(dispatchId, status)
-  }
+    setDispatches(updated);
+    setBlinkRow({ id, status });
+    setTimeout(() => setBlinkRow(null), 1000);
+    triggerNotification(`배차 상태가 [${
+      status === 'dispatching' ? '배차대기' : 
+      status === 'dispatched' ? '배차완료' : 
+      status === 'cancelled' ? '배차취소' : 
+      status === 'loaded' ? '상차완료' : 
+      status === 'unloaded' ? '하차완료' : '운행완료'
+    }] 상태로 업데이트되었습니다.`);
+  };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'dispatching': return '배차중'
-      case 'dispatched': return '배차완료'
-      case 'cancelled': return '배차취소'
-      case 'loaded': return '상차완료'
-      case 'unloaded': return '하차완료'
-      case 'completed': return '운행완료'
-      default: return status
+  const handleQuickFeeSave = (id: number) => {
+    const target = dispatches.find(d => d.id === id);
+    if (!target) return;
+
+    const fee = Number(editingFeeValue.replace(/,/g, '')) || 0;
+    const commission = editingCommissionValue ? String(Number(editingCommissionValue.replace(/,/g, '')) || 0) : '0';
+
+    const updated = dispatches.map(d => {
+      if (d.id === id) {
+        return {
+          ...d,
+          fee,
+          commission
+        };
+      }
+      return d;
+    });
+
+    setDispatches(updated);
+    setEditingFeeId(null);
+    setBlinkRow({ id, status: 'fee-update' });
+    setTimeout(() => setBlinkRow(null), 1000);
+    triggerNotification('운임 및 수수료가 수정되었습니다.');
+  };
+
+  const handleSaveClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientModalData.name.trim()) return;
+
+    const newClient = {
+      id: Date.now(),
+      name: clientModalData.name.trim(),
+      phone: clientModalData.phone.trim(),
+      contact: clientModalData.contactName.trim(),
+      businessNo: clientModalData.businessNo.trim(),
+      origins: [clientModalData.address.trim()].filter(Boolean),
+      destinations: []
+    };
+
+    const updated = [...clients, newClient];
+    setClients(updated);
+    localStorage.setItem('clients', JSON.stringify(updated));
+
+    // autofill
+    setFormData(prev => ({
+      ...prev,
+      clientName: newClient.name,
+      clientPhone: newClient.phone,
+      clientContact: newClient.contact
+    }));
+
+    setShowClientModal(false);
+    setClientModalData({
+      name: '',
+      phone: '',
+      address: '',
+      businessNo: '',
+      ceoName: '',
+      contactName: '',
+      contactPhone: ''
+    });
+
+    triggerNotification(`신규 거래처 [${newClient.name}]가 저장 및 선택되었습니다.`);
+  };
+
+  // Memos & Recommendations
+  const topRoutes = useMemo(() => {
+    const routeCounts: Record<string, number> = {};
+    historyPool.forEach(item => {
+      if (item.origin && item.destination) {
+        const key = `${item.origin} === ${item.destination}`;
+        routeCounts[key] = (routeCounts[key] || 0) + 1;
+      }
+    });
+    return Object.entries(routeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([key]) => {
+        const [origin, destination] = key.split(' === ');
+        return { origin, destination };
+      });
+  }, [historyPool]);
+
+  const topOrigins = useMemo(() => {
+    const clientName = formData.clientName.trim();
+    let list: string[] = [];
+    if (clientName) {
+      const matched = clients.find(c => c.name === clientName);
+      if (matched) list = matched.origins || [];
     }
-  }
+    if (list.length === 0) {
+      const counts: Record<string, number> = {};
+      historyPool.forEach(item => {
+        if (item.origin) counts[item.origin] = (counts[item.origin] || 0) + 1;
+      });
+      list = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([address]) => address);
+    }
+    return list.slice(0, 5);
+  }, [formData.clientName, clients, historyPool]);
 
-  // Date filtering logic helper
-  const filterByDateRange = (itemDateStr: string) => {
-    const itemDate = new Date(itemDateStr)
-    const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+  const topDestinations = useMemo(() => {
+    const clientName = formData.clientName.trim();
+    let list: string[] = [];
+    if (clientName) {
+      const matched = clients.find(c => c.name === clientName);
+      if (matched) list = matched.destinations || [];
+    }
+    if (list.length === 0) {
+      const counts: Record<string, number> = {};
+      historyPool.forEach(item => {
+        if (item.destination) counts[item.destination] = (counts[item.destination] || 0) + 1;
+      });
+      list = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([address]) => address);
+    }
+    return list.slice(0, 5);
+  }, [formData.clientName, clients, historyPool]);
 
-    if (dateFilterType === '오늘') {
-      return itemDate >= startOfToday && itemDate <= endOfToday
+  const topSpecs = useMemo(() => {
+    const clientName = formData.clientName.trim();
+    let specCounts: Record<string, number> = {};
+
+    if (clientName) {
+      const clientDispatches = dispatches.filter(d => d.client === clientName);
+      clientDispatches.forEach(d => {
+        if (d.spec) specCounts[d.spec] = (specCounts[d.spec] || 0) + 1;
+      });
     }
 
-    if (dateFilterType === '이번주') {
-      const day = now.getDay()
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1) // Monday start
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff)
-      const endOfWeek = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999)
-      return itemDate >= startOfWeek && itemDate <= endOfWeek
+    if (Object.keys(specCounts).length === 0) {
+      historyPool.forEach(d => {
+        const specKey = (d as any).spec || `${d.tonnage || '5톤'} ${d.carType || '윙바디'}`;
+        specCounts[specKey] = (specCounts[specKey] || 0) + 1;
+      });
     }
 
-    if (dateFilterType === '지난주') {
-      const day = now.getDay()
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7 // Prev Monday start
-      const startOfLastWeek = new Date(now.getFullYear(), now.getMonth(), diff)
-      const endOfLastWeek = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999)
-      return itemDate >= startOfLastWeek && itemDate <= endOfLastWeek
+    return Object.entries(specCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([spec, count]) => {
+        const [tonnage, carType] = spec.split(' ');
+        return {
+          count,
+          tonnage: tonnage || '5톤',
+          carType: carType || '윙바디',
+          weight: '5T',
+          isClientSpec: !!clientName
+        };
+      });
+  }, [formData.clientName, dispatches, historyPool]);
+
+  const getLocalDateOnly = (dateStr: string) => {
+    return dateStr.substring(0, 10);
+  };
+
+  const matchesDateFilter = (dateStr: string, type: string) => {
+    if (type === '전체') return true;
+    const targetDate = getLocalDateOnly(dateStr);
+    const today = new Date();
+    const todayStr = today.toISOString().substring(0, 10);
+
+    if (type === '오늘') {
+      return targetDate === todayStr;
     }
 
-    if (dateFilterType === '이번달') {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-      return itemDate >= startOfMonth && itemDate <= endOfMonth
+    if (type === '이번주') {
+      const currentDay = today.getDay();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+      const startStr = startOfWeek.toISOString().substring(0, 10);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      const endStr = endOfWeek.toISOString().substring(0, 10);
+      return targetDate >= startStr && targetDate <= endStr;
     }
 
-    if (dateFilterType === '지난달') {
-      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-      return itemDate >= startOfLastMonth && itemDate <= endOfLastMonth
+    if (type === '지난주') {
+      const currentDay = today.getDay();
+      const startOfLastWeek = new Date(today);
+      startOfLastWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1) - 7);
+      const startStr = startOfLastWeek.toISOString().substring(0, 10);
+      const endOfLastWeek = new Date(startOfLastWeek);
+      endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+      const endStr = endOfLastWeek.toISOString().substring(0, 10);
+      return targetDate >= startStr && targetDate <= endStr;
     }
 
-    if (dateFilterType === '직접선택') {
-      if (!customStartDate || !customEndDate) return true
-      const start = new Date(customStartDate + 'T00:00:00')
-      const end = new Date(customEndDate + 'T23:59:59')
-      return itemDate >= start && itemDate <= end
+    if (type === '이번달') {
+      const startStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const endStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+      return targetDate >= startStr && targetDate <= endStr;
     }
 
-    return true // '전체'
-  }
+    if (type === '지난달') {
+      const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const startStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
+      const endOfMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0);
+      const endStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+      return targetDate >= startStr && targetDate <= endStr;
+    }
 
-  // Allowed statuses on the Dispatches page (Others like settlements are filtered out)
-  const allowedStatuses = ['dispatching', 'dispatched', 'cancelled', 'loaded', 'unloaded', 'completed']
+    if (type === '직접선택') {
+      if (!customStartDate || !customEndDate) return true;
+      return targetDate >= customStartDate && targetDate <= customEndDate;
+    }
 
-  // Filtered dispatches to show in history table
-  const filteredDispatches = dispatches.filter(dispatch => {
-    // 0. Only show dispatches matching page allowed statuses
-    if (!allowedStatuses.includes(dispatch.status)) return false
+    return true;
+  };
 
-    // 1. Search term check
-    const term = searchFilter.toLowerCase().trim()
-    const matchesSearch = !term || (
-      dispatch.client.toLowerCase().includes(term) ||
-      dispatch.origin.toLowerCase().includes(term) ||
-      dispatch.destination.toLowerCase().includes(term) ||
-      dispatch.spec.toLowerCase().includes(term) ||
-      dispatch.driverName.toLowerCase().includes(term) ||
-      dispatch.carNumber.toLowerCase().includes(term)
-    )
-
-    // 2. Status filter check
-    const matchesStatus = statusFilter === '전체' || (
-      (statusFilter === '배차중' && dispatch.status === 'dispatching') ||
-      (statusFilter === '배차완료' && dispatch.status === 'dispatched') ||
-      (statusFilter === '배차취소' && dispatch.status === 'cancelled') ||
-      (statusFilter === '상차완료' && dispatch.status === 'loaded') ||
-      (statusFilter === '하차완료' && dispatch.status === 'unloaded') ||
-      (statusFilter === '운행완료' && dispatch.status === 'completed')
-    )
-
-    // 3. Date range filter check
-    const matchesDate = filterByDateRange(dispatch.date)
-
-    return matchesSearch && matchesStatus && matchesDate
-  })
-
-  const recommendationButtonStyle: React.CSSProperties = {
-    fontSize: '0.72rem',
-    padding: '0.2rem 0.6rem',
-    background: 'var(--primary-light)',
-    border: 'none',
-    borderRadius: 'var(--radius-full)',
-    color: 'var(--primary)',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all var(--transition-fast)',
-  }
-
-  const dateShortcutStyle: React.CSSProperties = {
-    fontSize: '0.72rem',
-    padding: '0.2rem 0.5rem',
-    background: 'var(--bg-primary)',
-    border: 'none',
-    borderRadius: 'var(--radius-sm)',
-    color: 'var(--text-secondary)',
-    fontWeight: 500,
-    cursor: 'pointer',
-    transition: 'all var(--transition-fast)',
-  }
-
-  // Helpers to calculate faceted search counts for filters
-  const getDateCount = (type: string) => {
+  const filteredDispatches = useMemo(() => {
     return dispatches.filter(dispatch => {
-      if (!allowedStatuses.includes(dispatch.status)) return false;
-      const term = searchFilter.toLowerCase().trim();
-      const matchesSearch = !term || (
-        dispatch.client.toLowerCase().includes(term) ||
-        dispatch.origin.toLowerCase().includes(term) ||
-        dispatch.destination.toLowerCase().includes(term) ||
-        dispatch.spec.toLowerCase().includes(term) ||
-        (dispatch.driverName && dispatch.driverName.toLowerCase().includes(term)) ||
-        (dispatch.carNumber && dispatch.carNumber.toLowerCase().includes(term))
-      );
-      if (!matchesSearch) return false;
-      
+      const originDate = dispatch.originDate || dispatch.date;
+      const matchesDate = matchesDateFilter(originDate, dateFilterType);
+
       const matchesStatus = statusFilter === '전체' || (
         (statusFilter === '배차중' && dispatch.status === 'dispatching') ||
         (statusFilter === '배차완료' && dispatch.status === 'dispatched') ||
@@ -2704,103 +603,31 @@ export default function Dispatches() {
         (statusFilter === '하차완료' && dispatch.status === 'unloaded') ||
         (statusFilter === '운행완료' && dispatch.status === 'completed')
       );
-      if (!matchesStatus) return false;
 
-      const itemDate = new Date(dispatch.date);
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const lowerSearch = searchFilter.toLowerCase().trim();
+      const matchesSearch = !lowerSearch || (
+        (dispatch.client || '').toLowerCase().includes(lowerSearch) ||
+        (dispatch.origin || '').toLowerCase().includes(lowerSearch) ||
+        (dispatch.destination || '').toLowerCase().includes(lowerSearch) ||
+        (dispatch.driverName || '').toLowerCase().includes(lowerSearch) ||
+        (dispatch.carNumber || '').toLowerCase().includes(lowerSearch) ||
+        (dispatch.spec || '').toLowerCase().includes(lowerSearch)
+      );
 
-      if (type === '오늘') {
-        return itemDate >= startOfToday && itemDate <= endOfToday;
-      }
-      if (type === '이번주') {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff);
-        const endOfWeek = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-        return itemDate >= startOfWeek && itemDate <= endOfWeek;
-      }
-      if (type === '지난주') {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
-        const startOfLastWeek = new Date(now.getFullYear(), now.getMonth(), diff);
-        const endOfLastWeek = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-        return itemDate >= startOfLastWeek && itemDate <= endOfLastWeek;
-      }
-      if (type === '이번달') {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        return itemDate >= startOfMonth && itemDate <= endOfMonth;
-      }
-      if (type === '지난달') {
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-        return itemDate >= startOfLastMonth && itemDate <= endOfLastMonth;
-      }
-      if (type === '직접선택') {
-        if (!customStartDate || !customEndDate) return true;
-        const start = new Date(customStartDate + 'T00:00:00');
-        const end = new Date(customEndDate + 'T23:59:59');
-        return itemDate >= start && itemDate <= end;
-      }
-      return true;
+      return matchesDate && matchesStatus && matchesSearch;
+    });
+  }, [dispatches, dateFilterType, statusFilter, searchFilter, customStartDate, customEndDate]);
+
+  const getDateCount = (type: string) => {
+    return dispatches.filter(dispatch => {
+      const originDate = dispatch.originDate || dispatch.date;
+      return matchesDateFilter(originDate, type);
     }).length;
   };
 
   const getStatusCount = (statusType: string) => {
     return dispatches.filter(dispatch => {
-      if (!allowedStatuses.includes(dispatch.status)) return false;
-      const term = searchFilter.toLowerCase().trim();
-      const matchesSearch = !term || (
-        dispatch.client.toLowerCase().includes(term) ||
-        dispatch.origin.toLowerCase().includes(term) ||
-        dispatch.destination.toLowerCase().includes(term) ||
-        dispatch.spec.toLowerCase().includes(term) ||
-        (dispatch.driverName && dispatch.driverName.toLowerCase().includes(term)) ||
-        (dispatch.carNumber && dispatch.carNumber.toLowerCase().includes(term))
-      );
-      if (!matchesSearch) return false;
-
-      const itemDate = new Date(dispatch.date);
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      
-      let matchesDate = true;
-      if (dateFilterType === '오늘') {
-        matchesDate = itemDate >= startOfToday && itemDate <= endOfToday;
-      } else if (dateFilterType === '이번주') {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff);
-        const endOfWeek = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-        matchesDate = itemDate >= startOfWeek && itemDate <= endOfWeek;
-      } else if (dateFilterType === '지난주') {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
-        const startOfLastWeek = new Date(now.getFullYear(), now.getMonth(), diff);
-        const endOfLastWeek = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-        matchesDate = itemDate >= startOfLastWeek && itemDate <= endOfLastWeek;
-      } else if (dateFilterType === '이번달') {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        matchesDate = itemDate >= startOfMonth && itemDate <= endOfMonth;
-      } else if (dateFilterType === '지난달') {
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-        matchesDate = itemDate >= startOfLastMonth && itemDate <= endOfLastMonth;
-      } else if (dateFilterType === '직접선택') {
-        if (customStartDate && customEndDate) {
-          const start = new Date(customStartDate + 'T00:00:00');
-          const end = new Date(customEndDate + 'T23:59:59');
-          matchesDate = itemDate >= start && itemDate <= end;
-        }
-      }
-      if (!matchesDate) return false;
-
-      if (statusType === '전체') return true;
-      return (
+      return statusType === '전체' || (
         (statusType === '배차중' && dispatch.status === 'dispatching') ||
         (statusType === '배차완료' && dispatch.status === 'dispatched') ||
         (statusType === '배차취소' && dispatch.status === 'cancelled') ||
@@ -2811,284 +638,256 @@ export default function Dispatches() {
     }).length;
   };
 
-  // Dispatch Difficulty Traffic Light component
-  const DispatchTrafficLight = ({ dispatch }: { dispatch: any }) => {
-    const baseDiff = dispatch.id % 3;
-    const diffInFee = dispatch.fee - (dispatch.originalFee || dispatch.fee);
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSearchFilter('');
+    setDateFilterType('전체');
+    setStatusFilter('전체');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    triggerNotification('필터 조건이 모두 초기화되었습니다!');
+  };
 
-    let difficulty = baseDiff;
-    if (baseDiff === 1) {
-      if (diffInFee >= 10000) {
-        difficulty = 0;
-      }
-    } else if (baseDiff === 2) {
-      if (diffInFee >= 25000) {
-        difficulty = 0;
-      } else if (diffInFee >= 10000) {
-        difficulty = 1;
-      }
-    }
+  // Render Driver list in assignment panel
+  const renderDriverCard = (driver: any, hasActive: boolean) => {
+    const target = dispatches.find(d => d.id === assigningDispatchId);
+    if (!target) return null;
 
-    let tooltipText = "";
-    if (difficulty === 0) tooltipText = "배차 난이도: 쉬움 (인근 대기 차량 풍부)";
-    else if (difficulty === 1) tooltipText = "배차 난이도: 보통 (차 수급 균형)";
-    else tooltipText = "배차 난이도: 어려움 (인근 대기 차량 부족 / 지연 우려)";
+    const driverHomeLocations: Record<number, string> = {
+      1: '경기 안산시 단원구',
+      2: '인천 중구 아암대로',
+      3: '서울 구로구 경인로',
+      4: '충북 청주시 흥덕구',
+      5: '경기 평택시 포승읍',
+      6: '경남 김해시 골든루트로',
+      7: '경남 창원시 성산구',
+      8: '경기 시흥시 공단대로'
+    };
 
-    const dotStyle = (color: string, active: boolean) => ({
-      width: '7px',
-      height: '7px',
-      borderRadius: '50%',
-      backgroundColor: color,
-      opacity: active ? 1 : 0.2,
-      boxShadow: active ? `0 0 6px ${color}` : 'none',
-      transition: 'all var(--transition-fast)'
-    });
+    const getDistanceInKm = (addr1: string, addr2: string) => {
+      if (!addr1 || !addr2) return 15;
+      const getRegion = (addr: string) => {
+        if (addr.includes('서울')) return 'Seoul';
+        if (addr.includes('인천')) return 'Incheon';
+        if (addr.includes('안산') || addr.includes('평택') || addr.includes('시흥') || addr.includes('경기')) return 'Gyeonggi';
+        if (addr.includes('청주') || addr.includes('충북')) return 'Chungcheong';
+        if (addr.includes('김해') || addr.includes('창원') || addr.includes('부산') || addr.includes('경남')) return 'Gyeongsang';
+        return 'Other';
+      };
+      const r1 = getRegion(addr1);
+      const r2 = getRegion(addr2);
+      if (r1 === r2) return 8.5;
+      const distances: Record<string, Record<string, number>> = {
+        Seoul: { Incheon: 32, Gyeonggi: 25, Chungcheong: 110, Gyeongsang: 340 },
+        Incheon: { Seoul: 32, Gyeonggi: 28, Chungcheong: 125, Gyeongsang: 360 },
+        Gyeonggi: { Seoul: 25, Incheon: 28, Chungcheong: 90, Gyeongsang: 320 },
+        Chungcheong: { Seoul: 110, Incheon: 125, Gyeonggi: 90, Gyeongsang: 210 },
+        Gyeongsang: { Seoul: 340, Incheon: 360, Gyeonggi: 320, Chungcheong: 210 }
+      };
+      const baseDist = distances[r1]?.[r2] || distances[r2]?.[r1] || 150;
+      const offset = (addr1.length + addr2.length) % 10;
+      return baseDist + offset;
+    };
+
+    const getDriverMonthlyEarnings = (drv: any) => {
+      const completedFee = dispatches
+        .filter(d => (d.carNumber === drv.vNumber || d.driverName === drv.name) && d.status === 'completed')
+        .reduce((sum, d) => sum + (Number(d.fee) || 0), 0);
+      const base = drv.spec.includes('11톤') || drv.spec.includes('25톤') ? 3500000 : drv.spec.includes('5톤') ? 2200000 : 1200000;
+      return base + completedFee;
+    };
+
+    const getDriverRecentDispatchesCount = (drv: any) => {
+      return dispatches.filter(d => (d.carNumber === drv.vNumber || d.driverName === drv.name)).length;
+    };
+
+    const getRecommendationReason = (drv: any, targetSpec: string, dist: number, isActive: boolean) => {
+      const reasons: string[] = [];
+      const hasExp = dispatches.some(d => 
+        (d.carNumber === drv.vNumber || d.driverName === drv.name) && 
+        d.spec === targetSpec
+      );
+      if (hasExp) reasons.push('동일 스펙 운행 이력 다수');
+      if (dist < 15) reasons.push('상차지 인근 대기 공차');
+      if (isActive) reasons.push('현재 즉시 배차 협의 가능');
+      if (reasons.length === 0) reasons.push('가용 차량 매칭 추천');
+      return reasons.join(', ');
+    };
+
+    const home = driverHomeLocations[driver.id] || '경기 시흥시';
+    const distance = getDistanceInKm(target.origin, home);
+    const reason = getRecommendationReason(driver, target.spec, distance, hasActive);
+    const earnings = getDriverMonthlyEarnings(driver);
+    const totalCount = getDriverRecentDispatchesCount(driver);
+
+    const isMatchSpec = target.spec === driver.spec;
 
     return (
       <div 
+        key={driver.id} 
         style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '3px', 
-          padding: '3px 5px', 
+          padding: '0.85rem', 
           backgroundColor: 'var(--bg-secondary)', 
-          borderRadius: 'var(--radius-full)', 
-          border: '1px solid var(--border-color)',
-          marginLeft: '0.4rem',
-          verticalAlign: 'middle'
+          border: '1.5px solid ' + (isMatchSpec ? 'var(--primary)' : 'var(--border-color)'), 
+          borderRadius: 'var(--radius-md)', 
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.45rem',
+          cursor: 'pointer',
+          transition: 'all var(--transition-fast)'
         }}
-        title={tooltipText}
-        onClick={e => e.stopPropagation()} // Prevent row expanding on click
+        onClick={() => {
+          setDriverInput({
+            carNumber: driver.vNumber,
+            driverName: driver.name,
+            driverPhone: driver.phone
+          });
+          triggerNotification(`차주 [${driver.name}] 정보가 지정되었습니다. 배정 버튼을 누르시면 완료됩니다.`);
+        }}
       >
-        <div style={dotStyle('#10B981', difficulty === 0)} />
-        <div style={dotStyle('#F59E0B', difficulty === 1)} />
-        <div style={dotStyle('#EF4444', difficulty === 2)} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.86rem' }}>{driver.name}</span>
+            <Badge color={isMatchSpec ? 'primary' : 'gray'}>{driver.spec}</Badge>
+            {hasActive && <span style={{ width: '6px', height: '6px', backgroundColor: '#10B981', borderRadius: '50%' }} title="즉시 배차 협의 가능" />}
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>{driver.phone}</span>
+        </div>
+        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+          📍 차고지: <strong style={{ color: 'var(--text-primary)' }}>{home}</strong> ({distance.toFixed(1)}km 대기)
+        </div>
+        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem' }}>
+          <span>• 당월 운송: {totalCount}건</span>
+          <span>• 누적 매출: {earnings.toLocaleString()}원</span>
+        </div>
+        <div style={{ fontSize: '0.74rem', color: 'var(--primary)', fontWeight: 700, borderTop: '1px dashed var(--border-color)', paddingTop: '0.35rem', marginTop: '0.1rem' }}>
+          ✨ 추천 사유: {reason}
+        </div>
       </div>
     );
   };
 
-  const adjustButtonStyle = (bg: string, color: string): React.CSSProperties => ({
-    fontSize: '0.66rem',
-    padding: '0.15rem 0.35rem',
-    backgroundColor: bg,
-    color: color,
-    border: 'none',
-    borderRadius: 'var(--radius-sm)',
-    fontWeight: 700,
-    cursor: 'pointer',
-    transition: 'all var(--transition-fast)'
-  });
-
-  const filterTabStyle = (active: boolean): React.CSSProperties => ({
-    fontSize: '0.78rem',
-    padding: '0.35rem 0.75rem',
-    background: active ? 'var(--primary-light)' : 'var(--bg-primary)',
-    border: active ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-full)',
-    color: active ? 'var(--primary)' : 'var(--text-secondary)',
-    fontWeight: active ? 700 : 500,
-    cursor: 'pointer',
-    transition: 'all var(--transition-fast)'
-  })
-
-  const selectStyle = (hasError: boolean): React.CSSProperties => ({
-    width: '100%',
-    padding: '0.52rem 0.75rem',
-    borderRadius: 'var(--radius-md)',
-    border: hasError ? '1.5px solid var(--danger)' : '1px solid transparent',
-    backgroundColor: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    transition: 'all var(--transition-fast)',
-    boxShadow: hasError ? '0 0 0 2px var(--danger-bg)' : 'none',
-    height: '40px'
-  })
-
-  const methodButtonStyle = (method: string): React.CSSProperties => {
-    const isActive = formData.settleMethod === method
-    return {
-      flex: 1,
-      padding: '0.65rem 0.5rem',
-      fontSize: '0.85rem',
-      fontWeight: 700,
-      borderRadius: 'var(--radius-md)',
-      border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-      backgroundColor: isActive ? 'var(--primary-light)' : 'var(--bg-secondary)',
-      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-      cursor: 'pointer',
-      transition: 'all var(--transition-fast)'
-    }
-  }
-
   return (
-    <div className="dispatch-layout-container" style={{ gridTemplateColumns: showHistoryPanel ? undefined : '1fr' }}>
-      <style>{`
-        @keyframes blink-dispatched {
-          0% { background-color: rgba(49, 130, 246, 0.45); }
-          100% { background-color: transparent; }
-        }
-        @keyframes blink-loaded {
-          0% { background-color: rgba(16, 185, 129, 0.45); }
-          100% { background-color: transparent; }
-        }
-        @keyframes blink-unloaded {
-          0% { background-color: rgba(78, 89, 104, 0.45); }
-          100% { background-color: transparent; }
-        }
-        @keyframes blink-completed {
-          0% { background-color: rgba(16, 185, 129, 0.45); }
-          100% { background-color: transparent; }
-        }
-        @keyframes blink-dispatching {
-          0% { background-color: rgba(245, 158, 11, 0.45); }
-          100% { background-color: transparent; }
-        }
-        @keyframes blink-cancelled {
-          0% { background-color: rgba(239, 68, 68, 0.45); }
-          100% { background-color: transparent; }
-        }
-        .blink-row-active td {
-          animation: inherit;
-        }
-        .keyboard-shortcut-item {
-          transition: all 0.15s ease;
-          cursor: pointer;
-        }
-        .keyboard-shortcut-item:hover {
-          background-color: rgba(49, 130, 246, 0.08) !important;
-          border-color: var(--primary) !important;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-        }
-      `}</style>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%', overflow: 'hidden' }}>
       
       {/* Toast Notification */}
       {notification && (
         <div style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1.5px solid var(--primary)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1rem 1.5rem',
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 100,
+          position: 'fixed',
+          top: '1.25rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(23, 23, 23, 0.95)',
+          color: '#ffffff',
+          padding: '0.75rem 1.25rem',
+          borderRadius: 'var(--radius-full)',
+          boxShadow: 'var(--shadow-xl)',
+          zIndex: 9999,
+          fontSize: '0.85rem',
+          fontWeight: 700,
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          fontWeight: 700,
-          animation: 'fadeIn var(--transition-fast)'
+          animation: 'slideDown var(--transition-fast)'
         }}>
-          <Check size={18} style={{ color: 'var(--primary)' }} />
-          <span>{notification}</span>
+          <Check size={14} style={{ color: 'var(--primary)' }} /> {notification}
         </div>
       )}
 
-      {/* Client Registration Modal */}
+      {/* Header Info Banner */}
+      <div className="dispatch-header-banner" style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.85rem 1.25rem',
+        backgroundColor: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+            🚚 스마트 통합 배차 관제 시스템 (Dispatcher Pro)
+          </h2>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '0.2rem', display: 'block' }}>
+            실시간 AI 배차 난이도 분석, 키보드 고속 등록 모드 및 스마트 차주 추천 시스템을 제공합니다.
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <Button 
+            variant="outline" 
+            style={{ padding: '0.5rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', height: '36px' }}
+            onClick={() => setShowClientModal(true)}
+          >
+            <Plus size={14} /> 거래처 추가
+          </Button>
+        </div>
+      </div>
+
+      {/* Client Modal Popup */}
       {showClientModal && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(3px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50
+          zIndex: 1000
         }}>
-          <Card style={{ width: '480px', padding: '2rem', border: 'none', backgroundColor: 'var(--bg-secondary)', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 className="text-lg font-bold mb-4">거래처 정보 저장</h3>
-            <form onSubmit={handleSaveClient} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <Card className="animate-fade-slide-up" style={{ width: '420px', padding: '1.5rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 1rem 0' }}>
+              <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+              신규 거래처 등록
+            </h4>
+            <form onSubmit={handleSaveClient} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label className="text-sm font-bold text-secondary mb-1 block">거래처명 *</label>
-                <Input required value={clientModalData.name} onChange={e => setClientModalData({...clientModalData, name: e.target.value})} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="text-sm font-bold text-secondary mb-1 block">대표자명</label>
-                  <Input value={clientModalData.ceoName} onChange={e => setClientModalData({...clientModalData, ceoName: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-secondary mb-1 block">사업자번호</label>
-                  <Input placeholder="000-00-00000" value={clientModalData.businessNo} onChange={e => setClientModalData({...clientModalData, businessNo: e.target.value})} />
-                </div>
+                <label className="text-xs font-bold text-secondary" style={{ display: 'block', marginBottom: '0.3rem' }}>거래처명</label>
+                <Input 
+                  placeholder="예: 현대유통" 
+                  value={clientModalData.name} 
+                  onChange={e => setClientModalData({...clientModalData, name: e.target.value})}
+                  required 
+                />
               </div>
               <div>
-                <label className="text-sm font-bold text-secondary mb-1 block">전화번호</label>
-                <Input value={clientModalData.phone} onChange={e => setClientModalData({...clientModalData, phone: formatPhone(e.target.value)})} />
+                <label className="text-xs font-bold text-secondary" style={{ display: 'block', marginBottom: '0.3rem' }}>대표 연락처</label>
+                <Input 
+                  placeholder="예: 02-123-4567" 
+                  value={clientModalData.phone} 
+                  onChange={e => setClientModalData({...clientModalData, phone: e.target.value})} 
+                />
               </div>
               <div>
-                <label className="text-sm font-bold text-secondary mb-1 block">주소</label>
-                <div style={{ display: 'flex', gap: '0.4rem', position: 'relative' }}>
-                  <Input 
-                    placeholder="주소 검색"
-                    value={clientModalData.address} 
-                    onClick={() => setActivePostcodeField(activePostcodeField === 'clientModalAddr' ? null : 'clientModalAddr')}
-                    readOnly
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    style={{ padding: '0.5rem 0.75rem', fontSize: '0.82rem' }}
-                    onClick={() => setActivePostcodeField(activePostcodeField === 'clientModalAddr' ? null : 'clientModalAddr')}
-                  >
-                    검색
-                  </Button>
-                  {activePostcodeField === 'clientModalAddr' && (
-                    <>
-                      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          height: '300px',
-                          border: '1.5px solid var(--primary)',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: 'var(--shadow-lg)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          zIndex: 1000,
-                          marginTop: '0.25rem',
-                          overflow: 'hidden'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            const daum = (window as any).daum;
-                            if (daum && daum.Postcode) {
-                              new daum.Postcode({
-                                oncomplete: (data: any) => {
-                                  const addr = data.roadAddress || data.address;
-                                  setClientModalData(prev => ({ ...prev, address: addr }));
-                                  setActivePostcodeField(null);
-                                },
-                                width: '100%',
-                                height: '100%'
-                              }).embed(el);
-                            }
-                          }
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
+                <label className="text-xs font-bold text-secondary" style={{ display: 'block', marginBottom: '0.3rem' }}>담당자 명</label>
+                <Input 
+                  placeholder="예: 홍길동 과장" 
+                  value={clientModalData.contactName} 
+                  onChange={e => setClientModalData({...clientModalData, contactName: e.target.value})} 
+                />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="text-sm font-bold text-secondary mb-1 block">담당자명</label>
-                  <Input value={clientModalData.contactName} onChange={e => setClientModalData({...clientModalData, contactName: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-secondary mb-1 block">담당자 전화번호</label>
-                  <Input value={clientModalData.contactPhone} onChange={e => setClientModalData({...clientModalData, contactPhone: formatPhone(e.target.value)})} />
-                </div>
+              <div>
+                <label className="text-xs font-bold text-secondary" style={{ display: 'block', marginBottom: '0.3rem' }}>사업자번호</label>
+                <Input 
+                  placeholder="예: 120-00-00000" 
+                  value={clientModalData.businessNo} 
+                  onChange={e => setClientModalData({...clientModalData, businessNo: e.target.value})} 
+                />
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+              <div>
+                <label className="text-xs font-bold text-secondary" style={{ display: 'block', marginBottom: '0.3rem' }}>주요 상차 주소</label>
+                <Input 
+                  placeholder="예: 경기 화성시 동탄산단로" 
+                  value={clientModalData.address} 
+                  onChange={e => setClientModalData({...clientModalData, address: e.target.value})} 
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <Button type="button" variant="secondary" style={{ flex: 1 }} onClick={() => setShowClientModal(false)}>취소</Button>
                 <Button type="submit" variant="primary" style={{ flex: 1 }}>저장하기</Button>
               </div>
@@ -3096,366 +895,92 @@ export default function Dispatches() {
           </Card>
         </div>
       )}
-      
-      {/* Left Area: Dispatch Registration Form OR Driver Assignment (40% Width) */}
-      <div className="dispatch-left-area" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-        {activeLeftPanel === 'chat' && chatRoomRecipient ? (
-          <DispatchChatDrawer
-            chatRoomRecipient={chatRoomRecipient}
-            activeLeftPanel={activeLeftPanel}
-            setActiveLeftPanel={setActiveLeftPanel}
-          />
-        ) : assigningDispatchId !== null ? (
-          <div className="animate-fade-slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Card style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: 'none' }}>
-              <h4 style={{ 
-                fontSize: '0.92rem', 
-                fontWeight: 700, 
-                color: 'var(--text-primary)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--border-color)', 
-                paddingBottom: '0.5rem', 
-                margin: '0 0 -0.25rem 0' 
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-                  차량/차주 배정
-                </span>
-                <Button
-                  variant="secondary"
-                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
-                  onClick={() => setAssigningDispatchId(null)}
-                >
-                  닫기
-                </Button>
-              </h4>
-              <div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.4rem', fontWeight: 700 }}>선택된 배차 정보</span>
-                {(() => {
-                  const target = dispatches.find(d => d.id === assigningDispatchId)
-                  if (!target) return null
-                  return (
-                    <div style={{ padding: '1rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>{target.client}</span>
-                        <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.92rem' }}>{target.fee.toLocaleString()}원</span>
-                      </div>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        노선: {target.origin.split(' ').slice(0, 2).join(' ')} &rarr; {target.destination.split(' ').slice(0, 2).join(' ')}
-                      </div>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                        스펙: {target.spec}
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
 
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
-                {(() => {
-                  const target = dispatches.find(d => d.id === assigningDispatchId);
-                  if (!target) return null;
-                  const driverHomeLocations: Record<number, string> = {
-                    1: '경기 안산시 단원구',
-                    2: '인천 중구 아암대로',
-                    3: '서울 구로구 경인로',
-                    4: '충북 청주시 흥덕구',
-                    5: '경기 평택시 포승읍',
-                    6: '경남 김해시 골든루트로',
-                    7: '경남 창원시 성산구',
-                    8: '경기 시흥시 공단대로'
-                  };
-
-                  const getDistanceInKm = (addr1: string, addr2: string) => {
-                    if (!addr1 || !addr2) return 15;
-                    const getRegion = (addr: string) => {
-                      if (addr.includes('서울')) return 'Seoul';
-                      if (addr.includes('인천')) return 'Incheon';
-                      if (addr.includes('안산') || addr.includes('평택') || addr.includes('시흥') || addr.includes('경기')) return 'Gyeonggi';
-                      if (addr.includes('청주') || addr.includes('충북')) return 'Chungcheong';
-                      if (addr.includes('김해') || addr.includes('창원') || addr.includes('부산') || addr.includes('경남')) return 'Gyeongsang';
-                      return 'Other';
-                    };
-                    const r1 = getRegion(addr1);
-                    const r2 = getRegion(addr2);
-                    if (r1 === r2) return 8.5;
-                    const distances: Record<string, Record<string, number>> = {
-                      Seoul: { Incheon: 32, Gyeonggi: 25, Chungcheong: 110, Gyeongsang: 340 },
-                      Incheon: { Seoul: 32, Gyeonggi: 28, Chungcheong: 125, Gyeongsang: 360 },
-                      Gyeonggi: { Seoul: 25, Incheon: 28, Chungcheong: 90, Gyeongsang: 320 },
-                      Chungcheong: { Seoul: 110, Incheon: 125, Gyeonggi: 90, Gyeongsang: 210 },
-                      Gyeongsang: { Seoul: 340, Incheon: 360, Gyeonggi: 320, Chungcheong: 210 }
-                    };
-                    const baseDist = distances[r1]?.[r2] || distances[r2]?.[r1] || 150;
-                    const offset = (addr1.length + addr2.length) % 10;
-                    return baseDist + offset;
-                  };
-
-                  const getDriverMonthlyEarnings = (driver: any) => {
-                    const completedFee = dispatches
-                      .filter(d => (d.carNumber === driver.vNumber || d.driverName === driver.name) && d.status === 'completed')
-                      .reduce((sum, d) => sum + d.fee, 0);
-                    const base = driver.spec.includes('11톤') || driver.spec.includes('25톤') ? 3500000 : driver.spec.includes('5톤') ? 2200000 : 1200000;
-                    return base + completedFee;
-                  };
-
-                  const getDriverRecentDispatchesCount = (driver: any) => {
-                    return dispatches.filter(d => (d.carNumber === driver.vNumber || d.driverName === driver.name)).length;
-                  };
-
-                  const getRecommendationReason = (driver: any, targetSpec: string, distance: number, hasActive: boolean) => {
-                    const reasons: string[] = [];
-                    const hasExperience = dispatches.some(d => 
-                      (d.carNumber === driver.vNumber || d.driverName === driver.name) && 
-                      d.spec === targetSpec
-                    );
-                    if (hasExperience) reasons.push('동종화물 유경험');
-                    if (distance < 30) reasons.push('상차지 인접');
-                    if (!hasActive) {
-                      reasons.push('현재 대기중');
-                    } else {
-                      reasons.push('연계운행 최적');
-                    }
-                    return reasons.join(', ');
-                  };
-
-                  // Calculate score for each driver
-                  const scoredDrivers = dummyDrivers.map(driver => {
-                    const activeTrip = dispatches.find(d => 
-                      (d.carNumber === driver.vNumber || d.driverName === driver.name) && 
-                      d.status !== 'completed' && 
-                      d.status !== 'cancelled'
-                    );
-
-                    // 1. Same Cargo / Spec Experience
-                    const hasExperience = dispatches.some(d => 
-                      (d.carNumber === driver.vNumber || d.driverName === driver.name) && 
-                      d.spec === target.spec
-                    ) ? 30 : 0;
-
-                    // 2. Dispatch Count (Fewer is better)
-                    const totalDispatches = getDriverRecentDispatchesCount(driver);
-                    const dispatchScore = Math.max(0, 20 - totalDispatches * 4);
-
-                    // 3. Monthly total earnings (Lower is better for fair distribution)
-                    const monthlyEarnings = getDriverMonthlyEarnings(driver);
-                    const earningsScore = Math.max(0, 20 - (monthlyEarnings / 500000) * 2);
-
-                    // 4. Distance to loading point (Closer is better)
-                    const currentAddr = activeTrip ? activeTrip.destination : driverHomeLocations[driver.id];
-                    const distance = getDistanceInKm(currentAddr, target.origin);
-                    const distanceScore = Math.max(0, 30 - distance * 0.15);
-
-                    // 5. Unloading time before target loading time (Continuous trip scheduling)
-                    let nextTripScore = 0;
-                    if (activeTrip) {
-                      const activeUnloadTime = new Date(activeTrip.destinationDate).getTime();
-                      const targetLoadTime = new Date(target.originDate).getTime();
-                      const destToOriginDistance = getDistanceInKm(activeTrip.destination, target.origin);
-                      if (activeUnloadTime < targetLoadTime && destToOriginDistance < 50) {
-                        nextTripScore = 40;
-                      }
-                    } else {
-                      nextTripScore = 15;
-                    }
-
-                    const score = hasExperience + dispatchScore + earningsScore + distanceScore + nextTripScore;
-                    return {
-                      ...driver,
-                      activeTrip,
-                      distance,
-                      monthlyEarnings,
-                      score
-                    };
-                  });
-
-                  // Sort by score descending
-                  const sortedDrivers = [...scoredDrivers].sort((a, b) => b.score - a.score);
-                  const recommendedDrivers = sortedDrivers.slice(0, 3);
-
-                  const renderDriverCard = (driver: any, isRecommended: boolean) => {
+      {/* Main Body Layout */}
+      <div style={{ display: 'flex', gap: '0.85rem', flex: 1, overflow: 'hidden' }}>
+        
+        {/* Left Area (40% Width) */}
+        <div className="dispatch-left-area" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+          {activeLeftPanel === 'chat' && chatRoomRecipient ? (
+            <DispatchChatDrawer
+              chatRoomRecipient={chatRoomRecipient}
+              activeLeftPanel={activeLeftPanel}
+              setActiveLeftPanel={setActiveLeftPanel}
+            />
+          ) : assigningDispatchId !== null ? (
+            <div className="animate-fade-slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Card style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: 'none' }}>
+                <h4 style={{ 
+                  fontSize: '0.92rem', 
+                  fontWeight: 700, 
+                  color: 'var(--text-primary)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid var(--border-color)', 
+                  paddingBottom: '0.5rem', 
+                  margin: '0 0 -0.25rem 0' 
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                    차량/차주 배정
+                  </span>
+                  <Button
+                    variant="secondary"
+                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
+                    onClick={() => setAssigningDispatchId(null)}
+                  >
+                    닫기
+                  </Button>
+                </h4>
+                
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.4rem', fontWeight: 700 }}>선택된 배차 정보</span>
+                  {(() => {
+                    const target = dispatches.find(d => d.id === assigningDispatchId);
+                    if (!target) return null;
                     return (
-                      <div 
-                        key={driver.id + (isRecommended ? '-rec' : '')} 
-                        onClick={() => setExpandedDriverId(prev => prev === driver.id ? null : driver.id)}
-                        style={{ 
-                          padding: '1rem', 
-                          border: expandedDriverId === driver.id ? '1.5px solid var(--primary)' : '1px solid var(--border-color)', 
-                          borderRadius: 'var(--radius-md)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.5rem',
-                          cursor: 'pointer',
-                          boxShadow: expandedDriverId === driver.id ? 'var(--shadow-sm)' : 'none',
-                          transition: 'all var(--transition-fast)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', minWidth: 0 }}>
-                            <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap' }}>{driver.name}</span>
-                            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                              <Badge color={driver.type === '소속' ? 'primary' : driver.type === '지입' ? 'success' : 'gray'}>
-                                {driver.type}
-                              </Badge>
-                            </span>
-                            {isRecommended && (
-                              <span style={{ flexShrink: 0, display: 'inline-flex', fontWeight: 700 }}>
-                                <Badge color="warning">
-                                  ⭐ AI 추천
-                                </Badge>
-                              </span>
-                            )}
-                          </div>
-                          <Button 
-                            variant="primary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDispatches(prev => prev.map(d => {
-                                if (d.id === assigningDispatchId) {
-                                    return {
-                                      ...d,
-                                      status: 'dispatched' as DispatchStatus,
-                                      carNumber: driver.vNumber,
-                                      driverName: driver.name,
-                                      driverPhone: driver.phone
-                                    }
-                                }
-                                return d
-                              }))
-                              if (expandedId === assigningDispatchId) {
-                                setDriverInput({
-                                  carNumber: driver.vNumber,
-                                  driverName: driver.name,
-                                  driverPhone: driver.phone
-                                })
-                              }
-                              triggerNotification(`[${driver.name}] 차주가 배차 건에 정상적으로 배정되었습니다.`);
-                              setAssigningDispatchId(null);
-                              triggerBlink(assigningDispatchId, 'dispatched');
-                            }}
-                          >
-                            선택 배정
-                          </Button>
+                      <div style={{ padding: '1rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>{target.client}</span>
+                          <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.92rem' }}>{target.fee.toLocaleString()}원</span>
                         </div>
-                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <div>차량번호: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{driver.vNumber}</span></div>
-                            <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                              {driver.activeTrip ? '연계지 거리:' : '현위치 거리:'} {driver.distance.toFixed(0)}km
-                            </div>
-                          </div>
-                          <div>스펙: {driver.spec}</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.1rem' }}>
-                            <span>월 총운임: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{driver.monthlyEarnings.toLocaleString()}원</span></span>
-                            {isRecommended && (
-                              <span style={{ fontSize: '0.76rem', color: 'var(--warning-text)', fontWeight: 600 }}>
-                                {getRecommendationReason(driver, target.spec, driver.distance, !!driver.activeTrip)}
-                              </span>
-                            )}
-                          </div>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          노선: {target.origin.split(' ').slice(0, 2).join(' ')} &rarr; {target.destination.split(' ').slice(0, 2).join(' ')}
                         </div>
-
-                        {/* Expanded Section with smooth height transition */}
-                        <div style={{
-                          maxHeight: expandedDriverId === driver.id ? '250px' : '0',
-                          overflow: 'hidden',
-                          opacity: expandedDriverId === driver.id ? 1 : 0,
-                          marginTop: expandedDriverId === driver.id ? '0.75rem' : '0',
-                          borderTop: expandedDriverId === driver.id ? '1px dashed var(--border-color)' : 'none',
-                          paddingTop: expandedDriverId === driver.id ? '0.75rem' : '0',
-                          transition: 'all var(--transition-normal)'
-                        }} onClick={e => e.stopPropagation()}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.82rem' }}>
-                            <div>
-                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>현재 상태 및 주소</span>
-                              {driver.activeTrip ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--primary)', fontWeight: 700 }}>
-                                    <span style={{ width: '6px', height: '6px', backgroundColor: 'var(--primary)', borderRadius: '50%' }}></span>
-                                    운행중 ({driver.activeTrip.origin.split(' ')[1] || driver.activeTrip.origin} → {driver.activeTrip.destination.split(' ')[1] || driver.activeTrip.destination})
-                                  </div>
-                                  <div style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>하차지: {driver.activeTrip.destination}</div>
-                                </div>
-                              ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#10B981', fontWeight: 700 }}>
-                                    <span style={{ width: '6px', height: '6px', backgroundColor: '#10B981', borderRadius: '50%' }}></span>
-                                    대기중 (배정 가능)
-                                  </div>
-                                  <div style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>대기위치: {driverHomeLocations[driver.id]}</div>
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontWeight: 700, display: 'block', marginBottom: '0.1rem' }}>계좌 정보</span>
-                              <span style={{ color: 'var(--text-secondary)' }}>{driver.bank || '등록된 계좌 없음'}</span>
-                            </div>
-                            <div>
-                              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>최근 배차 이력</span>
-                              {(() => {
-                                const driverHistory = dispatches.filter(d => 
-                                  (d.carNumber === driver.vNumber || d.driverName === driver.name)
-                                );
-                                if (driverHistory.length === 0) {
-                                  return <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>배차 이력 없음</div>;
-                                }
-                                return (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                    {driverHistory.slice(0, 3).map((hist, idx) => (
-                                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                                        <span>{hist.origin.split(' ')[1] || hist.origin} → {hist.destination.split(' ')[1] || hist.destination} ({hist.client})</span>
-                                        <span style={{ fontWeight: 600, color: hist.status === 'completed' ? '#10B981' : hist.status === 'cancelled' ? '#EF4444' : 'var(--primary)' }}>
-                                          {hist.status === 'completed' ? '완료' : hist.status === 'cancelled' ? '취소' : '진행중'}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                          스펙: {target.spec}
                         </div>
                       </div>
                     );
-                  };
+                  })()}
+                </div>
 
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      {/* 1. Recommended section */}
-                      <div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.6rem' }}>
-                          ⭐ AI 최적 추천 차주 (최대 3명)
-                        </span>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          {recommendedDrivers.map(driver => renderDriverCard(driver, true))}
-                        </div>
-                      </div>
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+                  {(() => {
+                    const target = dispatches.find(d => d.id === assigningDispatchId);
+                    if (!target) return null;
 
-                      {/* Divider */}
-                      <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.25rem 0' }} />
+                    const sortedDrivers = [...dummyDrivers].sort((a, b) => {
+                      const specMatchA = target.spec === a.spec ? 1 : 0;
+                      const specMatchB = target.spec === b.spec ? 1 : 0;
+                      return specMatchB - specMatchA;
+                    });
 
-                      {/* 2. All drivers section */}
-                      <div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>
-                          전체 배정 가능 차주 목록
-                        </span>
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>차주 자동추천 목록</span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                           {sortedDrivers.map(driver => renderDriverCard(driver, false))}
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </Card>
-          </div>
-        ) : (
-          <>
-            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '0.85rem 1rem', overflowY: registerMode === 'keyboard' ? 'hidden' : 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem', border: 'none', height: '100%' }}>
+                    );
+                  })()}
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <Card className="dispatch-registration-card" style={{ flex: 1, padding: '0.85rem 1rem', overflowY: registerMode === 'keyboard' ? 'hidden' : 'auto', display: 'flex', flexDirection: 'column', gap: '0.85rem', border: 'none', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', margin: '0 0 -0.25rem 0' }}>
                 <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
                   <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
@@ -3470,13 +995,14 @@ export default function Dispatches() {
                     }}
                     style={{
                       padding: '0.2rem 0.5rem',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
+                      fontSize: '0.74rem',
                       borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
                       border: '1px solid ' + (registerMode === 'normal' ? 'var(--primary)' : 'var(--border-color)'),
                       backgroundColor: registerMode === 'normal' ? 'var(--primary-light)' : 'transparent',
                       color: registerMode === 'normal' ? 'var(--primary)' : 'var(--text-secondary)',
-                      cursor: 'pointer'
+                      fontWeight: registerMode === 'normal' ? 700 : 500,
+                      transition: 'all var(--transition-fast)'
                     }}
                   >
                     일반
@@ -3487,21 +1013,22 @@ export default function Dispatches() {
                       setRegisterMode('keyboard');
                       setKeyboardStep(0);
                       setKeyboardInputValue('');
-                      setShowWaypoints(false);
+                      setKeyboardShortcutHighlightIndex(-1);
                       setTimeout(() => {
-                        const input = document.getElementById('keyboard-mode-input');
-                        if (input) input.focus();
+                        const inputEl = document.getElementById('keyboard-mode-input');
+                        if (inputEl) inputEl.focus();
                       }, 50);
                     }}
                     style={{
                       padding: '0.2rem 0.5rem',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
+                      fontSize: '0.74rem',
                       borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
                       border: '1px solid ' + (registerMode === 'keyboard' ? 'var(--primary)' : 'var(--border-color)'),
                       backgroundColor: registerMode === 'keyboard' ? 'var(--primary-light)' : 'transparent',
                       color: registerMode === 'keyboard' ? 'var(--primary)' : 'var(--text-secondary)',
-                      cursor: 'pointer'
+                      fontWeight: registerMode === 'keyboard' ? 700 : 500,
+                      transition: 'all var(--transition-fast)'
                     }}
                   >
                     키보드
@@ -3510,2215 +1037,512 @@ export default function Dispatches() {
               </div>
 
               {registerMode === 'keyboard' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
-                  {/* Guided Input Box */}
-                  <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '1.5px solid var(--primary)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.75rem 0.95rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.4rem',
-                    boxShadow: '0 4px 12px rgba(49, 130, 246, 0.08)'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>
-                        👉 {keyboardSteps[keyboardStep].name} 입력 차례
-                      </span>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                        (이전 단계로 가려면 Shift+Backspace 입력)
-                      </span>
+                <KeyboardRegisterPanel
+                  formData={formData}
+                  keyboardStep={keyboardStep}
+                  keyboardInputValue={keyboardInputValue}
+                  setKeyboardInputValue={setKeyboardInputValue}
+                  keyboardShortcutHighlightIndex={keyboardShortcutHighlightIndex}
+                  keyboardSteps={keyboardSteps}
+                  isAddressField={isAddressField}
+                  getShortcutsData={getShortcutsData}
+                  handleSelectShortcutByIndex={handleSelectShortcutByIndex}
+                  handleKeyboardStepEnter={handleKeyboardStepEnter}
+                  handleKeyboardInputKeyDown={handleKeyboardInputKeyDown}
+                  getStepValueString={getStepValueString}
+                  clients={clients}
+                  dispatches={dispatches}
+                  postcodeContainerRef={postcodeContainerRef}
+                />
+              ) : (
+                <>
+                  <StandardRegisterForm
+                    formData={formData}
+                    setFormData={setFormData}
+                    errors={errors}
+                    setErrors={setErrors}
+                    clients={clients}
+                    activeLocationListField={activeLocationListField}
+                    setActiveLocationListField={setActiveLocationListField}
+                    activePostcodeField={activePostcodeField}
+                    setActivePostcodeField={setActivePostcodeField}
+                    setShowClientSearch={setShowClientSearch}
+                    setClientSearchTerm={setClientSearchTerm}
+                    setClientSearchFilter={setClientSearchFilter}
+                    showWaypoints={showWaypoints}
+                    setShowWaypoints={setShowWaypoints}
+                    topRoutes={topRoutes}
+                    topOrigins={topOrigins}
+                    topDestinations={topDestinations}
+                    topSpecs={topSpecs}
+                    recentFee={recentFee}
+                    frequentFee={frequentFee}
+                    handleInputChange={handleInputChange}
+                    handleRecommendClient={handleRecommendClient}
+                    handleRecommendSpec={handleRecommendSpec}
+                    handleRecommendLocation={handleRecommendLocation}
+                    handleRecommendRoute={handleRecommendRoute}
+                    handleDateShortcut={handleDateShortcut}
+                  />
+                  <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                    <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}>
+                      <Plus size={16} /> 배차 등록
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      type="button"
+                      style={{ padding: '0.7rem' }}
+                      onClick={handleResetForm}
+                    >
+                      초기화
+                    </Button>
+                  </div>
+                </>
+              )}
+            </Card>
+          )}
+        </div>
+
+        {/* Right Area: Dispatch History (60% Width) */}
+        {showHistoryPanel && (
+          <div 
+            className="dispatch-right-area animate-fade-slide-up" 
+            style={{ display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && window.innerWidth <= 768) {
+                setShowHistoryPanel(false);
+              }
+            }}
+          >
+            <Card style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden', border: 'none' }}>
+              <h4 style={{ 
+                fontSize: '0.92rem', 
+                fontWeight: 700, 
+                color: 'var(--text-primary)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-color)', 
+                paddingBottom: '0.5rem', 
+                margin: '0 0 -0.25rem 0' 
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                  {activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
+                </span>
+                <Button
+                  variant="secondary"
+                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
+                  onClick={() => {
+                    if (activeLocationListField) setActiveLocationListField(null);
+                    else if (showClientSearch) setShowClientSearch(false);
+                    else setShowHistoryPanel(false);
+                  }}
+                >
+                  {activeLocationListField || showClientSearch ? '닫기' : (window.innerWidth <= 768 ? '닫기' : '접기 ➔')}
+                </Button>
+              </h4>
+
+              {activeLocationListField ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%', overflow: 'hidden' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    {formData.clientName.trim() 
+                      ? `[${formData.clientName}] 거래처의 주요 상하차지 추천 주소 목록입니다.`
+                      : '그동안 등록된 이력을 기반으로 가장 많이 쓰인 상하차지 목록입니다.'}
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateRows: '1fr 1.1fr 1.1fr', gap: '0.65rem', flex: 1, overflow: 'hidden' }}>
+                    
+                    {/* 1. 주요 구간 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid #8b5cf6', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#8b5cf6' }}>⚡ 운행데이터기반 주요구간 (상하차 동시선택)</span>
+                      <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          {topRoutes.map((route: { origin: string, destination: string }, idx: number) => {
+                            const isSelected = formData.origin === route.origin && formData.destination === route.destination;
+                            return (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, origin: route.origin, destination: route.destination }));
+                                  setErrors(prev => ({ ...prev, origin: false, destination: false }));
+                                  setActiveLocationListField(null);
+                                  triggerNotification(`주요 구간이 선택되었습니다.`);
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '85%' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '15px', height: '15px', fontSize: '0.62rem', fontWeight: 800, backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '50%' }}>{idx + 1}</span>
+                                  <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                    {route.origin.split(' ').slice(0, 2).join(' ')} &rarr; {route.destination.split(' ').slice(0, 2).join(' ')}
+                                  </div>
+                                </div>
+                                <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <Input
-                      id="keyboard-mode-input"
-                      type="text"
-                      placeholder={keyboardSteps[keyboardStep].guide}
-                      value={keyboardInputValue}
-                      onChange={(e) => setKeyboardInputValue(e.target.value)}
-                      onKeyDown={handleKeyboardStepEnter}
-                      onKeyUp={handleKeyboardInputKeyDown}
-                      style={{
-                        height: '40px',
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        borderColor: 'var(--primary)',
-                        boxShadow: '0 0 0 2px var(--primary-light)'
-                      }}
-                      autoComplete="off"
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-                      <span>{keyboardSteps[keyboardStep].optional ? '✨ 이 항목은 필수값이 아닙니다. (엔터 시 스킵 가능)' : '⚠️ 이 항목은 필수입니다. (값을 반드시 입력하세요)'}</span>
-                      <span>완료: {keyboardStep}/{keyboardSteps.length}</span>
+
+                    {/* 2. 주요 상차지 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>📍 거래처 저장기반 주요상차지</span>
+                      <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          {topOrigins.map((loc: string, idx: number) => {
+                            const isSelected = formData.origin === loc;
+                            return (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, origin: loc }));
+                                  setErrors(prev => ({ ...prev, origin: false }));
+                                  setActiveLocationListField(null);
+                                  triggerNotification(`상차지 선택 완료`);
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
+                                  <Badge color="primary">{idx + 1}</Badge>
+                                  <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
+                                </div>
+                                <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. 주요 하차지 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--success)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--success)' }}>🏁 거래처 저장기반 주요하차지</span>
+                      <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          {topDestinations.map((loc: string, idx: number) => {
+                            const isSelected = formData.destination === loc;
+                            return (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, destination: loc }));
+                                  setErrors(prev => ({ ...prev, destination: false }));
+                                  setActiveLocationListField(null);
+                                  triggerNotification(`하차지 선택 완료`);
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
+                                  <Badge color="success">{idx + 1}</Badge>
+                                  <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
+                                </div>
+                                <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              ) : showClientSearch ? (
+                <div className="animate-slide-down" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', flex: 1 }}>
+                      <div style={{ position: 'relative', width: '320px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                        <Input 
+                          placeholder="거래처명, 담당자 또는 연락처로 검색..." 
+                          style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }} 
+                          value={clientSearchTerm} 
+                          onChange={e => setClientSearchTerm(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') setClientSearchFilter(clientSearchTerm);
+                          }}
+                        />
+                      </div>
+                      <Button 
+                        variant="secondary" 
+                        style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem' }}
+                        onClick={() => setClientSearchFilter(clientSearchTerm)}
+                      >
+                        검색
+                      </Button>
                     </div>
                   </div>
 
-                  {/* 2-Column Helper Panel */}
-                  {renderKeyboardHelper()}
+                  <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <th style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>거래처명</th>
+                          <th style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>담당자</th>
+                          <th style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>연락처</th>
+                          <th style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>사업자번호</th>
+                          <th style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>선택</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clients.filter(c => {
+                          const keyword = clientSearchFilter.trim().toLowerCase();
+                          if (!keyword) return true;
+                          return c.name.toLowerCase().includes(keyword) || 
+                                 c.contact.toLowerCase().includes(keyword) || 
+                                 c.phone.toLowerCase().includes(keyword) ||
+                                 (c.businessNo || '').toLowerCase().includes(keyword);
+                        }).map(c => (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '0.65rem 0.5rem', fontSize: '0.85rem', fontWeight: 700 }}>{c.name}</td>
+                            <td style={{ padding: '0.65rem 0.5rem', fontSize: '0.85rem' }}>{c.contact}</td>
+                            <td style={{ padding: '0.65rem 0.5rem', fontSize: '0.85rem' }}>{c.phone}</td>
+                            <td style={{ padding: '0.65rem 0.5rem', fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>{c.businessNo || '미기재'}</td>
+                            <td style={{ padding: '0.65rem 0.5rem' }}>
+                              <Button 
+                                variant="secondary" 
+                                style={{ padding: '0.2rem 0.45rem', fontSize: '0.74rem' }}
+                                onClick={() => {
+                                  handleRecommendClient(c.name, c.phone, c.contact);
+                                  setShowClientSearch(false);
+                                }}
+                              >
+                                선택
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.8rem'
-                  }}>
-          {/* 1. 거래처 정보 입력 */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>거래처 정보</label>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  gap: '0.3rem', 
-                  justifyContent: 'flex-end',
-                  overflowX: 'auto',
-                  whiteSpace: 'nowrap',
-                  flex: 1,
-                  marginLeft: '1rem',
-                  paddingBottom: '2px'
-                }}
-                className="hide-scrollbar"
-              >
-                {clients.slice(0, 3).map(c => (
-                  <button 
-                    key={c.id} 
-                    type="button" 
-                    onClick={() => handleRecommendClient(c.name, c.phone, c.contact || c.contactName)} 
-                    style={{ ...recommendationButtonStyle, flexShrink: 0 }}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 80px', gap: '0.4rem' }}>
-                <Input 
-                  placeholder="거래처명" 
-                  value={formData.clientName} 
-                  onChange={e => handleInputChange('clientName', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                />
-                <Input 
-                  placeholder="전화번호" 
-                  value={formData.clientPhone} 
-                  onChange={e => handleInputChange('clientPhone', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                />
-                <Input 
-                  placeholder="담당자명" 
-                  value={formData.clientContact} 
-                  onChange={e => handleInputChange('clientContact', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                />
-                <Button 
-                  type="button"
-                  variant="secondary" 
-                  style={{ padding: '0.45rem', fontSize: '0.8rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-                  onClick={() => {
-                    setShowClientSearch(true)
-                    setClientSearchTerm('')
-                    setClientSearchFilter('')
-                  }}
-                >
-                  <Search size={14} /> 검색
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. 상/하차지 & 상/하차일시 */}
-          <div className="dispatch-registration-section" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
-            
-            {/* 자주 쓰는 구간 추천 칩 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <label className="text-sm font-bold text-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
-                <Route size={14} /> 자주 쓰는 구간
-              </label>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  gap: '0.4rem', 
-                  justifyContent: 'flex-end',
-                  overflowX: 'auto',
-                  whiteSpace: 'nowrap',
-                  flex: 1,
-                  marginLeft: '1rem',
-                  paddingBottom: '2px'
-                }}
-                className="hide-scrollbar"
-              >
-                {topRoutes.length > 0 ? (
-                  topRoutes.map((route, i) => {
-                    const originShort = route.origin.split(' ').slice(0, 2).join(' ')
-                    const destShort = route.destination.split(' ').slice(0, 2).join(' ')
-                    return (
-                      <button 
-                        key={i}
-                        type="button" 
-                        onClick={() => handleRecommendRoute(route.origin, route.destination)} 
-                        style={{ ...recommendationButtonStyle, flexShrink: 0 }}
-                      >
-                        {originShort} &rarr; {destShort}
-                      </button>
-                    )
-                  })
-                ) : (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', alignSelf: 'center', marginRight: '0.5rem' }}>추천 데이터 없음</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLocationListField(activeLocationListField === 'both' ? null : 'both');
-                    setShowClientSearch(false);
-                    setActivePostcodeField(null);
-                  }}
-                  style={{ ...recommendationButtonStyle, flexShrink: 0, padding: '0.2rem 0.6rem', fontWeight: 'bold' }}
-                  title="상하차지 목록 전체 보기"
-                >
-                  ...
-                </button>
-              </div>
-            </div>
-
-            {/* 상차지 및 상차일시 */}
-            <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">상차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {topOrigins.map((origin, i) => {
-                      const short = origin.split(' ').slice(0, 2).join(' ')
-                      return (
-                        <button key={i} type="button" onClick={() => handleRecommendLocation('origin', origin)} style={recommendationButtonStyle}>{short}</button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <Input 
-                    style={{ 
-                      fontSize: '0.85rem',
-                      padding: '0.52rem 0.75rem',
-                      height: '40px',
-                      borderColor: errors.origin ? 'var(--danger)' : 'transparent',
-                      boxShadow: errors.origin ? '0 0 0 2px var(--danger-bg)' : 'none',
-                      cursor: 'pointer'
-                    }} 
-                    placeholder="상차지 주소 검색" 
-                    value={formData.origin}
-                    onClick={() => setActivePostcodeField(activePostcodeField === 'origin' ? null : 'origin')}
-                    readOnly
+                  <DispatchFilters
+                    dateFilterType={dateFilterType}
+                    setDateFilterType={setDateFilterType}
+                    customStartDate={customStartDate}
+                    setCustomStartDate={setCustomStartDate}
+                    customEndDate={customEndDate}
+                    setCustomEndDate={setCustomEndDate}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    setSearchFilter={setSearchFilter}
+                    getDateCount={getDateCount}
+                    getStatusCount={getStatusCount}
+                    handleResetFilters={handleResetFilters}
                   />
-                  {activePostcodeField === 'origin' && (
-                    <>
-                      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          height: '350px',
-                          border: '1.5px solid var(--primary)',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: 'var(--shadow-lg)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          zIndex: 1000,
-                          marginTop: '0.25rem',
-                          overflow: 'hidden'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            const daum = (window as any).daum;
-                            if (daum && daum.Postcode) {
-                              new daum.Postcode({
-                                oncomplete: (data: any) => {
-                                  const addr = data.roadAddress || data.address;
-                                  setFormData(prev => ({ ...prev, origin: addr }));
-                                  setErrors(prev => ({ ...prev, origin: false }));
-                                  setActivePostcodeField(null);
-                                },
-                                width: '100%',
-                                height: '100%'
-                              }).embed(el);
-                            }
-                          }
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">상차일시</label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {['월요일', '내일', '오늘', '지금'].map(s => (
-                      <button key={s} type="button" onClick={() => handleDateShortcut('originDate', s)} style={dateShortcutStyle}>{s}</button>
-                    ))}
-                  </div>
-                </div>
-                <Input 
-                  type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                  value={formData.originDate}
-                  onChange={e => handleInputChange('originDate', e.target.value)}
-                />
-              </div>
-            </div>
 
-            {/* 하차지 및 하차일시 */}
-            <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">하차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {topDestinations.map((dest, i) => {
-                      const short = dest.split(' ').slice(0, 2).join(' ')
-                      return (
-                        <button key={i} type="button" onClick={() => handleRecommendLocation('destination', dest)} style={recommendationButtonStyle}>{short}</button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <Input 
-                    style={{ 
-                      fontSize: '0.85rem',
-                      padding: '0.52rem 0.75rem',
-                      height: '40px',
-                      borderColor: errors.destination ? 'var(--danger)' : 'transparent',
-                      boxShadow: errors.destination ? '0 0 0 2px var(--danger-bg)' : 'none',
-                      cursor: 'pointer'
-                    }} 
-                    placeholder="하차지 주소 검색" 
-                    value={formData.destination}
-                    onClick={() => setActivePostcodeField(activePostcodeField === 'destination' ? null : 'destination')}
-                    readOnly
+                  <DispatchTable
+                    filteredDispatches={filteredDispatches}
+                    expandedId={expandedId}
+                    setExpandedId={setExpandedId}
+                    blinkRow={blinkRow}
+                    driverInput={driverInput}
+                    setDriverInput={setDriverInput}
+                    editingWaypointsId={editingWaypointsId}
+                    setEditingWaypointsId={setEditingWaypointsId}
+                    editWaypoints={editWaypoints}
+                    setEditWaypoints={setEditWaypoints}
+                    activePostcodeField={activePostcodeField}
+                    setActivePostcodeField={setActivePostcodeField}
+                    adjustTargetMap={adjustTargetMap}
+                    setAdjustTargetMap={setAdjustTargetMap}
+                    editingFeeId={editingFeeId}
+                    setEditingFeeId={setEditingFeeId}
+                    editingFeeValue={editingFeeValue}
+                    setEditingFeeValue={setEditingFeeValue}
+                    editingCommissionValue={editingCommissionValue}
+                    setEditingCommissionValue={setEditingCommissionValue}
+                    setAssigningDispatchId={setAssigningDispatchId}
+                    setDispatches={setDispatches}
+                    loadOrCreateChatRoom={loadOrCreateChatRoom}
+                    handleUpdateDriverAndStatus={handleUpdateDriverAndStatus}
+                    handleQuickFeeSave={handleQuickFeeSave}
+                    formatAmount={formatAmount}
+                    formatPhone={formatPhone}
                   />
-                  {activePostcodeField === 'destination' && (
-                    <>
-                      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          height: '350px',
-                          border: '1.5px solid var(--primary)',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: 'var(--shadow-lg)',
-                          backgroundColor: 'var(--bg-secondary)',
-                          zIndex: 1000,
-                          marginTop: '0.25rem',
-                          overflow: 'hidden'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            const daum = (window as any).daum;
-                            if (daum && daum.Postcode) {
-                              new daum.Postcode({
-                                oncomplete: (data: any) => {
-                                  const addr = data.roadAddress || data.address;
-                                  setFormData(prev => ({ ...prev, destination: addr }));
-                                  setErrors(prev => ({ ...prev, destination: false }));
-                                  setActivePostcodeField(null);
-                                },
-                                width: '100%',
-                                height: '100%'
-                              }).embed(el);
-                            }
-                          }
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-
-                {/* Compact Waypoint row block aligned below destination address input */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.35rem' }}>
-                  {formData.waypoints && formData.waypoints.map((wp: string, idx: number) => (
-                    <div key={idx} style={{ position: 'relative', width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span style={{
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                          color: 'var(--primary)',
-                          backgroundColor: 'var(--primary-light)',
-                          borderRadius: '4px',
-                          padding: '0.1rem 0.25rem',
-                          flexShrink: 0
-                        }}>
-                          경유 {idx + 1}
-                        </span>
-                        <Input
-                          style={{ fontSize: '0.8rem', cursor: 'pointer', flex: 1, padding: '0.35rem 0.5rem', height: '30px' }}
-                          placeholder={`경유지 ${idx + 1} 주소 검색`}
-                          value={wp}
-                          onClick={() => setActivePostcodeField(activePostcodeField === `waypoint_${idx}` ? null : `waypoint_${idx}`)}
-                          readOnly
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => {
-                              const wps = [...(prev.waypoints || [])];
-                              wps.splice(idx, 1);
-                              return { ...prev, waypoints: wps };
-                            });
-                          }}
-                          style={{
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-secondary)',
-                            color: 'var(--text-secondary)',
-                            borderRadius: 'var(--radius-sm)',
-                            padding: '0 0.4rem',
-                            fontSize: '0.68rem',
-                            cursor: 'pointer',
-                            height: '30px'
-                          }}
-                        >
-                          삭제
-                        </button>
-                      </div>
-                      
-                      {activePostcodeField === `waypoint_${idx}` && (
-                        <>
-                          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                          <div 
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              height: '350px',
-                              border: '1.5px solid var(--primary)',
-                              borderRadius: 'var(--radius-md)',
-                              boxShadow: 'var(--shadow-lg)',
-                              backgroundColor: 'var(--bg-secondary)',
-                              zIndex: 1000,
-                              marginTop: '0.25rem',
-                              overflow: 'hidden'
-                            }}
-                            ref={(el) => {
-                              if (el) {
-                                const daum = (window as any).daum;
-                                if (daum && daum.Postcode) {
-                                  new daum.Postcode({ 
-                                    oncomplete: (data: any) => {
-                                      const addr = data.roadAddress || data.address;
-                                      setFormData(prev => {
-                                        const wps = [...(prev.waypoints || [])];
-                                        wps[idx] = addr;
-                                        return { ...prev, waypoints: wps };
-                                      });
-                                      setActivePostcodeField(null);
-                                    },
-                                    width: '100%',
-                                    height: '100%'
-                                  }).embed(el);
-                                }
-                              }
-                            }}
-                          />
-                        </>
-                      )}
-                    </div>
-                  ))}
-                  
-                  {(!formData.waypoints || formData.waypoints.length < 3) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({
-                          ...prev,
-                          waypoints: [...(prev.waypoints || []), '']
-                        }));
-                      }}
-                      style={{
-                        alignSelf: 'flex-start',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        color: 'var(--primary)',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.15rem',
-                        padding: '0.15rem 0'
-                      }}
-                    >
-                      <Plus size={12} /> 경유지 추가 (최대 3개)
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">하차일시</label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {['월요일', '내일', '오늘'].map(s => (
-                      <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
-                    ))}
-                  </div>
-                </div>
-                <Input 
-                  type="datetime-local" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                  value={formData.destinationDate}
-                  onChange={e => handleInputChange('destinationDate', e.target.value)}
-                />
-              </div>
-            </div>
-
-
-
+                </>
+              )}
+            </Card>
           </div>
-
-          {/* 3. 차량 스펙 */}
-          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>차량 스펙</label>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  gap: '0.3rem', 
-                  justifyContent: 'flex-end',
-                  overflowX: 'auto',
-                  whiteSpace: 'nowrap',
-                  flex: 1,
-                  marginLeft: '1rem',
-                  paddingBottom: '2px'
-                }}
-                className="hide-scrollbar"
-              >
-                {topSpecs.map((spec, i) => (
-                  <button 
-                    key={i} 
-                    type="button" 
-                    onClick={() => handleRecommendSpec(spec.tonnage, spec.carType, spec.weight)} 
-                    style={{ ...recommendationButtonStyle, flexShrink: 0 }}
-                  >
-                    {spec.tonnage} {spec.carType}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-              {/* 톤급 Select Dropdown */}
-              <select
-                value={formData.tonnage}
-                onChange={e => handleInputChange('tonnage', e.target.value)}
-                style={selectStyle(errors.tonnage)}
-                onFocus={(e) => {
-                  if (!errors.tonnage) {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                    e.currentTarget.style.borderColor = 'var(--primary)';
-                  }
-                }}
-                onBlur={(e) => {
-                  if (!errors.tonnage) {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
-                    e.currentTarget.style.borderColor = 'transparent';
-                  }
-                }}
-              >
-                <option value="">톤급 *</option>
-                {tonnages.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-
-              {/* 차종 Select Dropdown */}
-              <select
-                value={formData.carType}
-                onChange={e => handleInputChange('carType', e.target.value)}
-                style={selectStyle(errors.carType)}
-                onFocus={(e) => {
-                  if (!errors.carType) {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                    e.currentTarget.style.borderColor = 'var(--primary)';
-                  }
-                }}
-                onBlur={(e) => {
-                  if (!errors.carType) {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
-                    e.currentTarget.style.borderColor = 'transparent';
-                  }
-                }}
-              >
-                <option value="">차종 *</option>
-                {carTypes.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-
-              <Input 
-                placeholder="화물실중량" 
-                value={formData.weight}
-                onChange={e => handleInputChange('weight', e.target.value)}
-                onBlur={e => {
-                  let val = e.target.value.trim();
-                  if (val) {
-                    val = val.replace(/T/gi, '톤');
-                    if (!val.includes('톤')) {
-                      val = `${val}톤`;
-                    }
-                    handleInputChange('weight', val);
-                  }
-                }}
-                style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-              />
-            </div>
-          </div>
-
-          {/* 4. 운임 및 정산 정보 */}
-          <div className="dispatch-registration-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {/* Row 1: Settle Method & Settle Date (50% / 50%) */}
-            <div className="dispatch-form-row-half" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>정산 방법</label>
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
-                  {['인수증', '선불', '착불', '카드'].map(method => (
-                    <button 
-                      key={method} 
-                      type="button" 
-                      onClick={() => setFormData({...formData, settleMethod: method})}
-                      style={{ ...methodButtonStyle(method), padding: '0.52rem 0.25rem', fontSize: '0.78rem', flex: 1 }}
-                    >
-                      {method}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label className="text-sm font-bold text-secondary block">정산 예정일</label>
-                  <div className="date-shortcut-wrapper" style={{ display: 'flex', gap: '0.15rem' }}>
-                    {[
-                      { label: '미지정', action: () => handleInputChange('settleDate', '') },
-                      { label: '바로', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 0)) },
-                      { label: '15일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 15)) },
-                      { label: '당월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 0)) },
-                      { label: '45일', action: () => handleInputChange('settleDate', addDaysAndFormat(formData.destinationDate, 45)) },
-                      { label: '익월말', action: () => handleInputChange('settleDate', formatEndOfMonth(formData.destinationDate, 1)) }
-                    ].map(btn => (
-                      <button 
-                        key={btn.label}
-                        type="button" 
-                        onClick={btn.action} 
-                        style={{ ...dateShortcutStyle, padding: '0.12rem 0.25rem', fontSize: '0.66rem' }}
-                      >
-                        {btn.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <Input 
-                  type="date" 
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                  value={formData.settleDate}
-                  onChange={e => handleInputChange('settleDate', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Row 2: Commission & Fee (50% / 50%) */}
-            <div className="dispatch-form-row-half dispatch-form-row-swap" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block" style={{ marginBottom: '0.35rem' }}>수수료 (원)</label>
-                <Input 
-                  type="text" 
-                  placeholder="예: 30,000" 
-                  disabled={formData.settleMethod === '인수증'}
-                  value={formData.settleMethod === '인수증' ? '' : formData.commission}
-                  onChange={e => handleInputChange('commission', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                />
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">운임 (원) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {hasOtherInfo && recentFee && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleInputChange('fee', String(recentFee))} 
-                        style={recommendationButtonStyle}
-                        title="가장 최근 배차완료된 금액"
-                      >
-                        최근: {(recentFee / 10000).toFixed(0)}만
-                      </button>
-                    )}
-                    {hasOtherInfo && frequentFee && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleInputChange('fee', String(frequentFee))} 
-                        style={recommendationButtonStyle}
-                        title="가장 많이 배차된 금액"
-                      >
-                        최빈: {(frequentFee / 10000).toFixed(0)}만
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <Input 
-                  type="text" 
-                  placeholder="예: 300,000" 
-                  value={formData.fee}
-                  onChange={e => handleInputChange('fee', e.target.value)}
-                  style={{
-                    fontSize: '0.85rem',
-                    padding: '0.52rem 0.75rem',
-                    height: '40px',
-                    borderColor: errors.fee ? 'var(--danger)' : 'transparent',
-                    boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
-
-            <div className="dispatch-form-row-half dispatch-form-row-swap" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <div>
-                <label className="text-sm font-bold text-secondary mb-1 block">메모</label>
-                <Input 
-                  placeholder="추가 요청 사항 입력"
-                  value={formData.memo}
-                  onChange={e => handleInputChange('memo', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                />
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <label className="text-sm font-bold text-secondary block">화물품목</label>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {(() => {
-                      const selectedClient = clients.find(c => c.name.trim() === formData.clientName.trim());
-                      const clientItems = selectedClient && selectedClient.items ? selectedClient.items : [];
-                      const suggestions = clientItems.length > 0 
-                        ? [...clientItems, ...['철강', '기계', '박스', '빠레트'].filter(d => !clientItems.includes(d))].slice(0, 5)
-                        : ['철강', '기계', '박스', '빠레트'];
-                      return suggestions.map(s => (
-                        <button key={s} type="button" onClick={() => handleInputChange('cargoItem', s)} style={recommendationButtonStyle}>{s}</button>
-                      ));
-                    })()}
-                  </div>
-                </div>
-                <Input 
-                  placeholder="예: 철강, 기계부품 등"
-                  value={formData.cargoItem}
-                  onChange={e => handleInputChange('cargoItem', e.target.value)}
-                  style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-                />
-              </div>
-            </div>
-          </div>
-
-              </div>
-            </>
-          )}
-
-          {registerMode !== 'keyboard' && (
-            <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-              <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}><Plus size={16} /> 배차 등록</Button>
-              <Button 
-                variant="secondary" 
-                type="button"
-                style={{ width: '80px', padding: '0.7rem', fontSize: '0.82rem' }} 
-                onClick={handleResetForm}
-              >
-                초기화
-              </Button>
-            </div>
-          )}
-        </Card>
-          </>
         )}
       </div>
 
-      {/* Right Area: Dispatch History (60% Width) */}
-      {showHistoryPanel && (
-        <div 
-          className="dispatch-right-area animate-fade-slide-up" 
-          style={{ display: 'flex', flexDirection: 'column' }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget && window.innerWidth <= 768) {
-              setShowHistoryPanel(false);
-            }
+      {/* Floating toggle button for history panel */}
+      {!showHistoryPanel && (
+        <button
+          type="button"
+          onClick={() => setShowHistoryPanel(true)}
+          style={{
+            position: 'fixed',
+            right: 0,
+            top: '55%',
+            transform: 'translateY(-50%)',
+            zIndex: 99,
+            backgroundColor: 'var(--primary)',
+            color: '#ffffff',
+            border: 'none',
+            borderTopLeftRadius: 'var(--radius-md)',
+            borderBottomLeftRadius: 'var(--radius-md)',
+            padding: '1.2rem 0.65rem',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            writingMode: 'vertical-rl',
+            textOrientation: 'mixed',
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            transition: 'all var(--transition-fast)'
           }}
         >
-        <Card style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden', border: 'none' }}>
-          <h4 style={{ 
-            fontSize: '0.92rem', 
-            fontWeight: 700, 
-            color: 'var(--text-primary)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border-color)', 
-            paddingBottom: '0.5rem', 
-            margin: '0 0 -0.25rem 0' 
+          <Route size={16} style={{ transform: 'rotate(90deg)' }} /> 운행 내역 펼치기
+        </button>
+      )}
+
+      {/* Major Location List Modal Popup for Mobile */}
+      {activeLocationListField && window.innerWidth <= 768 && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="animate-fade-slide-up" style={{
+            width: '90%',
+            maxWidth: '750px',
+            height: '80vh',
+            maxHeight: '750px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-2xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
           }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-              {activeLocationListField ? '주요 상하차지 추천 목록' : showClientSearch ? '거래처 검색 및 선택' : '운행 내역'}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              
-              <Button
-                variant="secondary"
-                style={{ padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
-                onClick={() => {
-                  if (activeLocationListField) setActiveLocationListField(null);
-                  else if (showClientSearch) setShowClientSearch(false);
-                  else setShowHistoryPanel(false);
-                }}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
+                주요 상하차지 추천 목록
+              </h4>
+              <Button 
+                variant="outline" 
+                style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem' }}
+                onClick={() => setActiveLocationListField(null)}
               >
-                {activeLocationListField || showClientSearch ? '닫기' : (window.innerWidth <= 768 ? '닫기' : '접기 ➔')}
+                닫기
               </Button>
             </div>
-          </h4>
-          {activeLocationListField ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%', overflow: 'hidden' }}>
+            <div style={{ flex: 1, overflow: 'hidden', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 {formData.clientName.trim() 
                   ? `[${formData.clientName}] 거래처의 주요 상하차지 추천 주소 목록입니다.`
                   : '그동안 등록된 이력을 기반으로 가장 많이 쓰인 상하차지 목록입니다.'}
               </span>
-              <div style={{ display: 'grid', gridTemplateRows: '1fr 1.1fr 1.1fr', gap: '0.65rem', flex: 1, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr 1fr', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
                 
                 {/* 1. 주요 구간 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid #8b5cf6', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#8b5cf6' }}>⚡ 운행데이터기반 주요구간 (상하차 동시선택)</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid #8b5cf6', borderRadius: 'var(--radius-md)', padding: '0.65rem 0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>⚡ 운행데이터기반 주요구간 (상하차 동시선택)</span>
+                  </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      {(() => {
-                        const routeCounts: Record<string, number> = {};
-                        historyPool.forEach(item => {
-                          if (item.origin && item.destination) {
-                            const key = `${item.origin} === ${item.destination}`;
-                            routeCounts[key] = (routeCounts[key] || 0) + 1;
-                          }
-                        });
-                        const topRoutes = Object.entries(routeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([key]) => {
-                          const [origin, destination] = key.split(' === ');
-                          return { origin, destination };
-                        });
-                        return topRoutes.map((route: { origin: string, destination: string }, idx: number) => {
-                          const isSelected = formData.origin === route.origin && formData.destination === route.destination;
-                          return (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, origin: route.origin, destination: route.destination }))
-                                setErrors(prev => ({ ...prev, origin: false, destination: false }))
-                                setActiveLocationListField(null)
-                                triggerNotification(`주요 구간이 선택되었습니다.`)
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '15px', height: '15px', fontSize: '0.62rem', fontWeight: 800, backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '50%' }}>{idx + 1}</span>
-                                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                  {route.origin.split(' ').slice(0, 2).join(' ')} &rarr; {route.destination.split(' ').slice(0, 2).join(' ')}
-                                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {topRoutes.map((route: { origin: string, destination: string }, idx: number) => {
+                        const isSelected = formData.origin === route.origin && formData.destination === route.destination;
+                        return (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, origin: route.origin, destination: route.destination }));
+                              setErrors(prev => ({ ...prev, origin: false, destination: false }));
+                              setActiveLocationListField(null);
+                              triggerNotification(`주요 구간이 선택되었습니다: ${route.origin.split(' ').slice(0, 2).join(' ')} → ${route.destination.split(' ').slice(0, 2).join(' ')}`);
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px', height: '18px', fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '50%' }}>{idx + 1}</span>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {route.origin.split(' ').slice(0, 2).join(' ')} <span style={{ color: '#8b5cf6', fontWeight: 800 }}>&rarr;</span> {route.destination.split(' ').slice(0, 2).join(' ')}
                               </div>
-                              <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
                             </div>
-                          )
-                        })
-                      })()}
+                            <Button variant="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}>선택</Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
 
                 {/* 2. 주요 상차지 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>📍 거래처 저장기반 주요상차지</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '0.65rem 0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>📍 거래처관리 저장기반 주요상차지</span>
+                  </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      {(() => {
-                        const clientName = formData.clientName.trim()
-                        let list: string[] = []
-                        if (clientName) {
-                          const matched = clients.find(c => c.name === clientName)
-                          if (matched) list = matched.origins || []
-                        }
-                        if (list.length === 0) {
-                          const counts: Record<string, number> = {};
-                          historyPool.forEach(item => {
-                            if (item.origin) counts[item.origin] = (counts[item.origin] || 0) + 1
-                          })
-                          list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
-                        }
-                        return list.map((loc: string, idx: number) => {
-                          const isSelected = formData.origin === loc
-                          return (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, origin: loc }))
-                                setErrors(prev => ({ ...prev, origin: false }))
-                                setActiveLocationListField(null)
-                                triggerNotification(`상차지 선택 완료`)
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
-                                <Badge color="primary">{idx + 1}</Badge>
-                                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
-                              </div>
-                              <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {topOrigins.map((loc: string, idx: number) => {
+                        const isSelected = formData.origin === loc;
+                        return (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, origin: loc }));
+                              setErrors(prev => ({ ...prev, origin: false }));
+                              setActiveLocationListField(null);
+                              triggerNotification(`상차지가 선택되었습니다: ${loc}`);
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
+                              <Badge color="primary">{idx + 1}</Badge>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
                             </div>
-                          )
-                        })
-                      })()}
+                            <Button variant="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}>선택</Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
 
                 {/* 3. 주요 하차지 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--success)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.65rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--success)' }}>🏁 거래처 저장기반 주요하차지</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--success)', borderRadius: 'var(--radius-md)', padding: '0.65rem 0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>🏁 거래처관리 저장기반 주요하차지</span>
+                  </div>
                   <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      {(() => {
-                        const clientName = formData.clientName.trim()
-                        let list: string[] = []
-                        if (clientName) {
-                          const matched = clients.find(c => c.name === clientName)
-                          if (matched) list = matched.destinations || []
-                        }
-                        if (list.length === 0) {
-                          const counts: Record<string, number> = {};
-                          historyPool.forEach(item => {
-                            if (item.destination) counts[item.destination] = (counts[item.destination] || 0) + 1
-                          })
-                          list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
-                        }
-                        return list.map((loc: string, idx: number) => {
-                          const isSelected = formData.destination === loc
-                          return (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.55rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, destination: loc }))
-                                setErrors(prev => ({ ...prev, destination: false }))
-                                setActiveLocationListField(null)
-                                triggerNotification(`하차지 선택 완료`)
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', width: '85%' }}>
-                                <Badge color="success">{idx + 1}</Badge>
-                                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
-                              </div>
-                              <Button variant="secondary" style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}>선택</Button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {topDestinations.map((loc: string, idx: number) => {
+                        const isSelected = formData.destination === loc;
+                        return (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, destination: loc }));
+                              setErrors(prev => ({ ...prev, destination: false }));
+                              setActiveLocationListField(null);
+                              triggerNotification(`하차지가 선택되었습니다: ${loc}`);
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
+                              <Badge color="success">{idx + 1}</Badge>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
                             </div>
-                          )
-                        })
-                      })()}
+                            <Button variant="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}>선택</Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
 
               </div>
             </div>
-          ) : showClientSearch ? (
-            <div className="animate-slide-down" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', overflow: 'hidden' }}>
-              {/* Client Search Header & Filters */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.4rem', flex: 1 }}>
-                  <div style={{ position: 'relative', width: '320px' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-                    <Input 
-                      placeholder="거래처명, 담당자 또는 연락처로 검색..." 
-                      style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }} 
-                      value={clientSearchTerm} 
-                      onChange={e => setClientSearchTerm(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') setClientSearchFilter(clientSearchTerm)
-                      }}
-                    />
-                  </div>
-                  <Button 
-                    variant="secondary" 
-                    style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem' }}
-                    onClick={() => setClientSearchFilter(clientSearchTerm)}
-                  >
-                    검색
-                  </Button>
-                </div>
-                <Button 
-                  variant="outline" 
-                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem' }}
-                  onClick={() => setShowClientSearch(false)}
-                >
-                  운행내역 보기
-                </Button>
-              </div>
-
-              {/* Client List Table */}
-              <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <th style={{ padding: '1rem 0.75rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>거래처명</th>
-                      <th style={{ padding: '1rem 0.75rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>사업자번호</th>
-                      <th style={{ padding: '1rem 0.75rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>담당자</th>
-                      <th style={{ padding: '1rem 0.75rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>연락처</th>
-                      <th style={{ padding: '1rem 0.75rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-tertiary)', width: '80px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clients
-                      .filter(client => {
-                        const term = clientSearchFilter.toLowerCase().trim()
-                        if (!term) return true
-                        return (
-                          client.name.toLowerCase().includes(term) ||
-                          client.contact.toLowerCase().includes(term) ||
-                          client.phone.includes(term) ||
-                          client.businessNo.includes(term)
-                        )
-                      })
-                      .map(client => (
-                        <tr 
-                          key={client.id} 
-                          style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color var(--transition-fast)', cursor: 'pointer' }}
-                          onClick={() => handleSelectClient(client)}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          <td style={{ padding: '1rem 0.75rem', fontWeight: 700 }}>{client.name}</td>
-                          <td style={{ padding: '1rem 0.75rem', fontWeight: 500, color: 'var(--text-secondary)' }}>{client.businessNo}</td>
-                          <td style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>{client.contact}</td>
-                          <td style={{ padding: '1rem 0.75rem', color: 'var(--text-secondary)' }}>{client.phone}</td>
-                          <td style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>
-                            <Button
-                              variant="primary"
-                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleSelectClient(client)
-                              }}
-                            >
-                              선택
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    {clients.filter(client => {
-                      const term = clientSearchFilter.toLowerCase().trim()
-                      if (!term) return true
-                      return (
-                        client.name.toLowerCase().includes(term) ||
-                        client.contact.toLowerCase().includes(term) ||
-                        client.phone.includes(term) ||
-                        client.businessNo.includes(term)
-                      )
-                    }).length === 0 && (
-                      <tr>
-                        <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
-                          검색 조건에 부합하는 거래처가 없습니다.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : activeLocationListField ? null : (
-            <>
-
-          
-          {/* Filters and Controls (Inside Card) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-            
-            {/* Date Filter Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginRight: '0.25rem' }}>날짜 필터:</span>
-              {['전체', '오늘', '이번주', '지난주', '이번달', '지난달', '직접선택'].map(t => (
-                <button key={t} type="button" onClick={() => setDateFilterType(t)} style={filterTabStyle(dateFilterType === t)}>
-                  {t} ({getDateCount(t)})
-                </button>
-              ))}
-              
-              {/* Custom Date Range Inputs */}
-              {dateFilterType === '직접선택' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem', animation: 'fadeIn var(--transition-fast)' }}>
-                  <Input 
-                    type="date" 
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', width: '120px' }} 
-                    value={customStartDate} 
-                    onChange={e => setCustomStartDate(e.target.value)} 
-                  />
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>~</span>
-                  <Input 
-                    type="date" 
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', width: '120px' }} 
-                    value={customEndDate} 
-                    onChange={e => setCustomEndDate(e.target.value)} 
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Status Filter & Search (Same Line) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '2px', flex: 1 }} className="hide-scrollbar">
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginRight: '0.25rem', flexShrink: 0 }}>배차 상태:</span>
-                {['전체', '배차중', '배차완료', '배차취소', '상차완료', '하차완료', '운행완료'].map(s => (
-                  <button key={s} type="button" onClick={() => setStatusFilter(s)} style={{ ...filterTabStyle(statusFilter === s), flexShrink: 0 }}>
-                    {s} ({getStatusCount(s)})
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.3rem', marginLeft: 'auto', flexShrink: 0 }}>
-                <Input 
-                  placeholder="검색어..." 
-                  style={{ width: '130px', padding: '0.4rem 0.6rem', fontSize: '0.82rem' }} 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') setSearchFilter(searchTerm)
-                  }}
-                />
-                <Button 
-                  variant="secondary" 
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
-                  onClick={() => setSearchFilter(searchTerm)}
-                >
-                  <Search size={12} /> 검색
-                </Button>
-                <Button 
-                  variant="outline" 
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.82rem' }}
-                  onClick={handleResetFilters}
-                >
-                  초기화
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Table Container (Scrollable, inside Card) */}
-          <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '85px' }} />
-                <col style={{ width: '90px' }} />
-                <col style={{ width: '150px' }} />
-                <col style={{ width: '115px' }} />
-                <col style={{ width: '165px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '40px' }} />
-              </colgroup>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>상태</th>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>화주</th>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>노선 (상차 &rarr; 하차)</th>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>차량스펙</th>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>차주 정보</th>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>운임</th>
-                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-tertiary)', width: '40px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDispatches.map(dispatch => {
-                  const isExpanded = expandedId === dispatch.id
-                  const hasDriver = dispatch.status !== 'dispatching' && dispatch.status !== 'cancelled'
-                  
-                  return (
-                    <React.Fragment key={dispatch.id}>
-                      {/* Main Row */}
-                      <tr 
-                        className={blinkRow && blinkRow.id === dispatch.id ? 'blink-row-active' : undefined}
-                        style={{ 
-                          borderBottom: isExpanded ? 'none' : '1px solid var(--border-color)', 
-                          transition: 'background-color var(--transition-fast)',
-                          cursor: 'pointer',
-                          backgroundColor: isExpanded ? 'var(--bg-tertiary)' : 'transparent',
-                          animation: blinkRow && blinkRow.id === dispatch.id ? `blink-${blinkRow.status} 1.0s ease-out forwards` : undefined
-                        }} 
-                        onClick={() => {
-                          if (isExpanded) {
-                            setExpandedId(null)
-                          } else {
-                            setExpandedId(dispatch.id)
-                            setDriverInput({
-                              carNumber: dispatch.carNumber || '',
-                              driverName: dispatch.driverName || '',
-                              driverPhone: dispatch.driverPhone || ''
-                            })
-                          }
-                        }}
-                        onMouseEnter={e => {
-                          if (!isExpanded) e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
-                        }} 
-                        onMouseLeave={e => {
-                          if (!isExpanded) e.currentTarget.style.backgroundColor = 'transparent'
-                        }}
-                      >
-                        <td style={{ padding: '0.75rem 0.5rem' }}>
-                          {dispatch.status === 'dispatching' && (
-                            <>
-                              <Badge color="warning">배차중</Badge>
-                              <DispatchTrafficLight dispatch={dispatch} />
-                            </>
-                          )}
-                          {dispatch.status === 'dispatched' && <Badge color="primary">배차완료</Badge>}
-                          {dispatch.status === 'cancelled' && <Badge color="danger">배차취소</Badge>}
-                          {dispatch.status === 'loaded' && <Badge color="success">상차완료</Badge>}
-                          {dispatch.status === 'unloaded' && <Badge color="gray">하차완료</Badge>}
-                          {dispatch.status === 'completed' && <Badge color="success">운행완료</Badge>}
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>{dispatch.client}</td>
-                        <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                            {/* Line 1: Origin */}
-                            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {dispatch.origin.split(' ').slice(0, 2).join(' ')}
-                            </span>
-                            {/* Line 2: Waypoint indicator -> Destination */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: 700 }}>
-                              {dispatch.waypoints && dispatch.waypoints.length > 0 ? (
-                                <span style={{ 
-                                  fontSize: '0.72rem', 
-                                  backgroundColor: 'var(--primary-light)', 
-                                  color: 'var(--primary)', 
-                                  padding: '0.05rem 0.35rem', 
-                                  borderRadius: '4px',
-                                  fontWeight: 700
-                                }}>
-                                  경유지{dispatch.waypoints.length}
-                                </span>
-                              ) : null}
-                              <span style={{ color: 'var(--primary)', fontWeight: 800 }}>&rarr;</span>
-                              <span style={{ color: 'var(--text-secondary)' }}>
-                                {dispatch.destination.split(' ').slice(0, 2).join(' ')}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{dispatch.spec}</td>
-                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.82rem' }}>
-                          {hasDriver ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dispatch.carNumber}</span>
-                              <span style={{ color: 'var(--text-secondary)' }}>{dispatch.driverName} ({dispatch.driverPhone})</span>
-                            </div>
-                          ) : (
-                            <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                              {dispatch.status === 'cancelled' ? '배차 취소됨' : '차주 미지정'}
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700, fontSize: '0.92rem', color: 'var(--primary)' }}>{dispatch.fee.toLocaleString()}원</td>
-                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        </td>
-                      </tr>
-
-                      {/* Expanded Detail Panel */}
-                      {isExpanded && (
-                        <tr id={`expanded-row-${dispatch.id}`} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
-                          <td colSpan={7} style={{ padding: '0.5rem 1rem 1rem 1rem' }}>
-                            <div style={{
-                              borderRadius: 'var(--radius-md)',
-                              overflow: 'hidden',
-                              animation: blinkRow && blinkRow.id === dispatch.id ? `blink-${blinkRow.status} 1.0s ease-out forwards` : undefined
-                            }}>
-                              <div 
-                                className="animate-slide-down"
-                                style={{
-                                  padding: '1.25rem',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  borderRadius: 'var(--radius-md)',
-                                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '1.25rem'
-                                }}
-                              >
-                              {/* AI Advisor for Dispatch Traffic Light */}
-                              {dispatch.status === 'dispatching' && (() => {
-                                const baseDiff = dispatch.id % 3;
-                                const diffInFee = dispatch.fee - (dispatch.originalFee || dispatch.fee);
-
-                                let difficulty = baseDiff;
-                                if (baseDiff === 1) {
-                                  if (diffInFee >= 10000) {
-                                    difficulty = 0;
-                                  }
-                                } else if (baseDiff === 2) {
-                                  if (diffInFee >= 25000) {
-                                    difficulty = 0;
-                                  } else if (diffInFee >= 10000) {
-                                    difficulty = 1;
-                                  }
-                                }
-
-                                const baseFee = dispatch.originalFee || dispatch.fee;
-                                const avgFee = baseDiff === 0 
-                                  ? Math.round((baseFee * 0.96) / 10000) * 10000
-                                  : baseDiff === 1
-                                  ? Math.round((baseFee * 1.03) / 10000) * 10000
-                                  : Math.round((baseFee * 1.09) / 10000) * 10000;
-
-                                const alertColors = [
-                                  { border: '#10B981', bg: 'rgba(16, 185, 129, 0.04)', text: '#059669', label: '배차 신호등: 원활 (녹색) 🟢', desc: '현재 조건으로 배차가 신속하게 진행될 것으로 분석됩니다.' },
-                                  { border: '#F59E0B', bg: 'rgba(245, 158, 11, 0.04)', text: '#D97706', label: '배차 신호등: 주의 (황색) 🟡', desc: '경쟁 화물이 다수 포착되어 매칭 대기 시간이 다소 지연될 수 있습니다.' },
-                                  { border: '#EF4444', bg: 'rgba(239, 68, 68, 0.04)', text: '#DC2626', label: '배차 신호등: 지연 우려 (적색) 🔴', desc: '인근 가용 차주 수 대비 동일 시간대 경쟁 화물이 집중되어 배차 지연 확률이 높습니다.' }
-                                ][difficulty];
-
-                                return (
-                                  <div style={{
-                                    backgroundColor: alertColors.bg,
-                                    border: '1px solid var(--border-color)',
-                                    borderLeft: `4px solid ${alertColors.border}`,
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.75rem 1rem',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.45rem'
-                                  }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 800, color: alertColors.text }}>
-                                        <span>{difficulty === 0 ? '🟢 배차 원활' : difficulty === 1 ? '🟡 배차 지연 주의' : '🔴 배차 지연 우려'}</span>
-                                      </div>
-                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>AI 실시간 배차 분석 어드바이저</span>
-                                    </div>
-                                    
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 600, lineHeight: 1.45 }}>
-                                      {difficulty === 0 && '현재 주변 가용 차주가 충분하여 원활하게 배차될 것으로 보입니다. 현재 운임을 유지하셔도 좋습니다.'}
-                                      {difficulty === 1 && '인근 경쟁 화물들로 인해 매칭 지연 주의가 감지됩니다. 운임을 1~2만 원 가량 보강하시거나 상차 대기 시간을 연장해 보세요.'}
-                                      {difficulty === 2 && '공차 대비 주변의 경쟁 화물이 매우 집중된 심각 상태입니다. 원활한 배차 성사를 위해 운임을 평균 권장 수준으로 긴급 보강하십시오.'}
-                                    </p>
-
-                                    <div style={{ 
-                                      display: 'flex', 
-                                      flexWrap: 'wrap',
-                                      columnGap: '1rem', 
-                                      rowGap: '0.2rem',
-                                      marginTop: '0.1rem', 
-                                      paddingTop: '0.45rem',
-                                      borderTop: '1px dashed var(--border-color)',
-                                      fontSize: '0.72rem', 
-                                      color: 'var(--text-tertiary)', 
-                                      fontWeight: 500 
-                                    }}>
-                                      <span>• 대기 차주: <strong style={{ color: 'var(--text-primary)' }}>{difficulty === 0 ? '인근 22명 공차 대기' : difficulty === 1 ? '인근 12명 공차 대기' : '인근 3명 미만 대기'}</strong></span>
-                                      <span>• 경쟁 화물: <strong style={{ color: 'var(--text-primary)' }}>{difficulty === 0 ? '경쟁 화물 없음' : difficulty === 1 ? '경쟁 화물 약 8건' : '동일 조건 화물 30개 이상'}</strong></span>
-                                      <span>• 구간 평균 운임: <strong style={{ color: 'var(--text-primary)' }}>{avgFee.toLocaleString()}원</strong> ({difficulty === 0 ? '적정' : difficulty === 1 ? '유사' : '평균 이하'})</span>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* Layout Details (55% left, 45% right) */}
-                              <div className="dispatch-detail-grid" style={{ gap: '1.25rem' }}>
-                                
-                                {/* Left Side: Dispatch Detail Info (Wrapped in white box: bg-secondary) */}
-                                <div style={{ 
-                                  backgroundColor: 'var(--bg-secondary)', 
-                                  border: '1px solid var(--border-color)', 
-                                  borderRadius: 'var(--radius-md)', 
-                                  padding: '0.85rem 1rem',
-                                  display: 'flex', 
-                                  flexDirection: 'column', 
-                                  gap: '0.85rem',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                                  height: '100%'
-                                }}>
-                                  <h4 style={{ 
-                                     fontSize: '0.92rem',
-                                     fontWeight: 700, 
-                                     color: 'var(--text-primary)', 
-                                     display: 'flex', 
-                                     alignItems: 'center', 
-                                     justifyContent: 'space-between',
-                                     gap: '0.35rem',
-                                     borderBottom: '1px solid var(--border-color)', 
-                                     paddingBottom: '0.5rem',
-                                     margin: 0
-                                   }}>
-                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                       <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-                                       상세 정보
-                                     </span>
-                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 500, fontSize: '0.8rem' }}>
-                                       <span style={{ color: 'var(--text-secondary)' }}>거래처: <strong style={{ color: 'var(--text-primary)' }}>{dispatch.client}</strong></span>
-                                                                               {(!dispatch.waypoints || dispatch.waypoints.length === 0) && editingWaypointsId !== dispatch.id && (
-                                          <Button
-                                            variant="outline"
-                                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', borderColor: 'var(--primary)', color: 'var(--primary)', height: '24px', display: 'flex', alignItems: 'center' }}
-                                            onClick={(e: any) => {
-                                              e.stopPropagation();
-                                              setEditingWaypointsId(dispatch.id);
-                                              setEditWaypoints(['']);
-                                            }}
-                                          >
-                                            + 경유지 추가
-                                          </Button>
-                                        )}
-<Button
-                                         variant="outline"
-                                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', borderColor: 'var(--primary)', color: 'var(--primary)', height: '24px', display: 'flex', alignItems: 'center' }}
-                                         onClick={(e: any) => {
-                                           e.stopPropagation();
-                                           loadOrCreateChatRoom(dispatch.client, 'client', '02-8877-2233');
-                                         }}
-                                       >
-                                         대화방
-                                       </Button>
-                                     </span>
-                                   </h4>
-                                  
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                                    
-                                    {/* 1. Route Timeline */}
-                                    <div style={{ 
-                                      display: 'grid',
-                                      gridTemplateColumns: '1fr 1fr',
-                                      gap: '1rem',
-                                      position: 'relative',
-                                      padding: '0.25rem 0'
-                                    }}>
-                                      {/* Origin Block */}
-                                      <div>
-                                        <span style={{ 
-                                          display: 'inline-block', 
-                                          fontSize: '0.72rem', 
-                                          fontWeight: 700, 
-                                          color: 'var(--primary)', 
-                                          backgroundColor: 'var(--primary-light)',
-                                          padding: '0.15rem 0.4rem',
-                                          borderRadius: 'var(--radius-sm)',
-                                          marginBottom: '0.35rem'
-                                        }}>상차지</span>
-                                        <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-all', lineHeight: 1.3 }}>
-                                          {dispatch.origin}
-                                        </div>
-                                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                          📅 {dispatch.originDate ? new Date(dispatch.originDate).toLocaleString() : '미기재'}
-                                        </div>
-                                      </div>
-
-                                      {/* Destination Block */}
-                                      <div style={{ paddingLeft: '0.5rem', borderLeft: '1px dashed var(--border-color)' }}>
-                                        <span style={{ 
-                                          display: 'inline-block', 
-                                          fontSize: '0.72rem', 
-                                          fontWeight: 700, 
-                                          color: 'var(--success)', 
-                                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                          padding: '0.15rem 0.4rem',
-                                          borderRadius: 'var(--radius-sm)',
-                                          marginBottom: '0.35rem'
-                                        }}>하차지</span>
-                                        <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-all', lineHeight: 1.3 }}>
-                                          {dispatch.destination}
-                                        </div>
-                                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                          📅 {dispatch.destinationDate ? new Date(dispatch.destinationDate).toLocaleString() : '미기재'}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Waypoints Editor (Show only in edit mode) */}
-                                    {editingWaypointsId === dispatch.id && (
-                                      <div style={{
-                                        marginTop: '0.5rem',
-                                        padding: '0.75rem',
-                                        backgroundColor: 'var(--bg-primary)',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '0.5rem'
-                                      }} onClick={e => e.stopPropagation()}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                          <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>경유지 정보 편집</span>
-                                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const saved = localStorage.getItem('dispatches');
-                                                let items = [];
-                                                if (saved) { items = JSON.parse(saved); }
-                                                const updatedItems = items.map((d: any) => {
-                                                  if (d.id === dispatch.id) {
-                                                    return { ...d, waypoints: editWaypoints.filter(w => w.trim() !== '') };
-                                                  }
-                                                  return d;
-                                                });
-                                                setDispatches(updatedItems);
-                                                localStorage.setItem('dispatches', JSON.stringify(updatedItems));
-                                                setEditingWaypointsId(null);
-                                              }}
-                                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                              저장
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => setEditingWaypointsId(null)}
-                                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                              취소
-                                            </button>
-                                          </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                          {editWaypoints.map((wp, wIdx) => (
-                                            <div key={wIdx} style={{ position: 'relative', width: '100%' }}>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', backgroundColor: 'var(--primary)', borderRadius: '4px', padding: '0.1rem 0.3rem', flexShrink: 0 }}>경유 {wIdx + 1}</span>
-                                                <Input
-                                                  style={{ fontSize: '0.82rem', cursor: 'pointer', flex: 1, padding: '0.3rem 0.5rem', height: '30px' }}
-                                                  placeholder={`경유지 ${wIdx + 1} 주소 검색`}
-                                                  value={wp}
-                                                  onClick={() => setActivePostcodeField(activePostcodeField === `edit_waypoint_${wIdx}` ? null : `edit_waypoint_${wIdx}`)}
-                                                  readOnly
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const nextWps = [...editWaypoints];
-                                                    nextWps.splice(wIdx, 1);
-                                                    setEditWaypoints(nextWps);
-                                                  }}
-                                                  style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                                                >
-                                                  삭제
-                                                </button>
-                                              </div>
-                                              {activePostcodeField === `edit_waypoint_${wIdx}` && (
-                                                <>
-                                                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                                                  <div 
-                                                    style={{
-                                                      position: 'absolute',
-                                                      top: '100%',
-                                                      left: 0,
-                                                      right: 0,
-                                                      height: '350px',
-                                                      border: '1.5px solid var(--primary)',
-                                                      borderRadius: 'var(--radius-md)',
-                                                      boxShadow: 'var(--shadow-lg)',
-                                                      backgroundColor: 'var(--bg-secondary)',
-                                                      zIndex: 1000,
-                                                      marginTop: '0.25rem',
-                                                      overflow: 'hidden'
-                                                    }}
-                                                    ref={(el) => {
-                                                      if (el) {
-                                                        const daum = (window as any).daum;
-                                                        if (daum && daum.Postcode) {
-                                                          new daum.Postcode({
-                                                            oncomplete: (data: any) => {
-                                                              const addr = data.roadAddress || data.address;
-                                                              const nextWps = [...editWaypoints];
-                                                              nextWps[wIdx] = addr;
-                                                              setEditWaypoints(nextWps);
-                                                              setActivePostcodeField(null);
-                                                            },
-                                                            width: '100%',
-                                                            height: '100%'
-                                                          }).embed(el);
-                                                        }
-                                                      }
-                                                    }}
-                                                  />
-                                                </>
-                                              )}
-                                            </div>
-                                          ))}
-                                          {editWaypoints.length < 3 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => setEditWaypoints([...editWaypoints, ''])}
-                                              style={{ border: '1px dashed var(--primary)', backgroundColor: 'transparent', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '0.3rem', fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-                                            >
-                                              <Plus size={12} /> 경유지 추가
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Simple Waypoints List (Show only when not editing and waypoints exist) */}
-                                    {dispatch.waypoints && dispatch.waypoints.length > 0 && editingWaypointsId !== dispatch.id && (
-                                      <div style={{
-                                        marginTop: '0.5rem',
-                                        padding: '0.45rem 0.75rem',
-                                        backgroundColor: 'var(--bg-secondary)',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.65rem'
-                                      }} onClick={e => e.stopPropagation()}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>📍 경유지:</span>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', alignItems: 'center' }}>
-                                          {dispatch.waypoints.map((wp: string, wIdx: number) => (
-                                            <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                              {wIdx > 0 && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>➔</span>}
-                                              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>{wp}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setEditingWaypointsId(dispatch.id);
-                                            setEditWaypoints(dispatch.waypoints || []);
-                                          }}
-                                          style={{ marginLeft: 'auto', border: 'none', backgroundColor: 'transparent', color: 'var(--primary)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
-                                        >
-                                          수정
-                                        </button>
-                                      </div>
-                                    )}
-
-                                    <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
-
-                                    {/* 2. Billing & Cargo Details */}
-                                    <div style={{ 
-                                      display: 'grid',
-                                      gridTemplateColumns: '1fr 1fr',
-                                      gap: '0.75rem 1rem',
-                                      padding: '0.25rem 0'
-                                    }}>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 수단 / 수수료</span>
-                                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {dispatch.settleMethod} {dispatch.commission ? "(수수료: " + Number(dispatch.commission).toLocaleString() + "원)" : "(수수료 없음)"}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>정산 예정일</span>
-                                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                          {dispatch.settleDate || '미정'}
-                                        </span>
-                                      </div>
-                                      <div style={{ gridColumn: 'span 2', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', marginTop: '0.15rem' }}>
-                                        <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>화물품목</span>
-                                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--primary)' }}>
-                                          {(dispatch as any).cargoItem || '일반화물'}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.6, margin: '0.1rem 0' }} />
-
-                                    {/* 3. Memo Box */}
-                                    <div style={{ 
-                                      borderLeft: '3.5px solid var(--primary)', 
-                                      padding: '0.25rem 0.85rem',
-                                      fontSize: '0.82rem'
-                                    }}>
-                                      <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>기사 전달사항 및 메모</span>
-                                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>
-                                        {(dispatch as any).memo || '특이사항 없음'}
-                                      </span>
-                                    </div>
-
-                                  </div>
-                                </div>
-
-                                {/* Right Side: Console Cards */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', height: '100%' }}>
-                                  
-                                  {/* 1. 운임 및 수수료 정보 수정 Card (White background: bg-secondary) */}
-                                  <div style={{ 
-                                    backgroundColor: 'var(--bg-secondary)', 
-                                    border: '1px solid var(--border-color)', 
-                                    borderRadius: 'var(--radius-md)', 
-                                    padding: '0.85rem 1rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.5rem',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-                                  }} onClick={e => e.stopPropagation()}>
-                                    <h4 style={{ 
-                                      fontSize: '0.92rem', 
-                                      fontWeight: 700, 
-                                      color: 'var(--text-primary)', 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      gap: '0.35rem',
-                                      borderBottom: '1px solid var(--border-color)', 
-                                      paddingBottom: '0.5rem',
-                                      margin: 0
-                                    }}>
-                                      <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-                                      운임 및 수수료 정보 수정
-                                      <span style={{ fontSize: '0.74rem', fontWeight: 500, color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>
-                                        (정산방법: {dispatch.settleMethod})
-                                      </span>
-                                    </h4>
-
-                                    {/* Quick adjust function defined inline inside loop */}
-                                    {(() => {
-                                      const currentTarget = adjustTargetMap[dispatch.id] || 'fee';
-                                      const adjustAmount = (delta: number) => {
-                                        if (editingFeeId !== dispatch.id) {
-                                          setEditingFeeId(dispatch.id);
-                                          const currentFee = dispatch.fee;
-                                          const currentComm = dispatch.commission ? Number(dispatch.commission) : 0;
-                                          if (currentTarget === 'fee') {
-                                            const newVal = Math.max(0, currentFee + delta);
-                                            setEditingFeeValue(newVal.toLocaleString());
-                                            setEditingCommissionValue(currentComm ? currentComm.toLocaleString() : '');
-                                          } else {
-                                            const newVal = Math.max(0, currentComm + delta);
-                                            setEditingFeeValue(currentFee.toLocaleString());
-                                            setEditingCommissionValue(newVal ? newVal.toLocaleString() : '');
-                                          }
-                                        } else {
-                                          if (currentTarget === 'fee') {
-                                            const current = Number(editingFeeValue.replace(/,/g, '')) || 0;
-                                            const newVal = Math.max(0, current + delta);
-                                            setEditingFeeValue(newVal.toLocaleString());
-                                          } else {
-                                            const current = Number(editingCommissionValue.replace(/,/g, '')) || 0;
-                                            const newVal = Math.max(0, current + delta);
-                                            setEditingCommissionValue(newVal ? newVal.toLocaleString() : '');
-                                          }
-                                        }
-                                      };
-
-                                      return (
-                                        <div className="fee-correction-grid-wrapper" style={{ overflowX: 'auto', paddingBottom: '4px' }} onClick={e => e.stopPropagation()}>
-                                          <div style={{ 
-                                            display: 'grid', 
-                                            gridTemplateColumns: 'auto 1.1fr auto auto auto auto auto', 
-                                            gap: '0.4rem 0.5rem', 
-                                            alignItems: 'center', 
-                                            marginTop: '0.25rem',
-                                            minWidth: '345px'
-                                          }}>
-                                            {/* Row 1 */}
-                                            <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textAlign: 'right' }}>운임:</span>
-                                            <Input 
-                                              type="text" 
-                                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', width: '100%' }}
-                                              placeholder="운임 입력"
-                                              value={(editingFeeId === dispatch.id ? editingFeeValue : dispatch.fee.toLocaleString()) || ''}
-                                              onChange={e => {
-                                                setEditingFeeId(dispatch.id)
-                                                setEditingFeeValue(formatAmount(e.target.value))
-                                              }}
-                                              onFocus={() => {
-                                                if (editingFeeId !== dispatch.id) {
-                                                  setEditingFeeId(dispatch.id)
-                                                  setEditingFeeValue(dispatch.fee.toLocaleString())
-                                                  setEditingCommissionValue(dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')
-                                                }
-                                              }}
-                                            />
-                                            
-                                            {/* Toggle Switch (Spans 2 Rows) */}
-                                            <div style={{ 
-                                              gridRow: 'span 2', 
-                                              display: 'flex', 
-                                              flexDirection: 'column', 
-                                              border: '1px solid var(--border-color)', 
-                                              borderRadius: 'var(--radius-sm)', 
-                                              overflow: 'hidden', 
-                                              height: '100%',
-                                              width: '32px',
-                                              backgroundColor: 'var(--bg-primary)'
-                                            }}>
-                                              <button 
-                                                type="button" 
-                                                onClick={() => setAdjustTargetMap(prev => ({ ...prev, [dispatch.id]: 'fee' }))}
-                                                style={{ 
-                                                  flex: 1, 
-                                                  border: 'none', 
-                                                  borderBottom: '1px solid var(--border-color)',
-                                                  backgroundColor: currentTarget === 'fee' ? 'var(--primary)' : 'transparent',
-                                                  color: currentTarget === 'fee' ? 'white' : 'var(--text-secondary)',
-                                                  fontSize: '0.76rem',
-                                                  fontWeight: 700,
-                                                  cursor: 'pointer',
-                                                  padding: '2px 0',
-                                                  transition: 'all var(--transition-fast)'
-                                                }}
-                                              >
-                                                운
-                                              </button>
-                                              <button 
-                                                type="button" 
-                                                onClick={() => setAdjustTargetMap(prev => ({ ...prev, [dispatch.id]: 'commission' }))}
-                                                disabled={dispatch.settleMethod === '인수증'}
-                                                style={{ 
-                                                  flex: 1, 
-                                                  border: 'none', 
-                                                  backgroundColor: currentTarget === 'commission' ? 'var(--primary)' : 'transparent',
-                                                  color: currentTarget === 'commission' ? 'white' : 'var(--text-secondary)',
-                                                  fontSize: '0.76rem',
-                                                  fontWeight: 700,
-                                                  cursor: 'pointer',
-                                                  padding: '2px 0',
-                                                  transition: 'all var(--transition-fast)',
-                                                  opacity: dispatch.settleMethod === '인수증' ? 0.4 : 1
-                                                }}
-                                              >
-                                                수
-                                              </button>
-                                            </div>
-
-                                            {/* Row 1 adjustment buttons */}
-                                            <button type="button" onClick={() => adjustAmount(10000)} style={adjustButtonStyle('var(--danger-bg)', 'var(--danger)')}>+1만</button>
-                                            <button type="button" onClick={() => adjustAmount(5000)} style={adjustButtonStyle('var(--danger-bg)', 'var(--danger)')}>+5천</button>
-                                            <button type="button" onClick={() => adjustAmount(1000)} style={adjustButtonStyle('var(--danger-bg)', 'var(--danger)')}>+1천</button>
-
-                                            {/* Save Button (Spans 2 Rows) */}
-                                            <Button 
-                                              variant="primary" 
-                                              style={{ 
-                                                gridRow: 'span 2', 
-                                                padding: '0.35rem 0.75rem', 
-                                                fontSize: '0.82rem', 
-                                                height: '100%', 
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                whiteSpace: 'nowrap'
-                                              }}
-                                              onClick={() => handleQuickFeeSave(dispatch.id)}
-                                              disabled={editingFeeId !== dispatch.id}
-                                            >
-                                              수정
-                                            </Button>
-
-                                            {/* Row 2 */}
-                                            <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textAlign: 'right' }}>수수료:</span>
-                                            <Input 
-                                              type="text" 
-                                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', width: '100%' }}
-                                              placeholder="수수료 입력"
-                                              disabled={dispatch.settleMethod === '인수증'}
-                                              value={(editingFeeId === dispatch.id ? editingCommissionValue : (dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')) || ''}
-                                              onChange={e => {
-                                                setEditingFeeId(dispatch.id)
-                                                setEditingCommissionValue(formatAmount(e.target.value))
-                                              }}
-                                              onFocus={() => {
-                                                if (editingFeeId !== dispatch.id) {
-                                                  setEditingFeeId(dispatch.id)
-                                                  setEditingFeeValue(dispatch.fee.toLocaleString())
-                                                  setEditingCommissionValue(dispatch.commission ? Number(dispatch.commission).toLocaleString() : '')
-                                                }
-                                              }}
-                                            />
-
-                                            {/* Row 2 adjustment buttons */}
-                                            <button type="button" onClick={() => adjustAmount(-10000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>-1만</button>
-                                            <button type="button" onClick={() => adjustAmount(-5000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>-5천</button>
-                                            <button type="button" onClick={() => adjustAmount(-1000)} style={adjustButtonStyle('var(--primary-light)', 'var(--primary)')}>-1천</button>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-
-                                  {/* 2. 차주 배정 및 상태 제어 Card (White background: bg-secondary, expanded height) */}
-                                  <div style={{ 
-                                    backgroundColor: 'var(--bg-secondary)', 
-                                    border: '1px solid var(--border-color)', 
-                                    borderRadius: 'var(--radius-md)', 
-                                    padding: '0.85rem 1rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.5rem',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                                    flex: 1
-                                  }} onClick={e => e.stopPropagation()}>
-                                    <h4 style={{ 
-                                       fontSize: '0.92rem', 
-                                       fontWeight: 700, 
-                                       color: 'var(--text-primary)', 
-                                       display: 'flex', 
-                                       alignItems: 'center', 
-                                       gap: '0.35rem',
-                                       borderBottom: '1px solid var(--border-color)', 
-                                       paddingBottom: '0.5rem',
-                                       margin: '0 0 0.25rem 0'
-                                     }}>
-                                       <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--success)', borderRadius: 'var(--radius-sm)' }}></span>
-                                       차주 배정 및 상태 제어
-                                     </h4>
-                                    
-                                    {/* Driver Info Inputs (CSS Grid) */}
-                                    <div style={{ 
-                                      display: 'grid', 
-                                      gridTemplateColumns: '1fr 1.2fr 85px', 
-                                      gap: '0.45rem 0.5rem',
-                                      alignItems: 'center'
-                                    }}>
-                                      {/* Row 1 */}
-                                      <div style={{ gridColumn: 'span 2' }}>
-                                        <Input 
-                                          placeholder="차량번호 (예: 서울 12가 3456)" 
-                                          style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
-                                          value={driverInput.carNumber}
-                                          onChange={e => setDriverInput({...driverInput, carNumber: e.target.value})}
-                                        />
-                                      </div>
-                                      <Button
-                                        variant="primary"
-                                        style={{ width: '100%', padding: '0.5rem 0', fontSize: '0.82rem', whiteSpace: 'nowrap', textAlign: 'center' }}
-                                        onClick={() => setAssigningDispatchId(dispatch.id)}
-                                      >
-                                        차량배정
-                                      </Button>
-
-                                      {/* Row 2 */}
-                                      <Input 
-                                        placeholder="차주명" 
-                                        style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
-                                        value={driverInput.driverName}
-                                        onChange={e => setDriverInput({...driverInput, driverName: e.target.value})}
-                                      />
-                                      <Input 
-                                        placeholder="연락처 (예: 010-0000-0000)" 
-                                        style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
-                                        value={driverInput.driverPhone}
-                                        onChange={e => setDriverInput({...driverInput, driverPhone: formatPhone(e.target.value)})}
-                                      />
-                                      {dispatch.driverName ? (
-                                        <Button
-                                          variant="outline"
-                                          style={{ width: '100%', padding: '0.5rem 0', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: 'var(--primary)', color: 'var(--primary)', textAlign: 'center' }}
-                                          onClick={() => {
-                                            loadOrCreateChatRoom(dispatch.driverName, 'driver', dispatch.driverPhone, dispatch.carNumber);
-                                          }}
-                                        >
-                                          대화방
-                                        </Button>
-                                      ) : (
-                                        <div />
-                                      )}
-                                    </div>
-
-                                    {/* Action Buttons for Status Setting (Segment Control Toggle Type) */}
-                                    <div className="status-segment-bar" style={{ 
-                                      display: 'flex', 
-                                      flexDirection: 'row', 
-                                      border: '1px solid var(--border-color)', 
-                                      borderRadius: 'var(--radius-sm)', 
-                                      overflow: 'hidden', 
-                                      marginTop: '0.65rem'
-                                    }}>
-                                      {[
-                                        { key: 'dispatched', label: '배차완료', activeBg: 'var(--primary)' },
-                                        { key: 'loaded', label: '상차완료', activeBg: '#10B981' },
-                                        { key: 'unloaded', label: '하차완료', activeBg: 'var(--text-secondary)' },
-                                        { key: 'completed', label: '운행완료', activeBg: '#10B981' },
-                                        { key: 'dispatching', label: '배차대기', activeBg: '#F59E0B' },
-                                        { key: 'cancelled', label: '배차취소', activeBg: '#EF4444' }
-                                      ].map((item, idx, arr) => {
-                                        const isActive = dispatch.status === item.key;
-                                        const isLast = idx === arr.length - 1;
-                                        return (
-                                          <button
-                                            key={item.key}
-                                            type="button"
-                                            onClick={() => {
-                                              let next = item.key;
-                                              if (isActive) {
-                                                if (item.key === 'dispatched') next = 'dispatching';
-                                                else if (item.key === 'loaded') next = 'dispatched';
-                                                else if (item.key === 'unloaded') next = 'loaded';
-                                                else if (item.key === 'completed') next = 'unloaded';
-                                                else if (item.key === 'cancelled') next = 'dispatching';
-                                                else if (item.key === 'dispatching') next = 'dispatched';
-                                              }
-                                              handleUpdateDriverAndStatus(dispatch.id, next as DispatchStatus);
-                                            }}
-                                            style={{
-                                              flex: 1,
-                                              border: 'none',
-                                              borderRight: isLast ? 'none' : '1.5px solid var(--border-color)',
-                                              backgroundColor: isActive ? item.activeBg : 'var(--bg-primary)',
-                                              color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                                              padding: '0.55rem 0.25rem',
-                                              fontSize: '0.74rem',
-                                              fontWeight: isActive ? 800 : 500,
-                                              cursor: 'pointer',
-                                              transition: 'all var(--transition-fast)',
-                                              outline: 'none',
-                                              whiteSpace: 'nowrap',
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center'
-                                            }}
-                                          >
-                                            {item.label}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
-
-                              </div>
-
-                            </div>
-                          </div>
-                          </td>
-                        </tr>
-                    )}</React.Fragment>
-                )
-              })}
-              {filteredDispatches.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
-                    검색 조건 또는 날짜 필터에 부합하는 운행 내역이 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-
-            </>
-          )}      </Card>
-    </div>
-  )}
-
-
-  {/* Floating toggle button for history panel */}
-  {!showHistoryPanel && (
-    <button
-      type="button"
-      onClick={() => setShowHistoryPanel(true)}
-      style={{
-        position: 'fixed',
-        right: 0,
-        top: '55%',
-        transform: 'translateY(-50%)',
-        zIndex: 99,
-        backgroundColor: 'var(--primary)',
-        color: '#ffffff',
-        border: 'none',
-        borderTopLeftRadius: 'var(--radius-md)',
-        borderBottomLeftRadius: 'var(--radius-md)',
-        padding: '1.2rem 0.65rem',
-        fontSize: '0.85rem',
-        fontWeight: 700,
-        writingMode: 'vertical-rl',
-        textOrientation: 'mixed',
-        cursor: 'pointer',
-        boxShadow: 'var(--shadow-lg)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.35rem',
-        transition: 'all var(--transition-fast)'
-      }}
-    >
-      <Route size={16} style={{ transform: 'rotate(90deg)' }} /> 운행 내역 펼치기
-    </button>
-  )}
-
-  {/* Major Location List Modal Popup */}
-  {activeLocationListField && window.innerWidth <= 768 && (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.45)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div className="animate-fade-slide-up" style={{
-        width: '90%',
-        maxWidth: '750px',
-        height: '80vh',
-        maxHeight: '750px',
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-2xl)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)' }}>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ width: '4px', height: '14px', backgroundColor: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}></span>
-            주요 상하차지 추천 목록
-          </h4>
-          <Button 
-            variant="outline" 
-            style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem' }}
-            onClick={() => setActiveLocationListField(null)}
-          >
-            닫기
-          </Button>
-        </div>
-        <div style={{ flex: 1, overflow: 'hidden', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            {formData.clientName.trim() 
-              ? `[${formData.clientName}] 거래처의 주요 상하차지 추천 주소 목록입니다.`
-              : '그동안 등록된 이력을 기반으로 가장 많이 쓰인 상하차지 목록입니다.'}
-          </span>
-          <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr 1fr', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
-            
-            {/* 1. 주요 구간 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid #8b5cf6', borderRadius: 'var(--radius-md)', padding: '0.65rem 0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>⚡ 운행데이터기반 주요구간 (상하차 동시선택)</span>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {(() => {
-                    const routeCounts: Record<string, number> = {};
-                    historyPool.forEach(item => {
-                      if (item.origin && item.destination) {
-                        const key = `${item.origin} === ${item.destination}`;
-                        routeCounts[key] = (routeCounts[key] || 0) + 1;
-                      }
-                    });
-                    const topRoutes = Object.entries(routeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([key]) => {
-                      const [origin, destination] = key.split(' === ');
-                      return { origin, destination };
-                    });
-                    return topRoutes.map((route: { origin: string, destination: string }, idx: number) => {
-                      const isSelected = formData.origin === route.origin && formData.destination === route.destination;
-                      return (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, origin: route.origin, destination: route.destination }))
-                            setErrors(prev => ({ ...prev, origin: false, destination: false }))
-                            setActiveLocationListField(null)
-                            triggerNotification(`주요 구간이 선택되었습니다: ${route.origin.split(' ').slice(0, 2).join(' ')} → ${route.destination.split(' ').slice(0, 2).join(' ')}`)
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px', height: '18px', fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '50%' }}>{idx + 1}</span>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                              {route.origin.split(' ').slice(0, 2).join(' ')} <span style={{ color: '#8b5cf6', fontWeight: 800 }}>&rarr;</span> {route.destination.split(' ').slice(0, 2).join(' ')}
-                            </div>
-                          </div>
-                          <Button variant="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}>선택</Button>
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-              </div>
-            </div>
-
-            {/* 2. 주요 상차지 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '0.65rem 0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>📍 거래처관리 저장기반 주요상차지</span>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {(() => {
-                    const clientName = formData.clientName.trim()
-                    let list: string[] = []
-                    if (clientName) {
-                      const matched = clients.find(c => c.name === clientName)
-                      if (matched) list = matched.origins || []
-                    }
-                    if (list.length === 0) {
-                      const counts: Record<string, number> = {};
-                      historyPool.forEach(item => {
-                        if (item.origin) counts[item.origin] = (counts[item.origin] || 0) + 1
-                      })
-                      list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
-                    }
-                    return list.map((loc: string, idx: number) => {
-                      const isSelected = formData.origin === loc
-                      return (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, origin: loc }))
-                            setErrors(prev => ({ ...prev, origin: false }))
-                            setActiveLocationListField(null)
-                            triggerNotification(`상차지가 선택되었습니다: ${loc}`)
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
-                            <Badge color="primary">{idx + 1}</Badge>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
-                          </div>
-                          <Button variant="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}>선택</Button>
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-              </div>
-            </div>
-
-            {/* 3. 주요 하차지 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '3.5px solid var(--success)', borderRadius: 'var(--radius-md)', padding: '0.65rem 0.75rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '0.15rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>🏁 거래처관리 저장기반 주요하차지</span>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto' }} className="hide-scrollbar">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {(() => {
-                    const clientName = formData.clientName.trim()
-                    let list: string[] = []
-                    if (clientName) {
-                      const matched = clients.find(c => c.name === clientName)
-                      if (matched) list = matched.destinations || []
-                    }
-                    if (list.length === 0) {
-                      const counts: Record<string, number> = {};
-                      historyPool.forEach(item => {
-                        if (item.destination) counts[item.destination] = (counts[item.destination] || 0) + 1
-                      })
-                      list = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([address]) => address)
-                    }
-                    return list.map((loc: string, idx: number) => {
-                      const isSelected = formData.destination === loc
-                      return (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all var(--transition-fast)' }}
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, destination: loc }))
-                            setErrors(prev => ({ ...prev, destination: false }))
-                            setActiveLocationListField(null)
-                            triggerNotification(`하차지가 선택되었습니다: ${loc}`)
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '85%' }}>
-                            <Badge color="success">{idx + 1}</Badge>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{loc}</span>
-                          </div>
-                          <Button variant="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}>선택</Button>
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
-      </div>
+      )}
     </div>
-  )}
-    </div>
-  )
+  );
 }
