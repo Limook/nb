@@ -2158,7 +2158,7 @@ export default function Dispatches() {
 
   const [clients, setClients] = useState<any[]>(() => {
     const saved = localStorage.getItem('clients')
-    return saved ? JSON.parse(saved) : [
+    const initialList = saved ? JSON.parse(saved) : [
   {
     "id": 1,
     "name": "가온물류",
@@ -2339,7 +2339,13 @@ export default function Dispatches() {
       "경남 김해시 골든루트로"
     ]
   }
-]
+    ]
+    return initialList.map((c: any) => ({
+      ...c,
+      origins: c.origins || [],
+      destinations: c.destinations || [],
+      items: c.items || []
+    }))
   })
 
   React.useEffect(() => {
@@ -2934,6 +2940,17 @@ export default function Dispatches() {
       return ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
     }
     if (stepField === 'cargoItem') {
+      const selectedClient = clients.find(c => c.name.trim() === formData.clientName.trim());
+      const clientItems = selectedClient && selectedClient.items ? selectedClient.items : [];
+      if (clientItems.length > 0) {
+        const merged = [...clientItems];
+        const defaults = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+        for (const d of defaults) {
+          if (merged.length >= 6) break;
+          if (!merged.includes(d)) merged.push(d);
+        }
+        return merged;
+      }
       return ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
     }
     if (stepField === 'memo') {
@@ -3948,7 +3965,7 @@ export default function Dispatches() {
       );
     }
     if (stepField === 'cargoItem') {
-      const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+      const items = getShortcutsData('cargoItem');
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {items.map((it, idx) => renderShortcutWrapper(idx, (
@@ -6384,9 +6401,16 @@ export default function Dispatches() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label className="text-sm font-bold text-secondary block">화물품목</label>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    {['철강', '기계', '박스', '빠레트'].map(s => (
-                      <button key={s} type="button" onClick={() => handleInputChange('cargoItem', s)} style={recommendationButtonStyle}>{s}</button>
-                    ))}
+                    {(() => {
+                      const selectedClient = clients.find(c => c.name.trim() === formData.clientName.trim());
+                      const clientItems = selectedClient && selectedClient.items ? selectedClient.items : [];
+                      const suggestions = clientItems.length > 0 
+                        ? [...clientItems, ...['철강', '기계', '박스', '빠레트'].filter(d => !clientItems.includes(d))].slice(0, 5)
+                        : ['철강', '기계', '박스', '빠레트'];
+                      return suggestions.map(s => (
+                        <button key={s} type="button" onClick={() => handleInputChange('cargoItem', s)} style={recommendationButtonStyle}>{s}</button>
+                      ));
+                    })()}
                   </div>
                 </div>
                 <Input 

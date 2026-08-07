@@ -14,12 +14,13 @@ interface Client {
   contactPhone: string
   origins: string[]
   destinations: string[]
+  items: string[]
 }
 
 export default function Clients() {
   const [clients, setClients] = useState<Client[]>(() => {
     const saved = localStorage.getItem('clients')
-    return saved ? JSON.parse(saved) : [
+    const initialList = saved ? JSON.parse(saved) : [
   {
     "id": 1,
     "name": "가온물류",
@@ -230,7 +231,13 @@ export default function Clients() {
       "경남 김해시 골든루트로"
     ]
   }
-]
+    ]
+    return initialList.map((c: any) => ({
+      ...c,
+      origins: c.origins || [],
+      destinations: c.destinations || [],
+      items: c.items || []
+    }))
   })
 
   React.useEffect(() => {
@@ -244,7 +251,7 @@ export default function Clients() {
   
   // Embedded Postcode dropdown state
   const [activePostcodeField, setActivePostcodeField] = useState<string | null>(null)
-  const [modalTab, setModalTab] = useState<'basic' | 'origins' | 'destinations'>('basic')
+  const [modalTab, setModalTab] = useState<'basic' | 'origins' | 'destinations' | 'items'>('basic')
   const [locationInput, setLocationInput] = useState('')
   
   const [modalData, setModalData] = useState<Omit<Client, 'id'>>({
@@ -257,7 +264,8 @@ export default function Clients() {
     contactName: '',
     contactPhone: '',
     origins: [],
-    destinations: []
+    destinations: [],
+    items: []
   })
 
   const [notification, setNotification] = useState<string | null>(null)
@@ -307,7 +315,8 @@ export default function Clients() {
       contactName: '',
       contactPhone: '',
       origins: [],
-      destinations: []
+      destinations: [],
+      items: []
     })
     setShowModal(true)
   }
@@ -326,7 +335,8 @@ export default function Clients() {
       contactName: client.contactName === '미기재' ? '' : client.contactName,
       contactPhone: client.contactPhone === '미기재' ? '' : client.contactPhone,
       origins: [...client.origins],
-      destinations: [...client.destinations]
+      destinations: [...client.destinations],
+      items: [...(client.items || [])]
     })
     setShowModal(true)
     setActiveDropdownId(null)
@@ -366,6 +376,32 @@ export default function Clients() {
     }))
   }
 
+  const handleAddItem = () => {
+    const val = locationInput.trim()
+    if (!val) return
+    const items = modalData.items || []
+    if (items.length >= 20) {
+      alert('품목은 최대 20개까지만 등록할 수 있습니다.')
+      return
+    }
+    if (items.includes(val)) {
+      alert('이미 등록된 품목입니다.')
+      return
+    }
+    setModalData(prev => ({
+      ...prev,
+      items: [...(prev.items || []), val]
+    }))
+    setLocationInput('')
+  }
+
+  const handleRemoveItem = (idx: number) => {
+    setModalData(prev => ({
+      ...prev,
+      items: (prev.items || []).filter((_: string, i: number) => i !== idx)
+    }))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!modalData.name.trim()) return
@@ -380,7 +416,8 @@ export default function Clients() {
       contactName: modalData.contactName.trim() || '미기재',
       contactPhone: modalData.contactPhone.trim() || '미기재',
       origins: modalData.origins,
-      destinations: modalData.destinations
+      destinations: modalData.destinations,
+      items: modalData.items || []
     }
 
     if (editingClient) {
@@ -490,6 +527,13 @@ export default function Clients() {
                 style={modalTabStyle(modalTab === 'destinations')}
               >
                 하차지 ({modalData.destinations.length}/20)
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setModalTab('items')} 
+                style={modalTabStyle(modalTab === 'items')}
+              >
+                품목 ({(modalData.items || []).length}/20)
               </button>
             </div>
 
@@ -722,6 +766,74 @@ export default function Clients() {
                 </div>
               )}
 
+              {modalTab === 'items' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '380px' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    자주 배차하는 주요 품목을 최대 20개까지 등록해두고 편하게 선택할 수 있습니다.
+                  </span>
+                  
+                  {/* Item Input and Add Button */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Input 
+                      style={{ fontSize: '0.85rem' }}
+                      placeholder="품목명 입력 (예: 박스 화물, 기계류, 파이프)" 
+                      value={locationInput}
+                      onChange={e => setLocationInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddItem();
+                        }
+                      }}
+                      disabled={(modalData.items || []).length >= 20}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="primary" 
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} 
+                      onClick={handleAddItem}
+                      disabled={(modalData.items || []).length >= 20}
+                    >
+                      추가
+                    </Button>
+                  </div>
+
+                  {/* Registered Items List */}
+                  <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.75rem', backgroundColor: 'var(--bg-primary)' }} className="hide-scrollbar">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {(modalData.items || []).map((item: string, i: number) => (
+                        <div 
+                          key={i} 
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            padding: '0.45rem 0.6rem', 
+                            backgroundColor: 'var(--bg-secondary)', 
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border-color)'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 500 }}>{item}</span>
+                          <button 
+                            type="button" 
+                            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            onClick={() => handleRemoveItem(i)}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      {(modalData.items || []).length === 0 && (
+                        <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>
+                          등록된 품목이 없습니다.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Modal Action Buttons */}
               <div style={{ display: 'flex', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                 <Button type="button" variant="secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>취소</Button>
@@ -807,9 +919,10 @@ export default function Clients() {
                       </div>
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                         <Badge color="primary">상차지 {client.origins.length}개</Badge>
                         <Badge color="success">하차지 {client.destinations.length}개</Badge>
+                        <Badge color="warning">품목 {(client.items || []).length}개</Badge>
                       </div>
                     </td>
                     <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
@@ -904,7 +1017,7 @@ export default function Clients() {
                             borderRadius: 'var(--radius-md)',
                             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
                             display: 'grid',
-                            gridTemplateColumns: '1.5fr 1fr 1fr',
+                            gridTemplateColumns: '1.5fr 1fr 1fr 1fr',
                             gap: '1.5rem'
                           }}
                         >
@@ -973,6 +1086,24 @@ export default function Clients() {
                               ))}
                               {client.destinations.length === 0 && (
                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '1.5rem 0', textAlign: 'center' }}>등록된 하차지 없음</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Fourth Column: Registered Items */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.5rem' }}>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>등록 품목</span>
+                              <Badge color="warning">{(client.items || []).length}/20</Badge>
+                            </h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.25rem' }} className="hide-scrollbar">
+                              {(client.items || []).map((item: string, i: number) => (
+                                <div key={i} style={{ fontSize: '0.82rem', padding: '0.35rem 0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item}>
+                                  {item}
+                                </div>
+                              ))}
+                              {(client.items || []).length === 0 && (
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '1.5rem 0', textAlign: 'center' }}>등록된 품목 없음</span>
                               )}
                             </div>
                           </div>
