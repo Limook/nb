@@ -1807,6 +1807,11 @@ export default function Dispatches() {
   const lastStepTimeRef = React.useRef<number>(0);
   const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [dateDisplayLabels, setDateDisplayLabels] = useState<{ originDate?: string, destinationDate?: string }>({});
+  const [keyboardShortcutHighlightIndex, setKeyboardShortcutHighlightIndex] = useState<number>(-1);
+
+  React.useEffect(() => {
+    setKeyboardShortcutHighlightIndex(-1);
+  }, [keyboardStep, registerMode]);
 
   const keyboardSteps = React.useMemo(() => [
     { name: '거래처명', field: 'clientName', guide: '거래처명을 입력하세요 (또는 우측 거래처 번호 입력)', optional: true, defaultValue: '일반화주' },
@@ -2912,10 +2917,354 @@ export default function Dispatches() {
     return null;
   };
 
-  const handleKeyboardStepEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Tab' || e.key === 'ArrowDown') {
+  const getShortcutsData = (stepField: string): any[] => {
+    if (stepField === 'clientName') {
+      return clients.slice(0, 8);
+    }
+    if (stepField === 'origin' || stepField.startsWith('waypoint_')) {
+      return Array.from(new Set([
+        ...dispatches.map(d => d.origin),
+        ...dispatches.map(d => d.destination),
+        ...(dispatches.flatMap(d => d.waypoints || []))
+      ])).filter(Boolean).slice(0, 6);
+    }
+    if (stepField === 'originDate') {
+      return ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
+    }
+    if (stepField === 'destination') {
+      return Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+    }
+    if (stepField === 'destinationDate') {
+      return ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
+    }
+    if (stepField === 'spec') {
+      return commonSpecs;
+    }
+    if (stepField === 'weight') {
+      return ['0톤 (스킵)', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
+    }
+    if (stepField === 'settleMethod') {
+      return ['인수증', '선불', '착불', '카드'];
+    }
+    if (stepField === 'settleDate') {
+      return ['당월말', '익월말'];
+    }
+    if (stepField === 'commission') {
+      return ['수수료 없음 (0원)', '10,000원', '20,000원', '30,000원', '50,000원'];
+    }
+    if (stepField === 'fee') {
+      return ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
+    }
+    if (stepField === 'cargoItem') {
+      return ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+    }
+    if (stepField === 'memo') {
+      return [
+        '안전운전 부탁드립니다.',
+        '상하차지 대기 시간 발생 시 연락 필수.',
+        '수수료 세금계산서 발행 요망.',
+        '인수증 빠른 우편 발송 필요.'
+      ];
+    }
+    return [];
+  };
+
+  const handleSelectShortcutByIndex = (idx: number, isShiftPressed = false) => {
+    const currentStepObj = keyboardSteps[keyboardStep];
+    if (!currentStepObj) return;
+    const field = currentStepObj.field;
+    let resolvedValue = '';
+
+    if (field === 'clientName') {
+      const client = clients[idx];
+      if (client) {
+        setFormData(prev => ({
+          ...prev,
+          clientName: client.name,
+          clientPhone: client.phone || '',
+          clientContact: client.contact || client.contactName || ''
+        }));
+        resolvedValue = client.name;
+      }
+    } else if (field === 'origin') {
+      const recentOrigins = Array.from(new Set([
+        ...dispatches.map(d => d.origin),
+        ...dispatches.map(d => d.destination),
+        ...(dispatches.flatMap(d => d.waypoints || []))
+      ])).filter(Boolean).slice(0, 6);
+      const selected = recentOrigins[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, origin: selected }));
+        resolvedValue = selected;
+      }
+    } else if (field === 'originDate') {
+      const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
+      const selected = shortcuts[idx];
+      if (selected) {
+        const dateStr = getShortcutDateValue(selected);
+        setFormData(prev => ({ ...prev, originDate: dateStr }));
+        resolvedValue = dateStr;
+        if (['지금', '오늘', '내일', '월요일'].includes(selected)) {
+          setDateDisplayLabels(prev => ({ ...prev, originDate: selected }));
+        } else {
+          setDateDisplayLabels(prev => ({ ...prev, originDate: undefined }));
+        }
+      }
+    } else if (field.startsWith('waypoint_')) {
+      const wIdx = parseInt(field.split('_')[1], 10);
+      const recentLocations = Array.from(new Set([
+        ...dispatches.map(d => d.origin),
+        ...dispatches.map(d => d.destination),
+        ...(dispatches.flatMap(d => d.waypoints || []))
+      ])).filter(Boolean).slice(0, 6);
+      const selected = recentLocations[idx];
+      if (selected) {
+        setFormData(prev => {
+          const wps = [...(prev.waypoints || [])];
+          wps[wIdx] = selected;
+          return { ...prev, waypoints: wps };
+        });
+        resolvedValue = selected;
+      }
+    } else if (field === 'destination') {
+      const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+      const selected = recentDests[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, destination: selected }));
+        resolvedValue = selected;
+      }
+    } else if (field === 'destinationDate') {
+      const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
+      const selected = shortcuts[idx];
+      if (selected) {
+        const dateStr = getShortcutDateValue(selected);
+        setFormData(prev => ({ ...prev, destinationDate: dateStr }));
+        resolvedValue = dateStr;
+        if (['오늘', '내일', '월요일'].includes(selected)) {
+          setDateDisplayLabels(prev => ({ ...prev, destinationDate: selected }));
+        } else {
+          setDateDisplayLabels(prev => ({ ...prev, destinationDate: undefined }));
+        }
+      }
+    } else if (field === 'spec') {
+      const selected = commonSpecs[idx];
+      if (selected) {
+        setFormData(prev => ({
+          ...prev,
+          tonnage: selected.tonnage,
+          carType: selected.carType
+        }));
+        resolvedValue = selected.label;
+      }
+    } else if (field === 'weight') {
+      const weights = ['0톤', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
+      const selected = weights[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, weight: selected }));
+        resolvedValue = selected;
+      }
+    } else if (field === 'settleMethod') {
+      const methods = ['인수증', '선불', '착불', '카드'];
+      const selected = methods[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, settleMethod: selected }));
+        resolvedValue = selected;
+      }
+    } else if (field === 'settleDate') {
+      if (idx === 0) {
+        const date = getEndOfCurrentMonth();
+        setFormData(prev => ({ ...prev, settleDate: date }));
+        resolvedValue = date;
+      } else if (idx === 1) {
+        const date = getEndOfNextMonth();
+        setFormData(prev => ({ ...prev, settleDate: date }));
+        resolvedValue = date;
+      }
+    } else if (field === 'commission') {
+      const commValues = ['0', '10000', '20000', '30000', '50000'];
+      const selected = commValues[idx];
+      if (selected) {
+        const formatted = Number(selected).toLocaleString();
+        setFormData(prev => ({ ...prev, commission: formatted }));
+        resolvedValue = formatted;
+      }
+    } else if (field === 'fee') {
+      const feeValues = [100000, 150000, 200000, 250000, 300000, 350000, 400000];
+      const selected = feeValues[idx];
+      if (selected) {
+        const formatted = selected.toLocaleString();
+        setFormData(prev => ({ ...prev, fee: formatted }));
+        resolvedValue = formatted;
+      }
+    } else if (field === 'cargoItem') {
+      const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
+      const selected = items[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, cargoItem: selected }));
+        resolvedValue = selected;
+      }
+    } else if (field === 'memo') {
+      const memos = [
+        '안전운전 부탁드립니다.',
+        '상하차지 대기 시간 발생 시 연락 필수.',
+        '수수료 세금계산서 발행 요망.',
+        '인수증 빠른 우편 발송 필요.'
+      ];
+      const selected = memos[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, memo: selected }));
+        resolvedValue = selected;
+      }
+    }
+
+    if (!resolvedValue) return;
+
+    if (field === 'originDate') {
+      if (isShiftPressed) {
+        setShowWaypoints(true);
+      } else {
+        setShowWaypoints(false);
+        setFormData(prev => ({ ...prev, waypoints: [] }));
+      }
+    }
+
+    if (keyboardStep === keyboardSteps.length - 1) {
+      const newId = dispatches.length > 0 ? Math.max(...dispatches.map(d => d.id)) + 1 : 1;
+      let finalTonnage = formData.tonnage;
+      let finalCarType = formData.carType;
+      if (field === 'spec') {
+        const parsed = parseSpec(resolvedValue);
+        finalTonnage = parsed.tonnage;
+        finalCarType = parsed.carType;
+      }
+      let finalClient = formData.clientName.trim();
+      if (field === 'clientName') finalClient = resolvedValue;
+      if (!finalClient) finalClient = '일반화주';
+      let finalOrigin = formData.origin;
+      if (field === 'origin') finalOrigin = resolvedValue;
+      let finalDest = formData.destination;
+      if (field === 'destination') finalDest = resolvedValue;
+      let finalFeeStr = formData.fee;
+      if (field === 'fee') finalFeeStr = resolvedValue;
+      const finalFee = Number(finalFeeStr.replace(/,/g, '')) || 0;
+      let finalSettleMethod = formData.settleMethod;
+      if (field === 'settleMethod') finalSettleMethod = resolvedValue;
+      let finalCommissionStr = formData.commission;
+      if (field === 'commission') finalCommissionStr = resolvedValue;
+      const finalCommission = finalCommissionStr.replace(/,/g, '');
+      let finalSettleDate = formData.settleDate;
+      if (field === 'settleDate') finalSettleDate = resolvedValue;
+      let finalCargoItem = formData.cargoItem;
+      if (field === 'cargoItem') finalCargoItem = resolvedValue;
+      let finalMemo = formData.memo;
+      if (field === 'memo') finalMemo = resolvedValue;
+
+      const registeredDispatch = {
+        id: newId,
+        client: finalClient,
+        origin: finalOrigin,
+        originDate: formData.originDate,
+        destination: finalDest,
+        destinationDate: formData.destinationDate,
+        waypoints: (formData.waypoints || []).filter((w: string) => w.trim() !== ''),
+        spec: `${finalTonnage} ${finalCarType} ${formData.weight ? `(${formData.weight})` : ''}`.trim(),
+        status: 'dispatching' as DispatchStatus,
+        fee: finalFee,
+        originalFee: finalFee,
+        settleMethod: finalSettleMethod,
+        commission: finalCommission,
+        settleDate: finalSettleDate,
+        cargoItem: finalCargoItem,
+        memo: finalMemo,
+        date: new Date().toISOString(),
+        driverName: '',
+        driverPhone: '',
+        carNumber: ''
+      };
+      const updatedDispatches = [registeredDispatch, ...dispatches];
+      setDispatches(updatedDispatches);
+      localStorage.setItem('dispatches', JSON.stringify(updatedDispatches));
+      const poolItem = {
+        client: finalClient,
+        origin: finalOrigin,
+        destination: finalDest,
+        tonnage: finalTonnage,
+        carType: finalCarType,
+        weight: formData.weight || '0T',
+        fee: finalFee,
+        date: new Date().toISOString()
+      };
+      setHistoryPool([poolItem, ...historyPool]);
+      triggerNotification('배차가 성공적으로 등록되었습니다!');
+      lastStepTimeRef.current = Date.now();
+      setKeyboardStep(0);
+      setKeyboardInputValue('');
+      setShowWaypoints(false);
+      const dates = getInitialDates();
+      setFormData({
+        clientName: '',
+        clientPhone: '',
+        clientContact: '',
+        origin: '',
+        originDate: dates.originDate,
+        destination: '',
+        destinationDate: dates.destinationDate,
+        waypoints: [],
+        tonnage: '',
+        carType: '',
+        weight: '',
+        settleMethod: '인수증',
+        fee: '',
+        commission: '',
+        settleDate: '',
+        cargoItem: '',
+        memo: ''
+      });
+      setErrors({});
+      setDateDisplayLabels({});
+    } else {
+      lastStepTimeRef.current = Date.now();
+      let nextStep = keyboardStep + 1;
+      
       const currentStepObj = keyboardSteps[keyboardStep];
-      if (currentStepObj.field === 'origin' || currentStepObj.field === 'destination' || currentStepObj.field.startsWith('waypoint_')) {
+      if (currentStepObj.field === 'waypoint_0') {
+        if (isShiftPressed) {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
+        } else {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+        }
+      } else if (currentStepObj.field === 'waypoint_1') {
+        if (isShiftPressed) {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
+        } else {
+          nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+        }
+      } else if (currentStepObj.field === 'waypoint_2') {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
+      }
+
+      if (keyboardSteps[nextStep]?.field === 'commission' && formData.settleMethod === '인수증') {
+        setFormData(prev => ({ ...prev, commission: '0' }));
+        nextStep += 1;
+      }
+
+      setKeyboardStep(nextStep);
+      setKeyboardInputValue('');
+      
+      setTimeout(() => {
+        const input = document.getElementById('keyboard-mode-input');
+        if (input) input.focus();
+      }, 50);
+    }
+  };
+
+  const handleKeyboardStepEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const currentStepObj = keyboardSteps[keyboardStep];
+    if (!currentStepObj) return;
+    const field = currentStepObj.field;
+
+    if (e.key === 'Tab') {
+      if (field === 'origin' || field === 'destination' || field.startsWith('waypoint_')) {
         const iframe = postcodeContainerRef.current?.querySelector('iframe');
         if (iframe) {
           e.preventDefault();
@@ -2928,11 +3277,31 @@ export default function Dispatches() {
         }
       }
     }
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const items = getShortcutsData(field);
+      if (items.length > 0) {
+        e.preventDefault();
+        setKeyboardShortcutHighlightIndex(prev => {
+          if (e.key === 'ArrowDown') {
+            return prev < items.length - 1 ? prev + 1 : 0;
+          } else {
+            return prev > 0 ? prev - 1 : items.length - 1;
+          }
+        });
+        return;
+      }
+    }
+
     if (e.key !== 'Enter') return;
     e.preventDefault();
+
+    if (keyboardShortcutHighlightIndex >= 0) {
+      handleSelectShortcutByIndex(keyboardShortcutHighlightIndex, e.shiftKey);
+      return;
+    }
+
     const val = keyboardInputValue.trim();
-    const currentStepObj = keyboardSteps[keyboardStep];
-    const field = currentStepObj.field;
     
     if (field === 'originDate') {
       if (e.shiftKey) {
@@ -3357,22 +3726,35 @@ export default function Dispatches() {
   };
 
   const renderKeyboardShortcuts = (stepField: string) => {
+    const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
+      const isHighlighted = idx === keyboardShortcutHighlightIndex;
+      return (
+        <div
+          key={idx}
+          className="keyboard-shortcut-item"
+          onClick={() => handleSelectShortcutByIndex(idx)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: justify,
+            padding: '0.55rem 0.75rem',
+            backgroundColor: isHighlighted ? 'rgba(49, 130, 246, 0.12)' : 'var(--bg-secondary)',
+            border: isHighlighted ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: isHighlighted ? '0 2px 6px rgba(49, 130, 246, 0.15)' : 'none',
+            cursor: 'pointer'
+          }}
+        >
+          {children}
+        </div>
+      );
+    };
+
     if (stepField === 'clientName') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {clients.slice(0, 8).map((client, idx) => (
-            <div
-              key={client.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
+          {clients.slice(0, 8).map((client, idx) => renderShortcutWrapper(idx, (
+            <>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
                 {client.name}
@@ -3380,8 +3762,8 @@ export default function Dispatches() {
               <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
                 {client.phone}
               </span>
-            </div>
-          ))}
+            </>
+          )))}
         </div>
       );
     }
@@ -3393,24 +3775,12 @@ export default function Dispatches() {
       ])).filter(Boolean).slice(0, 6);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {recentOrigins.map((loc, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {loc}
-              </span>
-            </div>
-          ))}
+          {recentOrigins.map((loc, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {loc}
+            </span>
+          ), 'flex-start'))}
           {recentOrigins.length === 0 && (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
               추천할 최근 주소가 없습니다. 직접 입력하세요.
@@ -3425,19 +3795,8 @@ export default function Dispatches() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {shortcuts.map((sh, idx) => {
             const calculated = getShortcutDateValue(sh).replace('T', ' ');
-            return (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.55rem 0.75rem',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)'
-                }}
-              >
+            return renderShortcutWrapper(idx, (
+              <>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
                   {sh}
@@ -3445,8 +3804,8 @@ export default function Dispatches() {
                 <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
                   {calculated}
                 </span>
-              </div>
-            );
+              </>
+            ));
           })}
           <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
             💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 14:00)으로 타이핑 후 엔터를 누르세요.
@@ -3458,24 +3817,12 @@ export default function Dispatches() {
       const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {recentDests.map((loc, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {loc}
-              </span>
-            </div>
-          ))}
+          {recentDests.map((loc, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {loc}
+            </span>
+          ), 'flex-start'))}
           {recentDests.length === 0 && (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
               추천할 최근 하차지가 없습니다. 직접 입력하세요.
@@ -3490,19 +3837,8 @@ export default function Dispatches() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {shortcuts.map((sh, idx) => {
             const calculated = getShortcutDateValue(sh).replace('T', ' ');
-            return (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.55rem 0.75rem',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)'
-                }}
-              >
+            return renderShortcutWrapper(idx, (
+              <>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
                   {sh}
@@ -3510,8 +3846,8 @@ export default function Dispatches() {
                 <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
                   {calculated}
                 </span>
-              </div>
-            );
+              </>
+            ));
           })}
           <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
             💡 직접 입력을 원하시면 날짜/시간 형식(예: 2026-07-27 17:00)으로 타이핑 후 엔터를 누르세요.
@@ -3522,24 +3858,12 @@ export default function Dispatches() {
     if (stepField === 'spec') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {commonSpecs.map((spec, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {spec.label}
-              </span>
-            </div>
-          ))}
+          {commonSpecs.map((spec, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {spec.label}
+            </span>
+          ), 'flex-start'))}
         </div>
       );
     }
@@ -3547,24 +3871,12 @@ export default function Dispatches() {
       const weights = ['0톤 (스킵)', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {weights.map((w, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {w}
-              </span>
-            </div>
-          ))}
+          {weights.map((w, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {w}
+            </span>
+          ), 'flex-start'))}
         </div>
       );
     }
@@ -3572,68 +3884,40 @@ export default function Dispatches() {
       const methods = ['인수증', '선불', '착불', '카드'];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {methods.map((m, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {m}
-              </span>
-            </div>
-          ))}
+          {methods.map((m, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {m}
+            </span>
+          ), 'flex-start'))}
         </div>
       );
     }
     if (stepField === 'settleDate') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.55rem 0.75rem',
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md)'
-            }}
-          >
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>1</span>
-              당월말
-            </span>
-            <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-              {getEndOfCurrentMonth()}
-            </span>
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.55rem 0.75rem',
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md)'
-            }}
-          >
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>2</span>
-              익월말
-            </span>
-            <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
-              {getEndOfNextMonth()}
-            </span>
-          </div>
+          {renderShortcutWrapper(0, (
+            <>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>1</span>
+                당월말
+              </span>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                {getEndOfCurrentMonth()}
+              </span>
+            </>
+          ))}
+          {renderShortcutWrapper(1, (
+            <>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>2</span>
+                익월말
+              </span>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
+                {getEndOfNextMonth()}
+              </span>
+            </>
+          ))}
           <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
             💡 직접 입력을 원하시면 날짜 형식(예: 2026-08-15)으로 직접 타이핑 후 엔터를 누르세요.
           </div>
@@ -3644,24 +3928,12 @@ export default function Dispatches() {
       const comms = ['수수료 없음 (0원)', '10,000원', '20,000원', '30,000원', '50,000원'];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {comms.map((c, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {c}
-              </span>
-            </div>
-          ))}
+          {comms.map((c, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {c}
+            </span>
+          ), 'flex-start'))}
           <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.2rem' }}>
             💡 직접 임의의 숫자를 타이핑해 입력할 수도 있습니다.
           </div>
@@ -3672,24 +3944,12 @@ export default function Dispatches() {
       const commonFees = ['100,000원', '150,000원', '200,000원', '250,000원', '300,000원', '350,000원', '400,000원'];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {commonFees.map((f, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {f}
-              </span>
-            </div>
-          ))}
+          {commonFees.map((f, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {f}
+            </span>
+          ), 'flex-start'))}
         </div>
       );
     }
@@ -3697,24 +3957,12 @@ export default function Dispatches() {
       const items = ['일반화물', '철강', '기계부품', '박스화물', '화학제품', '목재'];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {items.map((it, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {it}
-              </span>
-            </div>
-          ))}
+          {items.map((it, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {it}
+            </span>
+          ), 'flex-start'))}
         </div>
       );
     }
@@ -3727,24 +3975,12 @@ export default function Dispatches() {
       ];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {memos.map((m, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.55rem 0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                {m}
-              </span>
-            </div>
-          ))}
+          {memos.map((m, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {m}
+            </span>
+          ), 'flex-start'))}
         </div>
       );
     }
@@ -4546,6 +4782,16 @@ export default function Dispatches() {
         }
         .blink-row-active td {
           animation: inherit;
+        }
+        .keyboard-shortcut-item {
+          transition: all 0.15s ease;
+          cursor: pointer;
+        }
+        .keyboard-shortcut-item:hover {
+          background-color: rgba(49, 130, 246, 0.08) !important;
+          border-color: var(--primary) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
       `}</style>
       
