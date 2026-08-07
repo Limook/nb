@@ -375,7 +375,7 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
         </div>
 
         {/* Waypoints (경유지) Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '-0.6rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
               📍 경유지 목록 {(formData.waypoints || []).length > 0 && `(${(formData.waypoints || []).length}개)`}
