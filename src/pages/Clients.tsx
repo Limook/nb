@@ -232,12 +232,27 @@ export default function Clients() {
     ]
   }
     ]
-    return initialList.map((c: any) => ({
-      ...c,
-      origins: c.origins || [],
-      destinations: c.destinations || [],
-      items: c.items || []
-    }))
+    const candidateItems = ['철강', '기계부품', '박스화물', '화학제품', '목재', '플라스틱', '의류', '가구', '식품', '전자제품'];
+    return initialList.map((c: any, index: number) => {
+      let items = c.items || [];
+      if (items.length === 0) {
+        const count = 2 + (index % 3);
+        const selected: string[] = [];
+        for (let i = 0; i < count; i++) {
+          const item = candidateItems[(index * 3 + i) % candidateItems.length];
+          if (!selected.includes(item)) {
+            selected.push(item);
+          }
+        }
+        items = selected;
+      }
+      return {
+        ...c,
+        origins: c.origins || [],
+        destinations: c.destinations || [],
+        items
+      }
+    })
   })
 
   React.useEffect(() => {
