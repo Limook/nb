@@ -35,14 +35,14 @@ export interface StandardRegisterFormProps {
 }
 
 const recommendationButtonStyle: React.CSSProperties = {
-  padding: '0.2rem 0.5rem',
   fontSize: '0.72rem',
-  backgroundColor: 'var(--bg-primary)',
-  border: '1px solid var(--border-color)',
-  borderRadius: 'var(--radius-sm)',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  color: 'var(--text-secondary)'
+  padding: '0.2rem 0.6rem',
+  background: 'var(--primary-light)',
+  border: 'none',
+  borderRadius: 'var(--radius-full)',
+  color: 'var(--primary)',
+  fontWeight: 600,
+  cursor: 'pointer'
 };
 
 const dateShortcutStyle: React.CSSProperties = {
