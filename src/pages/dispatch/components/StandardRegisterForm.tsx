@@ -574,7 +574,30 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
           marginTop: '0.25rem' 
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.55rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.55rem' }}>
+          <div>
+            <label style={inputLabelStyle}>정산방법</label>
+            <select 
+              value={formData.settleMethod} 
+              onChange={e => handleInputChange('settleMethod', e.target.value)}
+              style={{ width: '100%', height: '40px', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '0 0.5rem', fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              <option value="인수증">인수증</option>
+              <option value="선불">선불</option>
+              <option value="착불">착불</option>
+              <option value="카드">카드</option>
+            </select>
+          </div>
+          <div>
+            <label style={inputLabelStyle}>수수료</label>
+            <Input 
+              placeholder="수수료액 (원)" 
+              value={formData.commission}
+              onChange={e => handleInputChange('commission', e.target.value)}
+              disabled={formData.settleMethod === '인수증'}
+              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
+            />
+          </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
               <label style={inputLabelStyle}>운임 <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -598,29 +621,6 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
                 borderColor: errors.fee ? 'var(--danger)' : 'transparent',
                 boxShadow: errors.fee ? '0 0 0 2px var(--danger-bg)' : 'none'
               }}
-            />
-          </div>
-          <div>
-            <label style={inputLabelStyle}>정산방법</label>
-            <select 
-              value={formData.settleMethod} 
-              onChange={e => handleInputChange('settleMethod', e.target.value)}
-              style={{ width: '100%', height: '40px', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '0 0.5rem', fontSize: '0.82rem', fontWeight: 700 }}
-            >
-              <option value="인수증">인수증</option>
-              <option value="선불">선불</option>
-              <option value="착불">착불</option>
-              <option value="카드">카드</option>
-            </select>
-          </div>
-          <div>
-            <label style={inputLabelStyle}>수수료</label>
-            <Input 
-              placeholder="수수료액 (원)" 
-              value={formData.commission}
-              onChange={e => handleInputChange('commission', e.target.value)}
-              disabled={formData.settleMethod === '인수증'}
-              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
             />
           </div>
         </div>
