@@ -57,6 +57,24 @@ const dateShortcutStyle: React.CSSProperties = {
   color: 'var(--text-secondary)'
 };
 
+const sectionHeaderLabelStyle: React.CSSProperties = {
+  fontSize: '0.82rem',
+  fontWeight: 800,
+  color: 'var(--text-primary)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.25rem',
+  flexShrink: 0
+};
+
+const inputLabelStyle: React.CSSProperties = {
+  fontSize: '0.76rem',
+  fontWeight: 700,
+  color: 'var(--text-secondary)',
+  display: 'block',
+  marginBottom: '0.25rem'
+};
+
 export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
   formData,
   setFormData,
@@ -86,17 +104,16 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
   handleDateShortcut
 }) => {
   const embedPostcode = (el: HTMLDivElement | null, field: string) => {
-    if (!el) return;
-    const daum = (window as any).daum;
-    if (daum && daum.Postcode) {
-      new daum.Postcode({
+    if (el && (window as any).daum) {
+      el.innerHTML = '';
+      new (window as any).daum.Postcode({
         oncomplete: (data: any) => {
-          const addr = data.roadAddress || data.address;
+          const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
           if (field.startsWith('waypoint_')) {
-            const wIdx = parseInt(field.split('_')[1], 10);
+            const idx = parseInt(field.split('_')[1], 10);
             setFormData((prev: any) => {
               const wps = [...(prev.waypoints || [])];
-              wps[wIdx] = addr;
+              wps[idx] = addr;
               return { ...prev, waypoints: wps };
             });
           } else {
@@ -112,24 +129,13 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      
       {/* 1. 거래처 정보 입력 */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>거래처 정보</label>
-          <div 
-            style={{ 
-              display: 'flex', 
-              gap: '0.3rem', 
-              justifyContent: 'flex-end',
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
-              flex: 1,
-              marginLeft: '1rem',
-              paddingBottom: '2px'
-            }}
-            className="hide-scrollbar"
-          >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem' }}>
+          <label style={sectionHeaderLabelStyle}>🏢 거래처 정보</label>
+          <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', overflowX: 'auto', whiteSpace: 'nowrap', flex: 1, marginLeft: '1rem', paddingBottom: '2px' }} className="hide-scrollbar">
             {clients.slice(0, 3).map(c => (
               <button 
                 key={c.id} 
@@ -142,67 +148,62 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             ))}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 80px', gap: '0.4rem' }}>
-            <Input 
-              placeholder="거래처명" 
-              value={formData.clientName} 
-              onChange={e => handleInputChange('clientName', e.target.value)}
-              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-            />
-            <Input 
-              placeholder="전화번호" 
-              value={formData.clientPhone} 
-              onChange={e => handleInputChange('clientPhone', e.target.value)}
-              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-            />
-            <Input 
-              placeholder="담당자명" 
-              value={formData.clientContact} 
-              onChange={e => handleInputChange('clientContact', e.target.value)}
-              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-            />
-            <Button 
-              type="button"
-              variant="secondary" 
-              style={{ padding: '0.45rem', fontSize: '0.8rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-              onClick={() => {
-                setShowClientSearch(true)
-                setClientSearchTerm('')
-                setClientSearchFilter('')
-              }}
-            >
-              <Search size={14} /> 검색
-            </Button>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.0fr 1.0fr 75px', gap: '0.55rem' }}>
+          <Input 
+            placeholder="거래처명" 
+            value={formData.clientName} 
+            onChange={e => handleInputChange('clientName', e.target.value)}
+            style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
+          />
+          <Input 
+            placeholder="전화번호" 
+            value={formData.clientPhone} 
+            onChange={e => handleInputChange('clientPhone', e.target.value)}
+            style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
+          />
+          <Input 
+            placeholder="담당자명" 
+            value={formData.clientContact} 
+            onChange={e => handleInputChange('clientContact', e.target.value)}
+            style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
+          />
+          <Button 
+            type="button"
+            variant="secondary" 
+            style={{ padding: '0', fontSize: '0.78rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem', height: '40px' }}
+            onClick={() => {
+              setShowClientSearch(true);
+              setClientSearchTerm('');
+              setClientSearchFilter('');
+            }}
+          >
+            <Search size={13} /> 검색
+          </Button>
         </div>
       </div>
 
       {/* 2. 상/하차지 & 상/하차일시 */}
-      <div className="dispatch-registration-section" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
-        
+      <div 
+        className="dispatch-registration-section" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.25rem', 
+          borderTop: '1px solid var(--border-color)', 
+          paddingTop: '1.25rem', 
+          marginTop: '0.25rem' 
+        }}
+      >
         {/* 자주 쓰는 구간 추천 칩 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <label className="text-sm font-bold text-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem' }}>
+          <label style={sectionHeaderLabelStyle}>
             <Route size={14} /> 자주 쓰는 구간
           </label>
-          <div 
-            style={{ 
-              display: 'flex', 
-              gap: '0.4rem', 
-              justifyContent: 'flex-end',
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
-              flex: 1,
-              marginLeft: '1rem',
-              paddingBottom: '2px'
-            }}
-            className="hide-scrollbar"
-          >
+          <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', overflowX: 'auto', whiteSpace: 'nowrap', flex: 1, marginLeft: '1rem', paddingBottom: '2px' }} className="hide-scrollbar">
             {topRoutes.length > 0 ? (
               topRoutes.map((route, i) => {
-                const originShort = route.origin.split(' ').slice(0, 2).join(' ')
-                const destShort = route.destination.split(' ').slice(0, 2).join(' ')
+                const originShort = route.origin.split(' ').slice(0, 2).join(' ');
+                const destShort = route.destination.split(' ').slice(0, 2).join(' ');
                 return (
                   <button 
                     key={i}
@@ -212,10 +213,10 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
                   >
                     {originShort} &rarr; {destShort}
                   </button>
-                )
+                );
               })
             ) : (
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', alignSelf: 'center', marginRight: '0.5rem' }}>추천 데이터 없음</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', alignSelf: 'center', marginRight: '0.5rem' }}>추천 데이터 없음</span>
             )}
             <button
               type="button"
@@ -233,16 +234,16 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
         </div>
 
         {/* 상차지 및 상차일시 */}
-        <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
+        <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.55rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">상차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>상차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {topOrigins.map((origin, i) => {
-                  const short = origin.split(' ').slice(0, 2).join(' ')
+                  const short = origin.split(' ').slice(0, 2).join(' ');
                   return (
                     <button key={i} type="button" onClick={() => handleRecommendLocation('origin', origin)} style={recommendationButtonStyle}>{short}</button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -286,8 +287,8 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">상차일시</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>상차일시</label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {['월요일', '내일', '오늘', '지금'].map(s => (
                   <button key={s} type="button" onClick={() => handleDateShortcut('originDate', s)} style={dateShortcutStyle}>{s}</button>
@@ -304,16 +305,16 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
         </div>
 
         {/* 하차지 및 하차일시 */}
-        <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
+        <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.55rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">하차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>하차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {topDestinations.map((dest, i) => {
-                  const short = dest.split(' ').slice(0, 2).join(' ')
+                  const short = dest.split(' ').slice(0, 2).join(' ');
                   return (
                     <button key={i} type="button" onClick={() => handleRecommendLocation('destination', dest)} style={recommendationButtonStyle}>{short}</button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -357,8 +358,8 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">하차일시</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>하차일시</label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {['월요일', '내일', '오늘'].map(s => (
                   <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
@@ -375,7 +376,7 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
         </div>
 
         {/* Waypoints (경유지) Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '-0.6rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '-0.35rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
               📍 경유지 목록 {(formData.waypoints || []).length > 0 && `(${(formData.waypoints || []).length}개)`}
@@ -457,24 +458,21 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
       </div>
 
       {/* 3. 차량 정보 */}
-      <div className="dispatch-registration-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
-        
+      <div 
+        className="dispatch-registration-section" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.1rem', 
+          borderTop: '1px solid var(--border-color)', 
+          paddingTop: '1.25rem', 
+          marginTop: '0.25rem' 
+        }}
+      >
         {/* 자주 쓰는 차량 규격 추천 칩 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <label className="text-sm font-bold text-secondary" style={{ flexShrink: 0 }}>자주 쓰는 차량</label>
-          <div 
-            style={{ 
-              display: 'flex', 
-              gap: '0.3rem', 
-              justifyContent: 'flex-end',
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
-              flex: 1,
-              marginLeft: '1rem',
-              paddingBottom: '2px'
-            }}
-            className="hide-scrollbar"
-          >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem' }}>
+          <label style={sectionHeaderLabelStyle}>🚛 자주 쓰는 차량</label>
+          <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', overflowX: 'auto', whiteSpace: 'nowrap', flex: 1, marginLeft: '1rem', paddingBottom: '2px' }} className="hide-scrollbar">
             {topSpecs.map((spec, i) => (
               <button 
                 key={i} 
@@ -494,9 +492,9 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.55rem' }}>
           <div>
-            <label className="text-sm font-bold text-secondary block" style={{ marginBottom: '0.25rem' }}>톤급 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <label style={inputLabelStyle}>톤급 <span style={{ color: 'var(--danger)' }}>*</span></label>
             <select 
               value={formData.tonnage} 
               onChange={e => handleInputChange('tonnage', e.target.value)}
@@ -527,7 +525,7 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="text-sm font-bold text-secondary block" style={{ marginBottom: '0.25rem' }}>차종 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <label style={inputLabelStyle}>차종 <span style={{ color: 'var(--danger)' }}>*</span></label>
             <select 
               value={formData.carType} 
               onChange={e => handleInputChange('carType', e.target.value)}
@@ -553,7 +551,7 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="text-sm font-bold text-secondary block" style={{ marginBottom: '0.25rem' }}>실중량</label>
+            <label style={inputLabelStyle}>실중량</label>
             <Input 
               placeholder="예: 5톤 또는 5T" 
               value={formData.weight}
@@ -565,11 +563,21 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
       </div>
 
       {/* 4. 운임 및 청구 정산 */}
-      <div className="dispatch-registration-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.15rem', marginTop: '0.25rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
+      <div 
+        className="dispatch-registration-section" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.1rem', 
+          borderTop: '1px solid var(--border-color)', 
+          paddingTop: '1.25rem', 
+          marginTop: '0.25rem' 
+        }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.55rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">운임 <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>운임 <span style={{ color: 'var(--danger)' }}>*</span></label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {recentFee && (
                   <button type="button" onClick={() => handleInputChange('fee', String(recentFee))} style={recommendationButtonStyle}>최근: {recentFee.toLocaleString()}</button>
@@ -593,7 +601,7 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             />
           </div>
           <div>
-            <label className="text-sm font-bold text-secondary block" style={{ marginBottom: '0.25rem' }}>정산방법</label>
+            <label style={inputLabelStyle}>정산방법</label>
             <select 
               value={formData.settleMethod} 
               onChange={e => handleInputChange('settleMethod', e.target.value)}
@@ -606,7 +614,7 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="text-sm font-bold text-secondary block" style={{ marginBottom: '0.25rem' }}>수수료</label>
+            <label style={inputLabelStyle}>수수료</label>
             <Input 
               placeholder="수수료액 (원)" 
               value={formData.commission}
@@ -616,10 +624,10 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.55rem' }}>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">정산예정일</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>정산예정일</label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {['익월말', '당월말'].map(s => (
                   <button key={s} type="button" onClick={() => handleDateShortcut('settleDate', s)} style={dateShortcutStyle}>{s}</button>
@@ -634,8 +642,8 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
             />
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">화물품목</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
+              <label style={inputLabelStyle}>화물품목</label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {(() => {
                   const selectedClient = clients.find(c => c.name.trim() === formData.clientName.trim());
