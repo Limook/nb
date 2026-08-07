@@ -32,6 +32,7 @@ export interface StandardRegisterFormProps {
   handleRecommendLocation: (field: 'origin' | 'destination', val: string) => void;
   handleRecommendRoute: (origin: string, destination: string) => void;
   handleDateShortcut: (field: 'originDate' | 'destinationDate' | 'settleDate', shortcut: string) => void;
+  setShowClientModal?: (show: boolean) => void;
 }
 
 const recommendationButtonStyle: React.CSSProperties = {
@@ -101,7 +102,8 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
   handleRecommendSpec,
   handleRecommendLocation,
   handleRecommendRoute,
-  handleDateShortcut
+  handleDateShortcut,
+  setShowClientModal
 }) => {
   const embedPostcode = (el: HTMLDivElement | null, field: string) => {
     if (el && (window as any).daum) {
@@ -146,6 +148,21 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
                 {c.name}
               </button>
             ))}
+            {setShowClientModal && (
+              <button 
+                type="button" 
+                onClick={() => setShowClientModal(true)} 
+                style={{ 
+                  ...recommendationButtonStyle, 
+                  flexShrink: 0,
+                  background: 'var(--bg-secondary)', 
+                  border: '1px dashed var(--border-color)', 
+                  color: 'var(--text-secondary)' 
+                }}
+              >
+                + 신규등록
+              </button>
+            )}
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.0fr 1.0fr 75px', gap: '0.55rem' }}>

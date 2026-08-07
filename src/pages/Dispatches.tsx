@@ -795,35 +795,6 @@ export default function Dispatches() {
         </div>
       )}
 
-      {/* Header Info Banner */}
-      <div className="dispatch-header-banner" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0.85rem 1.25rem',
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-      }}>
-        <div>
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
-            🚚 스마트 통합 배차 관제 시스템 (Dispatcher Pro)
-          </h2>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '0.2rem', display: 'block' }}>
-            실시간 AI 배차 난이도 분석, 키보드 고속 등록 모드 및 스마트 차주 추천 시스템을 제공합니다.
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <Button 
-            variant="outline" 
-            style={{ padding: '0.5rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', height: '36px' }}
-            onClick={() => setShowClientModal(true)}
-          >
-            <Plus size={14} /> 거래처 추가
-          </Button>
-        </div>
-      </div>
 
       {/* Client Modal Popup */}
       {showClientModal && (
@@ -1083,6 +1054,7 @@ export default function Dispatches() {
                     handleRecommendLocation={handleRecommendLocation}
                     handleRecommendRoute={handleRecommendRoute}
                     handleDateShortcut={handleDateShortcut}
+                    setShowClientModal={setShowClientModal}
                   />
                   <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                     <Button variant="primary" style={{ flex: 1, padding: '0.7rem' }} onClick={handleDispatchSubmit}>
