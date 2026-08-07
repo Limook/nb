@@ -42,7 +42,9 @@ const recommendationButtonStyle: React.CSSProperties = {
   borderRadius: 'var(--radius-full)',
   color: 'var(--primary)',
   fontWeight: 600,
-  cursor: 'pointer'
+  cursor: 'pointer',
+  letterSpacing: '-0.03em',
+  whiteSpace: 'nowrap'
 };
 
 const dateShortcutStyle: React.CSSProperties = {
