@@ -3871,7 +3871,7 @@ export default function Dispatches() {
     }
     if (stepField === 'tonnage') {
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {tonnages.map((t, idx) => renderShortcutWrapper(idx, (
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
@@ -3883,7 +3883,7 @@ export default function Dispatches() {
     }
     if (stepField === 'carType') {
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           {carTypes.map((ct, idx) => renderShortcutWrapper(idx, (
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
