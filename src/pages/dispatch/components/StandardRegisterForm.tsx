@@ -303,8 +303,79 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
           </div>
         </div>
 
+        {/* 하차지 및 하차일시 */}
+        <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+              <label className="text-sm font-bold text-secondary block">하차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {topDestinations.map((dest, i) => {
+                  const short = dest.split(' ').slice(0, 2).join(' ')
+                  return (
+                    <button key={i} type="button" onClick={() => handleRecommendLocation('destination', dest)} style={recommendationButtonStyle}>{short}</button>
+                  )
+                })}
+              </div>
+            </div>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Input 
+                style={{ 
+                  fontSize: '0.85rem',
+                  padding: '0.52rem 0.75rem',
+                  height: '40px',
+                  borderColor: errors.destination ? 'var(--danger)' : 'transparent',
+                  boxShadow: errors.destination ? '0 0 0 2px var(--danger-bg)' : 'none',
+                  cursor: 'pointer'
+                }} 
+                placeholder="하차지 주소 검색" 
+                value={formData.destination}
+                onClick={() => setActivePostcodeField(activePostcodeField === 'destination' ? null : 'destination')}
+                readOnly
+              />
+              {activePostcodeField === 'destination' && (
+                <>
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      height: '350px',
+                      border: '1.5px solid var(--primary)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      zIndex: 1000,
+                      marginTop: '0.25rem',
+                      overflow: 'hidden'
+                    }}
+                    ref={(el) => embedPostcode(el, 'destination')}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+              <label className="text-sm font-bold text-secondary block">하차일시</label>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {['월요일', '내일', '오늘'].map(s => (
+                  <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
+                ))}
+              </div>
+            </div>
+            <Input 
+              type="datetime-local" 
+              value={formData.destinationDate}
+              onChange={e => handleInputChange('destinationDate', e.target.value)}
+              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
+            />
+          </div>
+        </div>
+
         {/* Waypoints (경유지) Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '-0.3rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
               📍 경유지 목록 {(formData.waypoints || []).length > 0 && `(${(formData.waypoints || []).length}개)`}
@@ -383,77 +454,6 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
           )}
         </div>
 
-        {/* 하차지 및 하차일시 */}
-        <div className="dispatch-form-row" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '0.75rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">하차지 <span style={{ color: 'var(--danger)' }}>*</span></label>
-              <div style={{ display: 'flex', gap: '0.25rem' }}>
-                {topDestinations.map((dest, i) => {
-                  const short = dest.split(' ').slice(0, 2).join(' ')
-                  return (
-                    <button key={i} type="button" onClick={() => handleRecommendLocation('destination', dest)} style={recommendationButtonStyle}>{short}</button>
-                  )
-                })}
-              </div>
-            </div>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <Input 
-                style={{ 
-                  fontSize: '0.85rem',
-                  padding: '0.52rem 0.75rem',
-                  height: '40px',
-                  borderColor: errors.destination ? 'var(--danger)' : 'transparent',
-                  boxShadow: errors.destination ? '0 0 0 2px var(--danger-bg)' : 'none',
-                  cursor: 'pointer'
-                }} 
-                placeholder="하차지 주소 검색" 
-                value={formData.destination}
-                onClick={() => setActivePostcodeField(activePostcodeField === 'destination' ? null : 'destination')}
-                readOnly
-              />
-              {activePostcodeField === 'destination' && (
-                <>
-                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setActivePostcodeField(null)} />
-                  <div 
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      height: '350px',
-                      border: '1.5px solid var(--primary)',
-                      borderRadius: 'var(--radius-md)',
-                      boxShadow: 'var(--shadow-lg)',
-                      backgroundColor: 'var(--bg-secondary)',
-                      zIndex: 1000,
-                      marginTop: '0.25rem',
-                      overflow: 'hidden'
-                    }}
-                    ref={(el) => embedPostcode(el, 'destination')}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-              <label className="text-sm font-bold text-secondary block">하차일시</label>
-              <div style={{ display: 'flex', gap: '0.25rem' }}>
-                {['월요일', '내일', '오늘'].map(s => (
-                  <button key={s} type="button" onClick={() => handleDateShortcut('destinationDate', s)} style={dateShortcutStyle}>{s}</button>
-                ))}
-              </div>
-            </div>
-            <Input 
-              type="datetime-local" 
-              value={formData.destinationDate}
-              onChange={e => handleInputChange('destinationDate', e.target.value)}
-              style={{ fontSize: '0.85rem', padding: '0.52rem 0.75rem', height: '40px' }}
-            />
-          </div>
-        </div>
-
       </div>
 
       {/* 3. 차량 정보 */}
@@ -483,9 +483,9 @@ export const StandardRegisterForm: React.FC<StandardRegisterFormProps> = ({
                 style={{ 
                   ...recommendationButtonStyle, 
                   flexShrink: 0,
-                  border: spec.isClientSpec ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-                  backgroundColor: spec.isClientSpec ? 'var(--primary-light)' : 'var(--bg-primary)',
-                  color: spec.isClientSpec ? 'var(--primary)' : 'var(--text-secondary)'
+                  border: spec.isClientSpec ? '1.5px solid var(--primary)' : 'none',
+                  background: 'var(--primary-light)',
+                  color: 'var(--primary)'
                 }}
               >
                 {spec.tonnage} {spec.carType}
