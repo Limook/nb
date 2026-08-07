@@ -1824,7 +1824,8 @@ export default function Dispatches() {
     ] : []),
     { name: '하차지', field: 'destination', guide: '하차지 주소를 입력하세요 (또는 우측 최근 주소 번호 입력)', optional: false, defaultValue: '' },
     { name: '하차일시', field: 'destinationDate', guide: '하차일시를 입력하세요 (또는 우측 단축일시 번호 입력, 예: YYYY-MM-DD 12:00)', optional: true, defaultValue: '' },
-    { name: '차량스펙', field: 'spec', guide: '차량 스펙을 입력하세요 (또는 우측 스펙 번호 입력)', optional: false, defaultValue: '' },
+    { name: '차량톤수', field: 'tonnage', guide: '차량 톤수를 입력하세요 (또는 우측 톤수 번호 입력)', optional: false, defaultValue: '' },
+    { name: '차종', field: 'carType', guide: '차종을 입력하세요 (또는 우측 차종 번호 입력)', optional: false, defaultValue: '' },
     { name: '화물실중량', field: 'weight', guide: '화물 실중량을 입력하세요 (또는 우측 중량 번호 입력)', optional: true, defaultValue: '0T' },
     { name: '정산방법', field: 'settleMethod', guide: '정산 방법을 입력하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '인수증' },
     { name: '정산예정일', field: 'settleDate', guide: '정산 예정일을 입력하세요 (1: 당월말, 2: 익월말 또는 직접 입력 YYYY-MM-DD)', optional: true, defaultValue: '' },
@@ -2786,37 +2787,11 @@ export default function Dispatches() {
   }
 
   // Handle assigning/updating a driver and status
-  const commonSpecs = [
-    { label: '11톤 윙바디', tonnage: '11톤', carType: '윙바디' },
-    { label: '5톤 축윙바디', tonnage: '5톤', carType: '축윙바디' },
-    { label: '25톤 카고', tonnage: '25톤', carType: '카고' },
-    { label: '1톤 카고', tonnage: '1톤', carType: '카고' },
-    { label: '5톤 윙바디', tonnage: '5톤', carType: '윙바디' },
-    { label: '1톤 탑차', tonnage: '1톤', carType: '탑차' },
-    { label: '11톤 카고', tonnage: '11톤', carType: '카고' },
-    { label: '25톤 윙바디', tonnage: '25톤', carType: '윙바디' }
-  ];
 
 
 
-  const parseSpec = (text: string) => {
-    let tonnage = '11톤';
-    let carType = '윙바디';
-    const clean = text.trim();
-    if (!clean) return { tonnage, carType };
-    const matched = commonSpecs.find(s => s.label.replace(/\s+/g, '') === clean.replace(/\s+/g, ''));
-    if (matched) return { tonnage: matched.tonnage, carType: matched.carType };
-    const tonnageMatch = clean.match(/(\d+\.?\d*톤)/);
-    if (tonnageMatch) tonnage = tonnageMatch[1];
-    const types = ['윙바디', '카고', '축윙바디', '탑차', '윙바디축', '트레일러', '냉동탑'];
-    const foundType = types.find(t => clean.includes(t));
-    if (foundType) {
-      carType = foundType;
-    } else {
-      carType = clean.replace(tonnage, '').trim() || '카고';
-    }
-    return { tonnage, carType };
-  };
+
+
 
   const getEndOfCurrentMonth = () => {
     const d = new Date();
@@ -2937,8 +2912,11 @@ export default function Dispatches() {
     if (stepField === 'destinationDate') {
       return ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
     }
-    if (stepField === 'spec') {
-      return commonSpecs;
+    if (stepField === 'tonnage') {
+      return tonnages;
+    }
+    if (stepField === 'carType') {
+      return carTypes;
     }
     if (stepField === 'weight') {
       return ['0톤 (스킵)', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
@@ -3046,15 +3024,17 @@ export default function Dispatches() {
           setDateDisplayLabels(prev => ({ ...prev, destinationDate: undefined }));
         }
       }
-    } else if (field === 'spec') {
-      const selected = commonSpecs[idx];
+    } else if (field === 'tonnage') {
+      const selected = tonnages[idx];
       if (selected) {
-        setFormData(prev => ({
-          ...prev,
-          tonnage: selected.tonnage,
-          carType: selected.carType
-        }));
-        resolvedValue = selected.label;
+        setFormData(prev => ({ ...prev, tonnage: selected }));
+        resolvedValue = selected;
+      }
+    } else if (field === 'carType') {
+      const selected = carTypes[idx];
+      if (selected) {
+        setFormData(prev => ({ ...prev, carType: selected }));
+        resolvedValue = selected;
       }
     } else if (field === 'weight') {
       const weights = ['0톤', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
@@ -3132,11 +3112,8 @@ export default function Dispatches() {
       const newId = dispatches.length > 0 ? Math.max(...dispatches.map(d => d.id)) + 1 : 1;
       let finalTonnage = formData.tonnage;
       let finalCarType = formData.carType;
-      if (field === 'spec') {
-        const parsed = parseSpec(resolvedValue);
-        finalTonnage = parsed.tonnage;
-        finalCarType = parsed.carType;
-      }
+      if (field === 'tonnage') finalTonnage = resolvedValue;
+      if (field === 'carType') finalCarType = resolvedValue;
       let finalClient = formData.clientName.trim();
       if (field === 'clientName') finalClient = resolvedValue;
       if (!finalClient) finalClient = '일반화주';
@@ -3382,15 +3359,17 @@ export default function Dispatches() {
             setDateDisplayLabels(prev => ({ ...prev, destinationDate: undefined }));
           }
         }
-      } else if (field === 'spec') {
-        const selected = commonSpecs[shortcutNum - 1];
+      } else if (field === 'tonnage') {
+        const selected = tonnages[shortcutNum - 1];
         if (selected) {
-          setFormData(prev => ({
-            ...prev,
-            tonnage: selected.tonnage,
-            carType: selected.carType
-          }));
-          resolvedValue = selected.label;
+          setFormData(prev => ({ ...prev, tonnage: selected }));
+          resolvedValue = selected;
+        }
+      } else if (field === 'carType') {
+        const selected = carTypes[shortcutNum - 1];
+        if (selected) {
+          setFormData(prev => ({ ...prev, carType: selected }));
+          resolvedValue = selected;
         }
       } else if (field === 'weight') {
         const weights = ['0톤', '1톤', '5톤', '8톤', '10톤', '15톤', '20톤', '25톤'];
@@ -3477,13 +3456,16 @@ export default function Dispatches() {
           resolvedValue = defVal;
         }
       } else {
-        if (field === 'spec') {
-          const parsed = parseSpec(val);
-          setFormData(prev => ({
-            ...prev,
-            tonnage: parsed.tonnage,
-            carType: parsed.carType
-          }));
+        if (field === 'tonnage') {
+          let resolvedTonnage = val;
+          if (/^\d+(\.\d+)?$/.test(val)) {
+            resolvedTonnage = `${val}톤`;
+          }
+          setFormData(prev => ({ ...prev, tonnage: resolvedTonnage }));
+          resolvedValue = resolvedTonnage;
+        } else if (field === 'carType') {
+          setFormData(prev => ({ ...prev, carType: val }));
+          resolvedValue = val;
         } else if (field === 'weight') {
           let resolvedWeight = val.replace(/T/gi, '톤');
           if (resolvedWeight && !resolvedWeight.includes('톤')) {
@@ -3532,11 +3514,8 @@ export default function Dispatches() {
       const newId = dispatches.length > 0 ? Math.max(...dispatches.map(d => d.id)) + 1 : 1;
       let finalTonnage = formData.tonnage;
       let finalCarType = formData.carType;
-      if (field === 'spec') {
-        const parsed = parseSpec(resolvedValue);
-        finalTonnage = parsed.tonnage;
-        finalCarType = parsed.carType;
-      }
+      if (field === 'tonnage') finalTonnage = resolvedValue;
+      if (field === 'carType') finalCarType = resolvedValue;
       let finalClient = formData.clientName.trim();
       if (field === 'clientName') finalClient = resolvedValue;
       if (!finalClient) finalClient = '일반화주';
@@ -3691,8 +3670,11 @@ export default function Dispatches() {
     }
   };
   const getStepValueString = (field: string) => {
-    if (field === 'spec') {
-      return formData.tonnage && formData.carType ? `${formData.tonnage} ${formData.carType}` : '';
+    if (field === 'tonnage') {
+      return formData.tonnage || '';
+    }
+    if (field === 'carType') {
+      return formData.carType || '';
     }
     if (field.startsWith('waypoint_')) {
       const wIdx = parseInt(field.split('_')[1], 10);
@@ -3855,13 +3837,25 @@ export default function Dispatches() {
         </div>
       );
     }
-    if (stepField === 'spec') {
+    if (stepField === 'tonnage') {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {commonSpecs.map((spec, idx) => renderShortcutWrapper(idx, (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+          {tonnages.map((t, idx) => renderShortcutWrapper(idx, (
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {spec.label}
+              {t}
+            </span>
+          ), 'flex-start'))}
+        </div>
+      );
+    }
+    if (stepField === 'carType') {
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+          {carTypes.map((ct, idx) => renderShortcutWrapper(idx, (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+              {ct}
             </span>
           ), 'flex-start'))}
         </div>
@@ -4148,7 +4142,7 @@ export default function Dispatches() {
               },
               {
                 name: '차량 및 화물 정보',
-                fields: ['spec', 'weight']
+                fields: ['tonnage', 'carType', 'weight']
               },
               {
                 name: '정산 정보',
