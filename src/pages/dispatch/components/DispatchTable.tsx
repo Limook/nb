@@ -893,21 +893,62 @@ export const DispatchTable: React.FC<DispatchTableProps> = ({
                                 alignItems: 'center'
                               }}>
                                 {/* Row 1 */}
-                                <div style={{ gridColumn: 'span 2' }}>
-                                  <Input 
-                                    placeholder="차량번호 (예: 서울 12가 3456)" 
-                                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
-                                    value={driverInput.carNumber}
-                                    onChange={e => setDriverInput({...driverInput, carNumber: e.target.value})}
-                                  />
-                                </div>
-                                <Button
-                                  variant="primary"
-                                  style={{ width: '100%', padding: '0.5rem 0', fontSize: '0.82rem', whiteSpace: 'nowrap', textAlign: 'center' }}
-                                  onClick={() => setAssigningDispatchId(dispatch.id)}
-                                >
-                                  차량배정
-                                </Button>
+                                {(() => {
+                                  const isModified = 
+                                    (driverInput.carNumber || '') !== (dispatch.carNumber || '') ||
+                                    (driverInput.driverName || '') !== (dispatch.driverName || '') ||
+                                    (driverInput.driverPhone || '') !== (dispatch.driverPhone || '');
+                                  
+                                  const showSave = isModified || assigningDispatchId === dispatch.id;
+                                  
+                                  return (
+                                    <>
+                                      <div style={{ gridColumn: 'span 2' }}>
+                                        <Input 
+                                          placeholder="차량번호 (예: 서울 12가 3456)" 
+                                          style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
+                                          value={driverInput.carNumber}
+                                          onChange={e => setDriverInput({...driverInput, carNumber: e.target.value})}
+                                        />
+                                      </div>
+                                      {showSave ? (
+                                        <Button
+                                          variant="primary"
+                                          style={{ 
+                                            width: '100%', 
+                                            padding: '0.5rem 0', 
+                                            fontSize: '0.82rem', 
+                                            whiteSpace: 'nowrap', 
+                                            textAlign: 'center',
+                                            backgroundColor: 'var(--success)',
+                                            borderColor: 'var(--success)',
+                                            color: '#ffffff',
+                                            fontWeight: 800
+                                          }}
+                                          onClick={(e: any) => {
+                                            e.stopPropagation();
+                                            const nextStatus = dispatch.status === 'dispatching' ? 'dispatched' : dispatch.status;
+                                            handleUpdateDriverAndStatus(dispatch.id, nextStatus as DispatchStatus);
+                                            setAssigningDispatchId(null);
+                                          }}
+                                        >
+                                          배정완료
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          variant="primary"
+                                          style={{ width: '100%', padding: '0.5rem 0', fontSize: '0.82rem', whiteSpace: 'nowrap', textAlign: 'center' }}
+                                          onClick={(e: any) => {
+                                            e.stopPropagation();
+                                            setAssigningDispatchId(dispatch.id);
+                                          }}
+                                        >
+                                          차량배정
+                                        </Button>
+                                      )}
+                                    </>
+                                  );
+                                })()}
 
                                 {/* Row 2 */}
                                 <Input 
