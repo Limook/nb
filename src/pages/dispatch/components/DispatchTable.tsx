@@ -24,6 +24,7 @@ export interface DispatchTableProps {
   setEditingFeeValue: (val: string) => void;
   editingCommissionValue: string;
   setEditingCommissionValue: (val: string) => void;
+  assigningDispatchId: number | null;
   setAssigningDispatchId: (id: number | null) => void;
   
   setDispatches: React.Dispatch<React.SetStateAction<any[]>>;
@@ -122,6 +123,7 @@ export const DispatchTable: React.FC<DispatchTableProps> = ({
   setEditingFeeValue,
   editingCommissionValue,
   setEditingCommissionValue,
+  assigningDispatchId,
   setAssigningDispatchId,
   setDispatches,
   loadOrCreateChatRoom,

@@ -1321,6 +1321,7 @@ export default function Dispatches() {
                     setEditingFeeValue={setEditingFeeValue}
                     editingCommissionValue={editingCommissionValue}
                     setEditingCommissionValue={setEditingCommissionValue}
+                    assigningDispatchId={assigningDispatchId}
                     setAssigningDispatchId={setAssigningDispatchId}
                     setDispatches={setDispatches}
                     loadOrCreateChatRoom={loadOrCreateChatRoom}
