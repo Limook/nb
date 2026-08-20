@@ -144,20 +144,19 @@ export const useDispatchKeyboard = ({
   triggerNotification,
   registerMode
 }: UseDispatchKeyboardProps) => {
-  const dates = getInitialDates();
   const [formData, setFormData] = useState<FormDataState>({
     clientName: '',
     clientPhone: '',
     clientContact: '',
     origin: '',
-    originDate: dates.originDate,
+    originDate: '',
     destination: '',
-    destinationDate: dates.destinationDate,
+    destinationDate: '',
     waypoints: [] as string[],
     tonnage: '',
     carType: '',
     weight: '',
-    settleMethod: '인수증',
+    settleMethod: '',
     fee: '',
     commission: '',
     settleDate: '',
@@ -199,7 +198,7 @@ export const useDispatchKeyboard = ({
     { name: '차량톤수', field: 'tonnage', guide: '차량톤수를 선택하세요 (우측 단축키 슬롯 번호 입력)', optional: false, defaultValue: '' },
     { name: '차종', field: 'carType', guide: '차종을 선택하세요 (우측 단축키 슬롯 번호 입력)', optional: false, defaultValue: '' },
     { name: '중량', field: 'weight', guide: '중량을 입력하세요 (우측 번호 입력, 예: 5톤 또는 5T - 생략 시 0 입력)', optional: true, defaultValue: '0톤 (스킵)' },
-    { name: '정산방법', field: 'settleMethod', guide: '정산방법을 선택하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '인수증' },
+    { name: '정산방법', field: 'settleMethod', guide: '정산방법을 선택하세요 (1: 인수증, 2: 선불, 3: 착불, 4: 카드)', optional: false, defaultValue: '' },
     ...(formData.settleMethod !== '인수증' ? [
       { name: '수수료', field: 'commission', guide: '수수료 금액을 입력하세요 (없으면 0 입력)', optional: true, defaultValue: '' }
     ] : []),
@@ -368,20 +367,19 @@ export const useDispatchKeyboard = ({
   }, [clients, dispatches, formData.clientName, keyboardInputValue]);
 
   const handleResetForm = useCallback(() => {
-    const dates = getInitialDates();
     setFormData({
       clientName: '',
       clientPhone: '',
       clientContact: '',
       origin: '',
-      originDate: dates.originDate,
+      originDate: '',
       destination: '',
-      destinationDate: dates.destinationDate,
+      destinationDate: '',
       waypoints: [],
       tonnage: '',
       carType: '',
       weight: '',
-      settleMethod: '인수증',
+      settleMethod: '',
       fee: '',
       commission: '',
       settleDate: '',
