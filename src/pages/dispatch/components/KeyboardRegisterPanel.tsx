@@ -435,6 +435,30 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   };
 
   const renderKeyboardHelper = () => {
+    const isOrigin = stepField === 'origin' || stepField === 'originDate' || stepField.startsWith('waypoint_');
+    const isDest = stepField === 'destination' || stepField === 'destinationDate';
+
+    const getStepTheme = () => {
+      if (isOrigin) {
+        return {
+          backgroundColor: 'rgba(59, 130, 246, 0.04)',
+          border: '1.5px solid rgba(59, 130, 246, 0.2)'
+        };
+      }
+      if (isDest) {
+        return {
+          backgroundColor: 'rgba(139, 92, 246, 0.04)',
+          border: '1.5px solid rgba(139, 92, 246, 0.2)'
+        };
+      }
+      return {
+        backgroundColor: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)'
+      };
+    };
+
+    const theme = getStepTheme();
+
     return (
       <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
         {/* Left Column: Progress checklist (42% width) */}
@@ -583,10 +607,10 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: '0.75rem',
-          border: '1px solid var(--border-color)',
+          border: theme.border,
           borderRadius: 'var(--radius-md)',
           padding: '0.85rem',
-          backgroundColor: 'var(--bg-secondary)',
+          backgroundColor: theme.backgroundColor,
           overflowY: 'auto'
         }} className="hide-scrollbar">
           {stepField === 'confirm' ? (
