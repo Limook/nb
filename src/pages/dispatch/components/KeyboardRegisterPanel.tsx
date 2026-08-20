@@ -226,7 +226,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             <div style={{ 
               position: 'sticky', 
               top: 0, 
-              backgroundColor: theme.backgroundColor, 
+              backgroundColor: 'transparent', 
               zIndex: 1, 
               paddingBottom: '0.2rem',
               display: 'flex'
@@ -273,7 +273,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             <div style={{ 
               position: 'sticky', 
               top: 0, 
-              backgroundColor: theme.backgroundColor,
+              backgroundColor: 'transparent',
               zIndex: 1, 
               paddingBottom: '0.2rem',
               display: 'flex'
