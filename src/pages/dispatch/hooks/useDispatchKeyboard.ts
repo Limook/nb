@@ -199,6 +199,7 @@ export const useDispatchKeyboard = ({
     ...(formData.settleMethod !== '인수증' ? [
       { name: '수수료', field: 'commission', guide: '수수료 금액을 입력하세요 (없으면 0 입력)', optional: true, defaultValue: '' }
     ] : []),
+    { name: '운임', field: 'fee', guide: '운임을 입력하세요 (숫자만 입력 또는 우측 추천 운임 번호 입력)', optional: false, defaultValue: '' },
     { name: '청구일자', field: 'settleDate', guide: '정산 청구(수금) 예정일을 입력하세요 (또는 우측 번호 입력)', optional: true, defaultValue: '' },
     { name: '화물품목', field: 'cargoItem', guide: '화물품목을 입력하세요 (또는 우측 번호 입력)', optional: false, defaultValue: '' },
     { name: '메모', field: 'memo', guide: '메모를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' }
@@ -1084,8 +1085,6 @@ export const useDispatchKeyboard = ({
           prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
         } else if (currentStepObj.field === 'waypoint_1') {
           prevStep = keyboardSteps.findIndex(s => s.field === 'waypoint_0');
-        } else if (currentStepObj.field === 'fee' && formData.settleMethod === '인수증') {
-          prevStep = keyboardSteps.findIndex(s => s.field === 'settleDate');
         }
         
         setKeyboardStep(prevStep);
