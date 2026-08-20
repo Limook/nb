@@ -52,6 +52,28 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
 
   const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
     const isHighlighted = idx === keyboardShortcutHighlightIndex;
+    
+    const isOrigin = stepField === 'origin' || stepField === 'originDate' || stepField.startsWith('waypoint_');
+    const isDest = stepField === 'destination' || stepField === 'destinationDate';
+
+    let itemBg = 'var(--bg-secondary)';
+    let itemBorder = '1px solid var(--border-color)';
+    let itemShadow = 'none';
+
+    if (isOrigin) {
+      itemBg = isHighlighted ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.12)';
+      itemBorder = isHighlighted ? '2.5px solid var(--primary)' : '1px solid rgba(59, 130, 246, 0.3)';
+      if (isHighlighted) itemShadow = '0 2px 6px rgba(59, 130, 246, 0.25)';
+    } else if (isDest) {
+      itemBg = isHighlighted ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.12)';
+      itemBorder = isHighlighted ? '2.5px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.3)';
+      if (isHighlighted) itemShadow = '0 2px 6px rgba(239, 68, 68, 0.25)';
+    } else {
+      itemBg = isHighlighted ? 'rgba(49, 130, 246, 0.12)' : 'var(--bg-secondary)';
+      itemBorder = isHighlighted ? '1.5px solid var(--primary)' : '1px solid var(--border-color)';
+      if (isHighlighted) itemShadow = '0 2px 6px rgba(49, 130, 246, 0.15)';
+    }
+
     return (
       <div
         key={idx}
@@ -70,10 +92,10 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           alignItems: 'center',
           justifyContent: justify,
           padding: '0.55rem 0.75rem',
-          backgroundColor: isHighlighted ? 'rgba(49, 130, 246, 0.12)' : 'var(--bg-secondary)',
-          border: isHighlighted ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+          backgroundColor: itemBg,
+          border: itemBorder,
           borderRadius: 'var(--radius-md)',
-          boxShadow: isHighlighted ? '0 2px 6px rgba(49, 130, 246, 0.15)' : 'none',
+          boxShadow: itemShadow,
           cursor: 'pointer'
         }}
       >
@@ -441,14 +463,14 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
     const getStepTheme = () => {
       if (isOrigin) {
         return {
-          backgroundColor: 'rgba(59, 130, 246, 0.04)',
-          border: '1.5px solid rgba(59, 130, 246, 0.2)'
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          border: '2px solid rgba(59, 130, 246, 0.3)'
         };
       }
       if (isDest) {
         return {
-          backgroundColor: 'rgba(139, 92, 246, 0.04)',
-          border: '1.5px solid rgba(139, 92, 246, 0.2)'
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          border: '2px solid rgba(239, 68, 68, 0.3)'
         };
       }
       return {
