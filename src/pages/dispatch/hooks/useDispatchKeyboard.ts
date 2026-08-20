@@ -305,7 +305,7 @@ export const useDispatchKeyboard = ({
       const clientName = formData.clientName.trim();
       const matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
       const clientLocations = matchedClient ? (matchedClient.origins || []) : [];
-      return [...recent, ...clientLocations];
+      return [...clientLocations, ...recent];
     }
     if (stepField === 'originDate') {
       return ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
@@ -316,7 +316,7 @@ export const useDispatchKeyboard = ({
       const clientName = formData.clientName.trim();
       const matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
       const clientLocations = matchedClient ? (matchedClient.destinations || []) : [];
-      return [...recent, ...clientLocations];
+      return [...clientLocations, ...recent];
     }
     if (stepField === 'destinationDate') {
       return ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
@@ -855,21 +855,20 @@ export const useDispatchKeyboard = ({
       const items = (isAddr && jusoResults && jusoResults.length > 0) ? jusoResults : getShortcutsData(field);
       if (items && items.length > 0) {
         if (isAddr && !jusoResults.length) {
-          const hasMajor = items.length > 3;
-          if (keyboardShortcutHighlightIndex >= 3) {
-            setKeyboardShortcutHighlightIndex(0);
-          } else if (keyboardShortcutHighlightIndex >= 0 && keyboardShortcutHighlightIndex < 3) {
-            if (hasMajor) {
-              setKeyboardShortcutHighlightIndex(3);
-            } else {
-              setKeyboardShortcutHighlightIndex(-1);
-            }
-          } else {
-            if (hasMajor) {
-              setKeyboardShortcutHighlightIndex(3);
+          const clientName = formData.clientName.trim();
+          const matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+          const majorCount = matchedClient 
+            ? ((field === 'destination' ? matchedClient.destinations : matchedClient.origins) || []).length 
+            : 0;
+
+          if (majorCount > 0) {
+            if (keyboardShortcutHighlightIndex >= 0 && keyboardShortcutHighlightIndex < majorCount) {
+              setKeyboardShortcutHighlightIndex(majorCount);
             } else {
               setKeyboardShortcutHighlightIndex(0);
             }
+          } else {
+            setKeyboardShortcutHighlightIndex(0);
           }
         } else {
           setKeyboardShortcutHighlightIndex(0);
@@ -936,8 +935,12 @@ export const useDispatchKeyboard = ({
         }
       } else if (field === 'origin') {
         if (shortcutNum <= 3) {
-          const shortcuts = getShortcutsData('origin');
-          const selected = shortcuts[shortcutNum - 1];
+          const recent = Array.from(new Set([
+            ...dispatches.map(d => d.origin),
+            ...dispatches.map(d => d.destination),
+            ...(dispatches.flatMap(d => d.waypoints || []))
+          ])).filter(Boolean).slice(0, 3);
+          const selected = recent[shortcutNum - 1];
           if (selected) {
             setFormData(prev => ({ ...prev, origin: selected }));
             resolvedValue = selected;
@@ -959,8 +962,12 @@ export const useDispatchKeyboard = ({
       } else if (field.startsWith('waypoint_')) {
         if (shortcutNum <= 3) {
           const wIdx = parseInt(field.split('_')[1], 10);
-          const shortcuts = getShortcutsData(field);
-          const selected = shortcuts[shortcutNum - 1];
+          const recent = Array.from(new Set([
+            ...dispatches.map(d => d.origin),
+            ...dispatches.map(d => d.destination),
+            ...(dispatches.flatMap(d => d.waypoints || []))
+          ])).filter(Boolean).slice(0, 3);
+          const selected = recent[shortcutNum - 1];
           if (selected) {
             setFormData(prev => {
               const wps = [...(prev.waypoints || [])];
@@ -972,8 +979,8 @@ export const useDispatchKeyboard = ({
         }
       } else if (field === 'destination') {
         if (shortcutNum <= 3) {
-          const shortcuts = getShortcutsData('destination');
-          const selected = shortcuts[shortcutNum - 1];
+          const recent = Array.from(new Set(dispatches.map(d => d.destination))).filter(Boolean).slice(0, 3);
+          const selected = recent[shortcutNum - 1];
           if (selected) {
             setFormData(prev => ({ ...prev, destination: selected }));
             resolvedValue = selected;

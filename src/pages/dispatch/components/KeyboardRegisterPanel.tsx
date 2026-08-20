@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from '../../../components/ui';
 import { Check } from 'lucide-react';
-import type { KeyboardStep } from '../types';
+import type { Client, KeyboardStep } from '../types';
 
 export interface KeyboardRegisterPanelProps {
   // From useDispatchKeyboard hook
@@ -23,6 +23,7 @@ export interface KeyboardRegisterPanelProps {
   searchJusoError?: string;
 
   // From parent page
+  clients: Client[];
 }
 
 export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
@@ -41,7 +42,8 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   getStepValueString,
   jusoResults = [],
   isSearchingJuso = false,
-  searchJusoError = ''
+  searchJusoError = '',
+  clients
 }) => {
   const currentStep = keyboardSteps[keyboardStep];
   const stepField = currentStep ? currentStep.field : '';
@@ -156,8 +158,14 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       }
 
       const items = getShortcutsData(field);
-      const recentItems = items.slice(0, 3);
-      const majorItems = items.slice(3);
+      const clientName = formData.clientName.trim();
+      const matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+      const majorCount = matchedClient 
+        ? ((field === 'destination' ? matchedClient.destinations : matchedClient.origins) || []).length 
+        : 0;
+
+      const majorItems = items.slice(0, majorCount);
+      const recentItems = items.slice(majorCount);
 
       return (
         <div style={{
@@ -182,7 +190,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {majorItems.map((loc, idx) => {
-                const actualIdx = idx + 3;
+                const actualIdx = idx;
                 return renderShortcutWrapper(actualIdx, (
                   <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {loc}
@@ -215,10 +223,10 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {recentItems.map((loc, idx) => {
-                const actualIdx = idx;
+                const actualIdx = majorCount + idx;
                 return renderShortcutWrapper(actualIdx, (
                   <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{actualIdx + 1}</span>
+                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
                     {loc}
                   </span>
                 ), 'flex-start');
