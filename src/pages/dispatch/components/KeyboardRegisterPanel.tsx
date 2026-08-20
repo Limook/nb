@@ -2,12 +2,10 @@ import React from 'react';
 import { Input } from '../../../components/ui';
 import { Check } from 'lucide-react';
 import type { Dispatch, KeyboardStep } from '../types';
-import { PostcodeIframe } from './PostcodeIframe';
 
 export interface KeyboardRegisterPanelProps {
   // From useDispatchKeyboard hook
   formData: any;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
   keyboardStep: number;
   keyboardInputValue: string;
   setKeyboardInputValue: (val: string) => void;
@@ -25,12 +23,10 @@ export interface KeyboardRegisterPanelProps {
 
   // From parent page
   dispatches: Dispatch[];
-  postcodeContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   formData,
-  setFormData,
   keyboardStep,
   keyboardInputValue,
   setKeyboardInputValue,
@@ -45,66 +41,12 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   jusoResults = [],
   isSearchingJuso = false,
   searchJusoError = '',
-  dispatches,
-  postcodeContainerRef
+  dispatches
 }) => {
   const currentStep = keyboardSteps[keyboardStep];
   const stepField = currentStep ? currentStep.field : '';
 
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState(keyboardInputValue);
 
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(keyboardInputValue);
-    }, 300);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [keyboardInputValue]);
-
-  React.useEffect(() => {
-    setDebouncedSearchQuery(keyboardInputValue);
-  }, [keyboardStep]);
-
-  React.useEffect(() => {
-    if (isAddressField(keyboardStep) && postcodeContainerRef.current) {
-      const daum = (window as any).daum;
-      if (daum && daum.Postcode) {
-        postcodeContainerRef.current.innerHTML = '';
-        new daum.Postcode({
-          q: debouncedSearchQuery,
-          focusInput: false,
-          oncomplete: (data: any) => {
-            const addr = data.roadAddress || data.address;
-            const targetField = keyboardSteps[keyboardStep]?.field;
-            if (!targetField) return;
-
-            if (targetField.startsWith('waypoint_')) {
-              const idx = parseInt(targetField.split('_')[1], 10);
-              setFormData((prev: any) => {
-                const wps = [...(prev.waypoints || [])];
-                wps[idx] = addr;
-                return { ...prev, waypoints: wps };
-              });
-            } else {
-              setFormData((prev: any) => ({ ...prev, [targetField]: addr }));
-            }
-            
-            setKeyboardInputValue(addr);
-            
-            // Focus back on the input box
-            setTimeout(() => {
-              const input = document.getElementById('keyboard-mode-input');
-              if (input) input.focus();
-            }, 50);
-          },
-          width: '100%',
-          height: '100%'
-        }).embed(postcodeContainerRef.current);
-      }
-    }
-  }, [keyboardStep, debouncedSearchQuery, isAddressField, postcodeContainerRef, setFormData, setKeyboardInputValue, keyboardSteps]);
 
   const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
     const isHighlighted = idx === keyboardShortcutHighlightIndex;
@@ -461,7 +403,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           })()}
         </div>
 
-        {/* Right Column: Shortcuts lists / postcode iframe (58% width) */}
+        {/* Right Column: Shortcuts lists (58% width) */}
         <div style={{
           width: '58%',
           display: 'flex',
@@ -473,45 +415,19 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           backgroundColor: 'var(--bg-secondary)',
           overflowY: 'auto'
         }} className="hide-scrollbar">
-          {isAddressField(keyboardStep) ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {/* Top part: Recent locations shortcuts / search results */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    ⚡ {keyboardInputValue.trim() !== '' && jusoResults.length > 0 ? `${currentStep.name} 검색 결과` : `최근 이용 ${currentStep.name}`}
-                  </span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                    (번호 입력 + Enter)
-                  </span>
-                </div>
-                {renderKeyboardShortcuts(stepField)}
-              </div>
-
-              {/* Divider */}
-              <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.15rem 0' }} />
-
-              {/* Bottom part: Daum postcode search */}
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '260px', overflow: 'hidden' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
-                  🔍 우편번호 검색기 (검색 및 주소 클릭 시 자동 입력)
-                </span>
-                <PostcodeIframe containerRef={postcodeContainerRef} isVisible={true} style={{ flex: 1 }} />
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                  ⚡ {stepField === 'clientName' && keyboardInputValue.trim() !== '' ? `${currentStep.name} 검색 결과` : currentStep.name}
-                </span>
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                  (번호 입력 + Enter)
-                </span>
-              </div>
-              {renderKeyboardShortcuts(stepField)}
-            </>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
+              ⚡ {stepField === 'clientName' && keyboardInputValue.trim() !== '' 
+                ? `${currentStep.name} 검색 결과` 
+                : (isAddressField(keyboardStep) && keyboardInputValue.trim() !== '' && jusoResults.length > 0 
+                  ? `${currentStep.name} 검색 결과` 
+                  : (isAddressField(keyboardStep) ? `최근 이용 ${currentStep.name}` : currentStep.name))}
+            </span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+              (번호 입력 + Enter)
+            </span>
+          </div>
+          {renderKeyboardShortcuts(stepField)}
         </div>
       </div>
     );

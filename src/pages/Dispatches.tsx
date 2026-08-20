@@ -138,7 +138,6 @@ export default function Dispatches() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const postcodeContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [registerMode, setRegisterMode] = useState<'normal' | 'keyboard'>('normal');
 
   // useDispatchKeyboard hook integration
@@ -174,7 +173,6 @@ export default function Dispatches() {
     historyPool,
     setHistoryPool: () => {},
     triggerNotification,
-    postcodeContainerRef,
     registerMode
   });
 
@@ -1014,7 +1012,6 @@ export default function Dispatches() {
               {registerMode === 'keyboard' ? (
                 <KeyboardRegisterPanel
                   formData={formData}
-                  setFormData={setFormData}
                   keyboardStep={keyboardStep}
                   keyboardInputValue={keyboardInputValue}
                   setKeyboardInputValue={setKeyboardInputValue}
@@ -1028,7 +1025,6 @@ export default function Dispatches() {
                   getStepValueString={getStepValueString}
                   jusoResults={jusoResults}
                   dispatches={dispatches}
-                  postcodeContainerRef={postcodeContainerRef}
                 />
               ) : (
                 <>

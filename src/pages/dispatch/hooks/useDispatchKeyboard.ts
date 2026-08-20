@@ -9,7 +9,6 @@ export interface UseDispatchKeyboardProps {
   historyPool: any[];
   setHistoryPool: React.Dispatch<React.SetStateAction<any[]>>;
   triggerNotification: (msg: string) => void;
-  postcodeContainerRef: React.RefObject<HTMLDivElement | null>;
   registerMode: 'normal' | 'keyboard';
 }
 
@@ -143,7 +142,6 @@ export const useDispatchKeyboard = ({
   historyPool,
   setHistoryPool,
   triggerNotification,
-  postcodeContainerRef,
   registerMode
 }: UseDispatchKeyboardProps) => {
   const dates = getInitialDates();
@@ -770,21 +768,6 @@ export const useDispatchKeyboard = ({
     const currentStepObj = keyboardSteps[keyboardStep];
     if (!currentStepObj) return;
     const field = currentStepObj.field;
-
-    if (e.key === 'Tab') {
-      if (field === 'origin' || field === 'destination' || field.startsWith('waypoint_')) {
-        const iframe = postcodeContainerRef.current?.querySelector('iframe');
-        if (iframe) {
-          e.preventDefault();
-          if (iframe.contentWindow) {
-            iframe.contentWindow.focus();
-          } else {
-            iframe.focus();
-          }
-          return;
-        }
-      }
-    }
 
     const isAddr = field === 'origin' || field === 'destination' || field.startsWith('waypoint_');
 
