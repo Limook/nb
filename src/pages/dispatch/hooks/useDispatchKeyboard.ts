@@ -486,8 +486,8 @@ export const useDispatchKeyboard = ({
           resolvedValue = selected;
         }
       } else {
-        const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
-        const selected = recentOrigins[idx];
+        const shortcuts = getShortcutsData('origin');
+        const selected = shortcuts[idx];
         if (selected) {
           setFormData(prev => ({ ...prev, origin: selected }));
           resolvedValue = selected;
@@ -519,12 +519,8 @@ export const useDispatchKeyboard = ({
           resolvedValue = selected;
         }
       } else {
-        const recentLocations = Array.from(new Set([
-          ...dispatches.map(d => d.origin),
-          ...dispatches.map(d => d.destination),
-          ...(dispatches.flatMap(d => d.waypoints || []))
-        ])).filter(Boolean).slice(0, 6);
-        const selected = recentLocations[idx];
+        const shortcuts = getShortcutsData(field);
+        const selected = shortcuts[idx];
         if (selected) {
           setFormData(prev => {
             const wps = [...(prev.waypoints || [])];
@@ -542,8 +538,8 @@ export const useDispatchKeyboard = ({
           resolvedValue = selected;
         }
       } else {
-        const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
-        const selected = recentDests[idx];
+        const shortcuts = getShortcutsData('destination');
+        const selected = shortcuts[idx];
         if (selected) {
           setFormData(prev => ({ ...prev, destination: selected }));
           resolvedValue = selected;
