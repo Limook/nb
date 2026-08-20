@@ -844,6 +844,15 @@ export const useDispatchKeyboard = ({
 
     const isAddr = field === 'origin' || field === 'destination' || field.startsWith('waypoint_');
 
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const items = (isAddr && jusoResults && jusoResults.length > 0) ? jusoResults : getShortcutsData(field);
+      if (items && items.length > 0) {
+        setKeyboardShortcutHighlightIndex(0);
+      }
+      return;
+    }
+
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       const items = (isAddr && jusoResults && jusoResults.length > 0) ? jusoResults : getShortcutsData(field);
       if (items.length > 0) {
