@@ -48,30 +48,47 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   const currentStep = keyboardSteps[keyboardStep];
   const stepField = currentStep ? currentStep.field : '';
 
+  const isOrigin = stepField === 'origin' || stepField === 'originDate' || stepField.startsWith('waypoint_');
+  const isDest = stepField === 'destination' || stepField === 'destinationDate';
+
+  const getStepTheme = () => {
+    if (isOrigin) {
+      return {
+        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+        border: '2px solid rgba(59, 130, 246, 0.3)'
+      };
+    }
+    if (isDest) {
+      return {
+        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+        border: '2px solid rgba(239, 68, 68, 0.3)'
+      };
+    }
+    return {
+      backgroundColor: 'var(--bg-secondary)',
+      border: '1px solid var(--border-color)'
+    };
+  };
+
+  const theme = getStepTheme();
+
 
 
   const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
     const isHighlighted = idx === keyboardShortcutHighlightIndex;
     
-    const isOrigin = stepField === 'origin' || stepField === 'originDate' || stepField.startsWith('waypoint_');
-    const isDest = stepField === 'destination' || stepField === 'destinationDate';
-
-    let itemBg = 'var(--bg-secondary)';
-    let itemBorder = '1px solid var(--border-color)';
-    let itemShadow = 'none';
+    let highlightBg = 'rgba(49, 130, 246, 0.12)';
+    let highlightBorder = '1.5px solid var(--primary)';
+    let highlightShadow = '0 2px 6px rgba(49, 130, 246, 0.15)';
 
     if (isOrigin) {
-      itemBg = isHighlighted ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.12)';
-      itemBorder = isHighlighted ? '2.5px solid var(--primary)' : '1px solid rgba(59, 130, 246, 0.3)';
-      if (isHighlighted) itemShadow = '0 2px 6px rgba(59, 130, 246, 0.25)';
+      highlightBg = 'rgba(59, 130, 246, 0.12)';
+      highlightBorder = '2px solid var(--primary)';
+      highlightShadow = '0 2px 6px rgba(59, 130, 246, 0.2)';
     } else if (isDest) {
-      itemBg = isHighlighted ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.12)';
-      itemBorder = isHighlighted ? '2.5px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.3)';
-      if (isHighlighted) itemShadow = '0 2px 6px rgba(239, 68, 68, 0.25)';
-    } else {
-      itemBg = isHighlighted ? 'rgba(49, 130, 246, 0.12)' : 'var(--bg-secondary)';
-      itemBorder = isHighlighted ? '1.5px solid var(--primary)' : '1px solid var(--border-color)';
-      if (isHighlighted) itemShadow = '0 2px 6px rgba(49, 130, 246, 0.15)';
+      highlightBg = 'rgba(239, 68, 68, 0.12)';
+      highlightBorder = '2px solid #ef4444';
+      highlightShadow = '0 2px 6px rgba(239, 68, 68, 0.2)';
     }
 
     return (
@@ -92,10 +109,10 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           alignItems: 'center',
           justifyContent: justify,
           padding: '0.55rem 0.75rem',
-          backgroundColor: itemBg,
-          border: itemBorder,
+          backgroundColor: isHighlighted ? highlightBg : 'var(--bg-secondary)',
+          border: isHighlighted ? highlightBorder : '1px solid var(--border-color)',
           borderRadius: 'var(--radius-md)',
-          boxShadow: itemShadow,
+          boxShadow: isHighlighted ? highlightShadow : 'none',
           cursor: 'pointer'
         }}
       >
@@ -188,6 +205,9 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
 
       const majorItems = items.slice(0, majorCount);
       const recentItems = items.slice(majorCount);
+      const isDest = field === 'destination';
+      const labelBg = isDest ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)';
+      const labelColor = isDest ? '#ef4444' : 'var(--primary)';
 
       return (
         <div style={{
@@ -207,9 +227,26 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             minHeight: 0,
             paddingRight: '0.2rem'
           }} className="hide-scrollbar">
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.1rem', position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1, paddingBottom: '0.1rem' }}>
-              📍 즐겨찾기 ({formData.clientName || '거래처 전용'})
-            </span>
+            <div style={{ 
+              position: 'sticky', 
+              top: 0, 
+              backgroundColor: theme.backgroundColor, 
+              zIndex: 1, 
+              paddingBottom: '0.2rem',
+              display: 'flex'
+            }}>
+              <span style={{ 
+                fontSize: '0.74rem', 
+                fontWeight: 800, 
+                color: labelColor, 
+                backgroundColor: labelBg,
+                padding: '0.15rem 0.5rem',
+                borderRadius: 'var(--radius-sm)',
+                display: 'inline-block'
+              }}>
+                📍 즐겨찾기 ({formData.clientName || '거래처 전용'})
+              </span>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {majorItems.map((loc, idx) => {
                 const actualIdx = idx;
@@ -240,9 +277,26 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             minHeight: 0,
             paddingRight: '0.2rem'
           }} className="hide-scrollbar">
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.1rem', position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1, paddingBottom: '0.1rem' }}>
-              ⚡ 최근 이용 {field === 'destination' ? '하차지' : '상차지'} (1~3번)
-            </span>
+            <div style={{ 
+              position: 'sticky', 
+              top: 0, 
+              backgroundColor: theme.backgroundColor,
+              zIndex: 1, 
+              paddingBottom: '0.2rem',
+              display: 'flex'
+            }}>
+              <span style={{ 
+                fontSize: '0.74rem', 
+                fontWeight: 800, 
+                color: labelColor, 
+                backgroundColor: labelBg,
+                padding: '0.15rem 0.5rem',
+                borderRadius: 'var(--radius-sm)',
+                display: 'inline-block'
+              }}>
+                ⚡ {field === 'destination' ? '하차지' : '상차지'} (1~3번)
+              </span>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {recentItems.map((loc, idx) => {
                 const actualIdx = majorCount + idx;
@@ -457,30 +511,6 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   };
 
   const renderKeyboardHelper = () => {
-    const isOrigin = stepField === 'origin' || stepField === 'originDate' || stepField.startsWith('waypoint_');
-    const isDest = stepField === 'destination' || stepField === 'destinationDate';
-
-    const getStepTheme = () => {
-      if (isOrigin) {
-        return {
-          backgroundColor: 'rgba(59, 130, 246, 0.08)',
-          border: '2px solid rgba(59, 130, 246, 0.3)'
-        };
-      }
-      if (isDest) {
-        return {
-          backgroundColor: 'rgba(239, 68, 68, 0.08)',
-          border: '2px solid rgba(239, 68, 68, 0.3)'
-        };
-      }
-      return {
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)'
-      };
-    };
-
-    const theme = getStepTheme();
-
     return (
       <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
         {/* Left Column: Progress checklist (42% width) */}
