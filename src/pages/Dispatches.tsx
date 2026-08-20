@@ -1010,6 +1010,7 @@ export default function Dispatches() {
               {registerMode === 'keyboard' ? (
                 <KeyboardRegisterPanel
                   formData={formData}
+                  setFormData={setFormData}
                   keyboardStep={keyboardStep}
                   keyboardInputValue={keyboardInputValue}
                   setKeyboardInputValue={setKeyboardInputValue}

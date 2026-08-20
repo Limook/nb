@@ -7,6 +7,7 @@ import { PostcodeIframe } from './PostcodeIframe';
 export interface KeyboardRegisterPanelProps {
   // From useDispatchKeyboard hook
   formData: any;
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
   keyboardStep: number;
   keyboardInputValue: string;
   setKeyboardInputValue: (val: string) => void;
@@ -27,6 +28,7 @@ export interface KeyboardRegisterPanelProps {
 
 export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   formData,
+  setFormData,
   keyboardStep,
   keyboardInputValue,
   setKeyboardInputValue,
@@ -44,6 +46,43 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
 }) => {
   const currentStep = keyboardSteps[keyboardStep];
   const stepField = currentStep ? currentStep.field : '';
+
+  React.useEffect(() => {
+    if (isAddressField(keyboardStep) && postcodeContainerRef.current) {
+      const daum = (window as any).daum;
+      if (daum && daum.Postcode) {
+        postcodeContainerRef.current.innerHTML = '';
+        new daum.Postcode({
+          oncomplete: (data: any) => {
+            const addr = data.roadAddress || data.address;
+            const targetField = keyboardSteps[keyboardStep]?.field;
+            if (!targetField) return;
+
+            if (targetField.startsWith('waypoint_')) {
+              const idx = parseInt(targetField.split('_')[1], 10);
+              setFormData((prev: any) => {
+                const wps = [...(prev.waypoints || [])];
+                wps[idx] = addr;
+                return { ...prev, waypoints: wps };
+              });
+            } else {
+              setFormData((prev: any) => ({ ...prev, [targetField]: addr }));
+            }
+            
+            setKeyboardInputValue(addr);
+            
+            // Focus back on the input box
+            setTimeout(() => {
+              const input = document.getElementById('keyboard-mode-input');
+              if (input) input.focus();
+            }, 50);
+          },
+          width: '100%',
+          height: '100%'
+        }).embed(postcodeContainerRef.current);
+      }
+    }
+  }, [keyboardStep, isAddressField, postcodeContainerRef, setFormData, setKeyboardInputValue, keyboardSteps]);
 
   const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
     const isHighlighted = idx === keyboardShortcutHighlightIndex;
@@ -147,43 +186,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
         </div>
       );
     }
-    if (field === 'tonnage' || field === 'carType') {
-      const items = getShortcutsData(field);
-      return (
-        <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.2rem' }}>
-          {items.map((it, idx) => {
-            const isHighlighted = idx === keyboardShortcutHighlightIndex;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectShortcutByIndex(idx)}
-                style={{
-                  flex: 1,
-                  minWidth: '70px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.2rem',
-                  padding: '0.4rem 0.35rem',
-                  backgroundColor: isHighlighted ? 'rgba(49, 130, 246, 0.12)' : 'var(--bg-secondary)',
-                  border: isHighlighted ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary)',
-                  fontWeight: 700,
-                  fontSize: '0.78rem'
-                }}
-              >
-                <span style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '0.74rem' }}>{idx + 1}</span>
-                {it}
-              </button>
-            );
-          })}
-        </div>
-      );
-    }
-    if (field === 'weight' || field === 'settleMethod' || field === 'settleDate' || field === 'commission' || field === 'fee' || field === 'cargoItem' || field === 'memo') {
+    if (field === 'tonnage' || field === 'carType' || field === 'weight' || field === 'settleMethod' || field === 'settleDate' || field === 'commission' || field === 'fee' || field === 'cargoItem' || field === 'memo') {
       const items = getShortcutsData(field);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
