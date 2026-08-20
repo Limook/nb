@@ -205,10 +205,6 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
 
       const majorItems = items.slice(0, majorCount);
       const recentItems = items.slice(majorCount);
-      const isDest = field === 'destination';
-      const labelBg = isDest ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)';
-      const labelColor = isDest ? '#ef4444' : 'var(--primary)';
-
       return (
         <div style={{
           display: 'flex',
@@ -238,10 +234,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
               <span style={{ 
                 fontSize: '0.74rem', 
                 fontWeight: 800, 
-                color: labelColor, 
-                backgroundColor: labelBg,
-                padding: '0.15rem 0.5rem',
-                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-secondary)',
                 display: 'inline-block'
               }}>
                 📍 즐겨찾기 ({formData.clientName || '거래처 전용'})
@@ -288,10 +281,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
               <span style={{ 
                 fontSize: '0.74rem', 
                 fontWeight: 800, 
-                color: labelColor, 
-                backgroundColor: labelBg,
-                padding: '0.15rem 0.5rem',
-                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-secondary)',
                 display: 'inline-block'
               }}>
                 ⚡ {field === 'destination' ? '하차지' : '상차지'} (1~3번)
