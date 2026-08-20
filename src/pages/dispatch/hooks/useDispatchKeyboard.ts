@@ -858,7 +858,26 @@ export const useDispatchKeyboard = ({
       e.preventDefault();
       const items = (isAddr && jusoResults && jusoResults.length > 0) ? jusoResults : getShortcutsData(field);
       if (items && items.length > 0) {
-        setKeyboardShortcutHighlightIndex(0);
+        if (isAddr && !jusoResults.length) {
+          const hasMajor = items.length > 3;
+          if (keyboardShortcutHighlightIndex >= 3) {
+            setKeyboardShortcutHighlightIndex(0);
+          } else if (keyboardShortcutHighlightIndex >= 0 && keyboardShortcutHighlightIndex < 3) {
+            if (hasMajor) {
+              setKeyboardShortcutHighlightIndex(3);
+            } else {
+              setKeyboardShortcutHighlightIndex(-1);
+            }
+          } else {
+            if (hasMajor) {
+              setKeyboardShortcutHighlightIndex(3);
+            } else {
+              setKeyboardShortcutHighlightIndex(0);
+            }
+          }
+        } else {
+          setKeyboardShortcutHighlightIndex(0);
+        }
       }
       return;
     }

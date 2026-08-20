@@ -178,7 +178,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             paddingRight: '0.2rem'
           }} className="hide-scrollbar">
             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.1rem', position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1, paddingBottom: '0.1rem' }}>
-              📍 주요 상하차지 ({formData.clientName || '거래처 전용'})
+              📍 즐겨찾기 ({formData.clientName || '거래처 전용'})
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {majorItems.map((loc, idx) => {
