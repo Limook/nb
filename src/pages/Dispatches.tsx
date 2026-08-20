@@ -53,10 +53,13 @@ export default function Dispatches() {
   // Recommendations data source state
   const [historyPool] = useState(initialHistoricalDispatches);
 
-  // Clients state
   const [clients, setClients] = useState<any[]>(() => {
     const saved = localStorage.getItem('clients');
-    const initialList = saved ? JSON.parse(saved) : initialClientsList;
+    let initialList = saved ? JSON.parse(saved) : initialClientsList;
+    if (saved && initialList.length < 40) {
+      initialList = initialClientsList;
+      localStorage.setItem('clients', JSON.stringify(initialClientsList));
+    }
     const candidateItems = ['철강', '기계부품', '박스화물', '화학제품', '목재', '플라스틱', '의류', '가구', '식품', '전자제품'];
     return initialList.map((c: any, index: number) => {
       let items = c.items || [];

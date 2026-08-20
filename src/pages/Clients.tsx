@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Card, Button, Input, Badge } from '../components/ui'
 import { Plus, Search, MoreVertical, Check, Trash2, Edit, X, MapPin } from 'lucide-react'
+import { initialClientsList } from './dispatch/constants'
 
 interface Client {
   id: number
@@ -20,218 +21,25 @@ interface Client {
 export default function Clients() {
   const [clients, setClients] = useState<Client[]>(() => {
     const saved = localStorage.getItem('clients')
-    const initialList = saved ? JSON.parse(saved) : [
-  {
-    "id": 1,
-    "name": "가온물류",
-    "phone": "02-345-6789",
-    "address": "서울 마포구 테헤란로 12",
-    "businessNo": "101-81-23456",
-    "ceoName": "김가온",
-    "ceoPhone": "010-1234-1001",
-    "contactName": "박대리",
-    "contactPhone": "010-1234-2001",
-    "origins": [
-      "서울 마포구 독막로",
-      "경기 김포시 고촌읍",
-      "인천 중구 서해대로"
-    ],
-    "destinations": [
-      "부산 해운대구 우동",
-      "경북 구미시 3공단로",
-      "전남 여수시 여수산단로"
-    ]
-  },
-  {
-    "id": 2,
-    "name": "나래물산",
-    "phone": "031-701-2345",
-    "address": "경기 성남시 분당구 판교로 242",
-    "businessNo": "202-82-34567",
-    "ceoName": "이나래",
-    "ceoPhone": "010-2345-1002",
-    "contactName": "최과장",
-    "contactPhone": "010-2345-2002",
-    "origins": [
-      "경기 성남시 분당구",
-      "경기 화성시 동탄산단로",
-      "경기 평택시 포승읍"
-    ],
-    "destinations": [
-      "울산 남구 산단로",
-      "충남 천안시 서북구",
-      "대구 달서구 성서공단로"
-    ]
-  },
-  {
-    "id": 3,
-    "name": "다솜유통",
-    "phone": "032-811-0987",
-    "address": "인천 연수구 송도문화로 119",
-    "businessNo": "303-83-45678",
-    "ceoName": "박다솜",
-    "ceoPhone": "010-3456-1003",
-    "contactName": "정주임",
-    "contactPhone": "010-3456-2003",
-    "origins": [
-      "인천 연수구 송도과학로",
-      "인천 중구 아암대로",
-      "경기 안산시 단원구"
-    ],
-    "destinations": [
-      "경남 창원시 성산구",
-      "경기 파주시 문산읍",
-      "충북 청주시 흥덕구"
-    ]
-  },
-  {
-    "id": 4,
-    "name": "라온제나",
-    "phone": "02-789-0123",
-    "address": "서울 영등포구 여의대로 108",
-    "businessNo": "404-84-56789",
-    "ceoName": "최라온",
-    "ceoPhone": "010-4567-1004",
-    "contactName": "이대리",
-    "contactPhone": "010-4567-2004",
-    "origins": [
-      "서울 영등포구 여의나루로",
-      "서울 성동구 아차산로",
-      "경기 김포시 대곶면"
-    ],
-    "destinations": [
-      "광주 광산구 하남산단로",
-      "부산 강서구 녹산산단로",
-      "충남 아산시 배방읍"
-    ]
-  },
-  {
-    "id": 5,
-    "name": "마루아라",
-    "phone": "051-505-1122",
-    "address": "부산 중구 중앙대로 55",
-    "businessNo": "505-85-67890",
-    "ceoName": "정마루",
-    "ceoPhone": "010-5678-1005",
-    "contactName": "조과장",
-    "contactPhone": "010-5678-2005",
-    "origins": [
-      "부산 사하구 신평로",
-      "부산 강서구 과학산단로",
-      "경남 양산시 어곡산단로"
-    ],
-    "destinations": [
-      "서울 영등포구 경인로",
-      "경기 평택시 경기대로",
-      "경북 포항시 남구 괴동로"
-    ]
-  },
-  {
-    "id": 6,
-    "name": "바른로지스",
-    "phone": "042-482-1234",
-    "address": "대전 서구 대덕대로 189",
-    "businessNo": "606-86-78901",
-    "ceoName": "강바른",
-    "ceoPhone": "010-6789-1006",
-    "contactName": "윤주임",
-    "contactPhone": "010-6789-2006",
-    "origins": [
-      "대전 대덕구 대화로",
-      "충북 청주시 청원구",
-      "세종 연서면 공단로"
-    ],
-    "destinations": [
-      "서울 금천구 가산디지털로",
-      "경기 이천시 대장로",
-      "경남 창원시 진해구"
-    ]
-  },
-  {
-    "id": 7,
-    "name": "새솔산업",
-    "phone": "052-251-5678",
-    "address": "울산 남구 돋질로 97",
-    "businessNo": "707-87-89012",
-    "ceoName": "조새솔",
-    "ceoPhone": "010-7890-1007",
-    "contactName": "임대리",
-    "contactPhone": "010-7890-2007",
-    "origins": [
-      "울산 남구 장생포로",
-      "울산 북구 효자로",
-      "경남 양산시 웅상대로"
-    ],
-    "destinations": [
-      "경기 시흥시 공단대로",
-      "충남 서산시 대산읍",
-      "전북 군산시 외항로"
-    ]
-  },
-  {
-    "id": 8,
-    "name": "아라글로벌",
-    "phone": "062-360-1212",
-    "address": "광주 서구 상무중앙로 80",
-    "businessNo": "808-88-90123",
-    "ceoName": "한아라",
-    "ceoPhone": "010-8901-1008",
-    "contactName": "송과장",
-    "contactPhone": "010-8901-2008",
-    "origins": [
-      "광주 광산구 사암로",
-      "전남 장성군 물류로",
-      "전북 전주시 덕진구"
-    ],
-    "destinations": [
-      "인천 중구 서해대로",
-      "경기 용인시 처인구",
-      "경북 경산시 진량읍"
-    ]
-  },
-  {
-    "id": 9,
-    "name": "자람무역",
-    "phone": "053-421-4321",
-    "address": "대구 중구 국채보상로 600",
-    "businessNo": "909-89-01234",
-    "ceoName": "서자람",
-    "ceoPhone": "010-9012-1009",
-    "contactName": "서대리",
-    "contactPhone": "010-9012-2009",
-    "origins": [
-      "대구 서구 와룡로",
-      "경북 칠곡군 왜관읍",
-      "경북 구미시 수출대로"
-    ],
-    "destinations": [
-      "서울 강남구 학동로",
-      "경기 파주시 탄현면",
-      "전남 목포시 삼학로"
-    ]
-  },
-  {
-    "id": 10,
-    "name": "하랑로지스",
-    "phone": "02-2233-4455",
-    "address": "서울 송파구 송파대로 201",
-    "businessNo": "110-90-12345",
-    "ceoName": "신하랑",
-    "ceoPhone": "010-9988-1010",
-    "contactName": "홍주임",
-    "contactPhone": "010-9988-2010",
-    "origins": [
-      "서울 송파구 양재대로",
-      "경기 광주시 초월읍",
-      "경기 용인시 백암면"
-    ],
-    "destinations": [
-      "부산 사상구 백양대로",
-      "충남 당진시 송악읍",
-      "경남 김해시 골든루트로"
-    ]
-  }
-    ]
+    let initialList = saved ? JSON.parse(saved) : []
+    if (!saved || initialList.length < 40) {
+      const formattedList = initialClientsList.map(c => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone || '',
+        address: c.origins && c.origins[0] ? c.origins[0] : '서울 마포구',
+        businessNo: c.businessNo || '',
+        ceoName: c.name + ' 대표',
+        ceoPhone: c.phone || '',
+        contactName: c.contact || '',
+        contactPhone: c.phone || '',
+        origins: c.origins || [],
+        destinations: c.destinations || [],
+        items: []
+      }));
+      initialList = formattedList;
+      localStorage.setItem('clients', JSON.stringify(formattedList));
+    }
     const candidateItems = ['철강', '기계부품', '박스화물', '화학제품', '목재', '플라스틱', '의류', '가구', '식품', '전자제품'];
     return initialList.map((c: any, index: number) => {
       let items = c.items || [];
