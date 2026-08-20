@@ -708,28 +708,7 @@ export const useDispatchKeyboard = ({
       setKeyboardStep(0);
       setKeyboardInputValue('');
       setShowWaypoints(false);
-      const dates = getInitialDates();
-      setFormData({
-        clientName: '',
-        clientPhone: '',
-        clientContact: '',
-        origin: '',
-        originDate: dates.originDate,
-        destination: '',
-        destinationDate: dates.destinationDate,
-        waypoints: [],
-        tonnage: '',
-        carType: '',
-        weight: '',
-        settleMethod: '인수증',
-        fee: '',
-        commission: '',
-        settleDate: '',
-        cargoItem: '',
-        memo: ''
-      });
-      setErrors({});
-      setDateDisplayLabels({});
+      handleResetForm();
     } else {
       lastStepTimeRef.current = Date.now();
       let nextStep = keyboardStep + 1;
@@ -821,28 +800,7 @@ export const useDispatchKeyboard = ({
       setKeyboardStep(0);
       setKeyboardInputValue('');
       setShowWaypoints(false);
-      const dates = getInitialDates();
-      setFormData({
-        clientName: '',
-        clientPhone: '',
-        clientContact: '',
-        origin: '',
-        originDate: dates.originDate,
-        destination: '',
-        destinationDate: dates.destinationDate,
-        waypoints: [],
-        tonnage: '',
-        carType: '',
-        weight: '',
-        settleMethod: '인수증',
-        fee: '',
-        commission: '',
-        settleDate: '',
-        cargoItem: '',
-        memo: ''
-      });
-      setErrors({});
-      setDateDisplayLabels({});
+      handleResetForm();
       return;
     }
 
