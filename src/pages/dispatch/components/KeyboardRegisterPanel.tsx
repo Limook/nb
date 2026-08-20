@@ -57,6 +57,14 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
         key={idx}
         className="keyboard-shortcut-item"
         onClick={() => handleSelectShortcutByIndex(idx)}
+        ref={isHighlighted ? (el) => {
+          if (el) {
+            el.scrollIntoView({
+              behavior: 'auto',
+              block: 'nearest'
+            });
+          }
+        } : undefined}
         style={{
           display: 'flex',
           alignItems: 'center',
