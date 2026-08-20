@@ -7,6 +7,7 @@ export interface KeyboardRegisterPanelProps {
   // From useDispatchKeyboard hook
   formData: any;
   keyboardStep: number;
+  setKeyboardStep: (step: number) => void;
   keyboardInputValue: string;
   setKeyboardInputValue: (val: string) => void;
   keyboardShortcutHighlightIndex: number;
@@ -28,6 +29,7 @@ export interface KeyboardRegisterPanelProps {
 export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   formData,
   keyboardStep,
+  setKeyboardStep,
   keyboardInputValue,
   setKeyboardInputValue,
   keyboardShortcutHighlightIndex,
@@ -80,7 +82,11 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           {shortcuts.map((client: any, idx: number) => renderShortcutWrapper(idx, (
             <React.Fragment key={client.id}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                {idx < 9 ? (
+                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                ) : (
+                  <span style={{ marginRight: '0.4rem', width: '12px', display: 'inline-block' }} />
+                )}
                 {client.name}
               </span>
               <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
@@ -410,6 +416,15 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
     );
   };
 
+  const handleStepClick = (idx: number) => {
+    setKeyboardStep(idx);
+    setKeyboardInputValue('');
+    setTimeout(() => {
+      const input = document.getElementById('keyboard-mode-input');
+      if (input) input.focus();
+    }, 50);
+  };
+
   const renderKeyboardHelper = () => {
     return (
       <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
@@ -491,6 +506,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
                     return (
                       <div
                         key={idx}
+                        onClick={() => handleStepClick(idx)}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -499,7 +515,8 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
                           backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
                           border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
                           transition: 'all var(--transition-fast)',
-                          opacity: isActive || isCompleted ? 1 : 0.5
+                          opacity: isActive || isCompleted ? 1 : 0.5,
+                          cursor: 'pointer'
                         }}
                       >
                         <div style={{

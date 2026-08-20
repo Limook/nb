@@ -1013,6 +1013,7 @@ export default function Dispatches() {
                 <KeyboardRegisterPanel
                   formData={formData}
                   keyboardStep={keyboardStep}
+                  setKeyboardStep={setKeyboardStep}
                   keyboardInputValue={keyboardInputValue}
                   setKeyboardInputValue={setKeyboardInputValue}
                   keyboardShortcutHighlightIndex={keyboardShortcutHighlightIndex}

@@ -291,11 +291,9 @@ export const useDispatchKeyboard = ({
     if (stepField === 'clientName') {
       const query = keyboardInputValue.trim();
       if (!query) {
-        return clients.slice(0, 8);
+        return clients;
       }
-      return clients
-        .filter(c => c.name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 8);
+      return clients.filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
     }
     if (stepField === 'origin' || stepField.startsWith('waypoint_')) {
       return Array.from(new Set([
@@ -889,16 +887,18 @@ export const useDispatchKeyboard = ({
     const shortcutNum = parseInt(val, 10);
     if (!isNaN(shortcutNum) && shortcutNum > 0 && /^\d+$/.test(val)) {
       if (field === 'clientName') {
-        const shortcuts = getShortcutsData('clientName');
-        const client = shortcuts[shortcutNum - 1];
-        if (client) {
-          setFormData(prev => ({
-            ...prev,
-            clientName: client.name,
-            clientPhone: client.phone || '',
-            clientContact: client.contactName || ''
-          }));
-          resolvedValue = client.name;
+        if (shortcutNum <= 9) {
+          const shortcuts = getShortcutsData('clientName');
+          const client = shortcuts[shortcutNum - 1];
+          if (client) {
+            setFormData(prev => ({
+              ...prev,
+              clientName: client.name,
+              clientPhone: client.phone || '',
+              clientContact: client.contactName || ''
+            }));
+            resolvedValue = client.name;
+          }
         }
       } else if (field === 'origin') {
         const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
