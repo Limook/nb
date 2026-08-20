@@ -262,6 +262,154 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
     return null;
   };
 
+  const renderConfirmScreen = () => {
+    const activeWaypoints = (formData.waypoints || []).filter((w: string) => w.trim() !== '');
+
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.85rem',
+        height: '100%'
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          paddingBottom: '0.5rem',
+          borderBottom: '2px solid var(--primary)'
+        }}>
+          <Check size={16} style={{ color: 'var(--primary)' }} />
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            📝 배차 등록 내용 최종 확인
+          </span>
+        </div>
+
+        {/* Ticket Box */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.65rem',
+          padding: '0.85rem',
+          backgroundColor: 'var(--bg-primary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-sm)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+          overflowY: 'auto'
+        }} className="hide-scrollbar">
+          {/* Client Block */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>거래처명</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>{formData.clientName || '일반화주'}</span>
+          </div>
+
+          {/* Route Block */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>상차지</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right', maxWidth: '70%' }}>{formData.origin}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>└ 상차일시</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>{formData.originDate || '즉시 상차'}</span>
+            </div>
+
+            {/* Waypoints */}
+            {activeWaypoints.map((wp: string, idx: number) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '0.4rem' }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>📍 경유지 {idx + 1}</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textAlign: 'right', maxWidth: '70%' }}>{wp}</span>
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.1rem' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>하차지</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right', maxWidth: '70%' }}>{formData.destination}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>└ 하차일시</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>{formData.destinationDate || '당일 하차'}</span>
+            </div>
+          </div>
+
+          {/* Vehicle Info */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>차량 정보</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {formData.tonnage} / {formData.carType} {formData.weight ? `(${formData.weight})` : ''}
+            </span>
+          </div>
+
+          {/* Cargo Item */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>화물품목</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)' }}>{formData.cargoItem}</span>
+          </div>
+
+          {/* Fee & Settle */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>정산방법 / 청구일</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {formData.settleMethod} {formData.settleDate ? `/ ${formData.settleDate}` : ''}
+              </span>
+            </div>
+            {formData.settleMethod !== '인수증' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>└ 수수료</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--danger)', fontWeight: 600 }}>{formData.commission || '0'} 원</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.1rem' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)' }}>합계 운임료</span>
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--primary)' }}>{formData.fee} 원</span>
+            </div>
+          </div>
+
+          {/* Memo */}
+          {formData.memo && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>메모</span>
+              <div style={{
+                padding: '0.35rem',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.68rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.3
+              }}>
+                {formData.memo}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Submit Prompt Banner */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.2rem',
+          padding: '0.65rem',
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          borderRadius: 'var(--radius-md)',
+          textAlign: 'center'
+        }}>
+          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--primary)' }}>
+            🚀 등록하려면 Enter 키를 누르세요.
+          </span>
+          <span style={{ fontSize: '0.64rem', color: 'var(--text-tertiary)' }}>
+            (수정하려면 Shift+Backspace로 이전 단계 이동)
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   const renderKeyboardHelper = () => {
     return (
       <div style={{ display: 'flex', gap: '1rem', flex: 1, overflow: 'hidden', marginTop: '0.2rem' }}>
@@ -415,19 +563,25 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           backgroundColor: 'var(--bg-secondary)',
           overflowY: 'auto'
         }} className="hide-scrollbar">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-              ⚡ {stepField === 'clientName' && keyboardInputValue.trim() !== '' 
-                ? `${currentStep.name} 검색 결과` 
-                : (isAddressField(keyboardStep) && keyboardInputValue.trim() !== '' && jusoResults.length > 0 
-                  ? `${currentStep.name} 검색 결과` 
-                  : (isAddressField(keyboardStep) ? `최근 이용 ${currentStep.name}` : currentStep.name))}
-            </span>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-              (번호 입력 + Enter)
-            </span>
-          </div>
-          {renderKeyboardShortcuts(stepField)}
+          {stepField === 'confirm' ? (
+            renderConfirmScreen()
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                  ⚡ {stepField === 'clientName' && keyboardInputValue.trim() !== '' 
+                    ? `${currentStep.name} 검색 결과` 
+                    : (isAddressField(keyboardStep) && keyboardInputValue.trim() !== '' && jusoResults.length > 0 
+                      ? `${currentStep.name} 검색 결과` 
+                      : (isAddressField(keyboardStep) ? `최근 이용 ${currentStep.name}` : currentStep.name))}
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                  (번호 입력 + Enter)
+                </span>
+              </div>
+              {renderKeyboardShortcuts(stepField)}
+            </>
+          )}
         </div>
       </div>
     );
@@ -448,7 +602,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>
-            👉 {currentStep ? currentStep.name : ''} 입력 차례
+            {stepField === 'confirm' ? '👉 배차 등록 승인 대기' : `👉 ${currentStep ? currentStep.name : ''} 입력 차례`}
           </span>
           <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
             (이전 단계로 가려면 Shift+Backspace 입력)
@@ -458,21 +612,34 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           id="keyboard-mode-input"
           type="text"
           placeholder={currentStep ? currentStep.guide : ''}
-          value={keyboardInputValue}
-          onChange={(e) => setKeyboardInputValue(e.target.value)}
+          value={stepField === 'confirm' ? 'ENTER 키를 눌러 배차 등록 완료' : keyboardInputValue}
+          onChange={(e) => {
+            if (stepField !== 'confirm') {
+              setKeyboardInputValue(e.target.value);
+            }
+          }}
           onKeyDown={handleKeyboardStepEnter}
           onKeyUp={handleKeyboardInputKeyDown}
+          readOnly={stepField === 'confirm'}
           style={{
             height: '40px',
             fontSize: '0.9rem',
             fontWeight: 700,
             borderColor: 'var(--primary)',
-            boxShadow: '0 0 0 2px var(--primary-light)'
+            boxShadow: '0 0 0 2px var(--primary-light)',
+            backgroundColor: stepField === 'confirm' ? 'rgba(59, 130, 246, 0.08)' : undefined,
+            color: stepField === 'confirm' ? 'var(--primary)' : undefined,
+            textAlign: stepField === 'confirm' ? 'center' : undefined,
+            cursor: stepField === 'confirm' ? 'default' : undefined
           }}
           autoComplete="off"
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-          <span>{currentStep && currentStep.optional ? '✨ 이 항목은 필수값이 아닙니다. (엔터 시 스킵 가능)' : '⚠️ 이 항목은 필수입니다. (값을 반드시 입력하세요)'}</span>
+          <span>
+            {stepField === 'confirm' 
+              ? '✅ 입력이 모두 끝났습니다. 내용을 검토한 후 등록하세요.'
+              : (currentStep && currentStep.optional ? '✨ 이 항목은 필수값이 아닙니다. (엔터 시 스킵 가능)' : '⚠️ 이 항목은 필수입니다. (값을 반드시 입력하세요)')}
+          </span>
           <span>완료: {keyboardStep}/{keyboardSteps.length}</span>
         </div>
       </div>

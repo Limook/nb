@@ -206,7 +206,8 @@ export const useDispatchKeyboard = ({
     { name: '운임', field: 'fee', guide: '운임을 입력하세요 (숫자만 입력 또는 우측 추천 운임 번호 입력)', optional: false, defaultValue: '' },
     { name: '청구일자', field: 'settleDate', guide: '정산 청구(수금) 예정일을 입력하세요 (또는 우측 번호 입력)', optional: true, defaultValue: '' },
     { name: '화물품목', field: 'cargoItem', guide: '화물품목을 입력하세요 (또는 우측 번호 입력)', optional: false, defaultValue: '' },
-    { name: '메모', field: 'memo', guide: '메모를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' }
+    { name: '메모', field: 'memo', guide: '메모를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' },
+    { name: '최종확인', field: 'confirm', guide: '입력 내용을 확인하고 Enter를 누르면 등록됩니다.', optional: true, defaultValue: '' }
   ], [showWaypoints, formData.settleMethod, formData.waypoints]);
 
   useEffect(() => {
@@ -769,6 +770,80 @@ export const useDispatchKeyboard = ({
     if (!currentStepObj) return;
     const field = currentStepObj.field;
 
+    if (field === 'confirm') {
+      const newId = dispatches.length > 0 ? Math.max(...dispatches.map(d => d.id)) + 1 : 1;
+      const finalFee = Number(formData.fee.replace(/,/g, '')) || 0;
+      const finalClient = formData.clientName.trim() || '일반화주';
+      
+      const registeredDispatch: Dispatch = {
+        id: newId,
+        client: finalClient,
+        origin: formData.origin,
+        originDate: formData.originDate,
+        destination: formData.destination,
+        destinationDate: formData.destinationDate,
+        waypoints: (formData.waypoints || []).filter((w: string) => w.trim() !== ''),
+        spec: `${formData.tonnage} ${formData.carType} ${formData.weight ? `(${formData.weight})` : ''}`.trim(),
+        status: 'dispatching' as DispatchStatus,
+        fee: finalFee,
+        originalFee: finalFee,
+        settleMethod: formData.settleMethod,
+        commission: formData.commission.replace(/,/g, ''),
+        settleDate: formData.settleDate,
+        cargoItem: formData.cargoItem,
+        memo: formData.memo,
+        date: new Date().toISOString(),
+        driverName: '',
+        driverPhone: '',
+        carNumber: ''
+      };
+      
+      const updatedDispatches = [registeredDispatch, ...dispatches];
+      setDispatches(updatedDispatches);
+      localStorage.setItem('dispatches', JSON.stringify(updatedDispatches));
+      
+      const poolItem = {
+        client: finalClient,
+        origin: formData.origin,
+        destination: formData.destination,
+        tonnage: formData.tonnage,
+        carType: formData.carType,
+        weight: formData.weight || '0T',
+        fee: finalFee,
+        date: new Date().toISOString()
+      };
+      setHistoryPool([poolItem, ...historyPool]);
+      triggerNotification('배차가 성공적으로 등록되었습니다!');
+      
+      lastStepTimeRef.current = Date.now();
+      setKeyboardStep(0);
+      setKeyboardInputValue('');
+      setShowWaypoints(false);
+      const dates = getInitialDates();
+      setFormData({
+        clientName: '',
+        clientPhone: '',
+        clientContact: '',
+        origin: '',
+        originDate: dates.originDate,
+        destination: '',
+        destinationDate: dates.destinationDate,
+        waypoints: [],
+        tonnage: '',
+        carType: '',
+        weight: '',
+        settleMethod: '인수증',
+        fee: '',
+        commission: '',
+        settleDate: '',
+        cargoItem: '',
+        memo: ''
+      });
+      setErrors({});
+      setDateDisplayLabels({});
+      return;
+    }
+
     const isAddr = field === 'origin' || field === 'destination' || field.startsWith('waypoint_');
 
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1032,131 +1107,38 @@ export const useDispatchKeyboard = ({
         }
       }
     }
-    if (keyboardStep === keyboardSteps.length - 1) {
-      const newId = dispatches.length > 0 ? Math.max(...dispatches.map(d => d.id)) + 1 : 1;
-      let finalTonnage = formData.tonnage;
-      let finalCarType = formData.carType;
-      if (field === 'tonnage') finalTonnage = resolvedValue;
-      if (field === 'carType') finalCarType = resolvedValue;
-      let finalClient = formData.clientName.trim();
-      if (field === 'clientName') finalClient = resolvedValue;
-      if (!finalClient) finalClient = '일반화주';
-      let finalOrigin = formData.origin;
-      if (field === 'origin') finalOrigin = resolvedValue;
-      let finalDest = formData.destination;
-      if (field === 'destination') finalDest = resolvedValue;
-      let finalFeeStr = formData.fee;
-      if (field === 'fee') finalFeeStr = resolvedValue;
-      const finalFee = Number(finalFeeStr.replace(/,/g, '')) || 0;
-      let finalSettleMethod = formData.settleMethod;
-      if (field === 'settleMethod') finalSettleMethod = resolvedValue;
-      let finalCommissionStr = formData.commission;
-      if (field === 'commission') finalCommissionStr = resolvedValue;
-      const finalCommission = finalCommissionStr.replace(/,/g, '');
-      let finalSettleDate = formData.settleDate;
-      if (field === 'settleDate') finalSettleDate = resolvedValue;
-      let finalCargoItem = formData.cargoItem;
-      if (field === 'cargoItem') finalCargoItem = resolvedValue;
-      let finalMemo = formData.memo;
-      if (field === 'memo') finalMemo = resolvedValue;
-      const registeredDispatch: Dispatch = {
-        id: newId,
-        client: finalClient,
-        origin: finalOrigin,
-        originDate: formData.originDate,
-        destination: finalDest,
-        destinationDate: formData.destinationDate,
-        waypoints: (formData.waypoints || []).filter((w: string) => w.trim() !== ''),
-        spec: `${finalTonnage} ${finalCarType} ${formData.weight ? `(${formData.weight})` : ''}`.trim(),
-        status: 'dispatching' as DispatchStatus,
-        fee: finalFee,
-        originalFee: finalFee,
-        settleMethod: finalSettleMethod,
-        commission: finalCommission,
-        settleDate: finalSettleDate,
-        cargoItem: finalCargoItem,
-        memo: finalMemo,
-        date: new Date().toISOString(),
-        driverName: '',
-        driverPhone: '',
-        carNumber: ''
-      };
-      const updatedDispatches = [registeredDispatch, ...dispatches];
-      setDispatches(updatedDispatches);
-      localStorage.setItem('dispatches', JSON.stringify(updatedDispatches));
-      const poolItem = {
-        client: finalClient,
-        origin: finalOrigin,
-        destination: finalDest,
-        tonnage: finalTonnage,
-        carType: finalCarType,
-        weight: formData.weight || '0T',
-        fee: finalFee,
-        date: new Date().toISOString()
-      };
-      setHistoryPool([poolItem, ...historyPool]);
-      triggerNotification('배차가 성공적으로 등록되었습니다!');
-      lastStepTimeRef.current = Date.now();
-      setKeyboardStep(0);
-      setKeyboardInputValue('');
-      setShowWaypoints(false);
-      const dates = getInitialDates();
-      setFormData({
-        clientName: '',
-        clientPhone: '',
-        clientContact: '',
-        origin: '',
-        originDate: dates.originDate,
-        destination: '',
-        destinationDate: dates.destinationDate,
-        waypoints: [],
-        tonnage: '',
-        carType: '',
-        weight: '',
-        settleMethod: '인수증',
-        fee: '',
-        commission: '',
-        settleDate: '',
-        cargoItem: '',
-        memo: ''
-      });
-      setErrors({});
-      setDateDisplayLabels({});
-    } else {
-      lastStepTimeRef.current = Date.now();
-      let nextStep = keyboardStep + 1;
-      
-      const currentStepObj = keyboardSteps[keyboardStep];
-      if (currentStepObj.field === 'waypoint_0') {
-        if (e.shiftKey) {
-          nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
-        } else {
-          nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
-        }
-      } else if (currentStepObj.field === 'waypoint_1') {
-        if (e.shiftKey) {
-          nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
-        } else {
-          nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
-        }
-      } else if (currentStepObj.field === 'waypoint_2') {
+    lastStepTimeRef.current = Date.now();
+    let nextStep = keyboardStep + 1;
+    
+    if (currentStepObj.field === 'waypoint_0') {
+      if (e.shiftKey) {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_1');
+      } else {
         nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
       }
-
-      const nextStepObj = keyboardSteps[nextStep];
-      if (nextStepObj && nextStepObj.field === 'commission' && formData.settleMethod === '인수증') {
-        setFormData(prev => ({ ...prev, commission: '0' }));
-        nextStep = keyboardSteps.findIndex(s => s.field === 'fee');
+    } else if (currentStepObj.field === 'waypoint_1') {
+      if (e.shiftKey) {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'waypoint_2');
+      } else {
+        nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
       }
-
-      setKeyboardStep(nextStep);
-      setKeyboardInputValue('');
-      
-      setTimeout(() => {
-        const input = document.getElementById('keyboard-mode-input');
-        if (input) input.focus();
-      }, 50);
+    } else if (currentStepObj.field === 'waypoint_2') {
+      nextStep = keyboardSteps.findIndex(s => s.field === 'destination');
     }
+
+    const nextStepObj = keyboardSteps[nextStep];
+    if (nextStepObj && nextStepObj.field === 'commission' && formData.settleMethod === '인수증') {
+      setFormData(prev => ({ ...prev, commission: '0' }));
+      nextStep = keyboardSteps.findIndex(s => s.field === 'fee');
+    }
+
+    setKeyboardStep(nextStep);
+    setKeyboardInputValue('');
+    
+    setTimeout(() => {
+      const input = document.getElementById('keyboard-mode-input');
+      if (input) input.focus();
+    }, 50);
   }, [keyboardStep, keyboardSteps, clients, dispatches, formData, setDispatches, setHistoryPool, triggerNotification, handleSelectShortcutByIndex, getShortcutsData, keyboardShortcutHighlightIndex, keyboardInputValue, jusoResults, historyPool]);
 
   const handleKeyboardInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
