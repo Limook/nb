@@ -47,12 +47,30 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   const currentStep = keyboardSteps[keyboardStep];
   const stepField = currentStep ? currentStep.field : '';
 
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState(keyboardInputValue);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(keyboardInputValue);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [keyboardInputValue]);
+
+  React.useEffect(() => {
+    setDebouncedSearchQuery(keyboardInputValue);
+  }, [keyboardStep]);
+
   React.useEffect(() => {
     if (isAddressField(keyboardStep) && postcodeContainerRef.current) {
       const daum = (window as any).daum;
       if (daum && daum.Postcode) {
         postcodeContainerRef.current.innerHTML = '';
         new daum.Postcode({
+          q: debouncedSearchQuery,
+          focusInput: false,
           oncomplete: (data: any) => {
             const addr = data.roadAddress || data.address;
             const targetField = keyboardSteps[keyboardStep]?.field;
@@ -82,7 +100,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
         }).embed(postcodeContainerRef.current);
       }
     }
-  }, [keyboardStep, isAddressField, postcodeContainerRef, setFormData, setKeyboardInputValue, keyboardSteps]);
+  }, [keyboardStep, debouncedSearchQuery, isAddressField, postcodeContainerRef, setFormData, setKeyboardInputValue, keyboardSteps]);
 
   const renderShortcutWrapper = (idx: number, children: React.ReactNode, justify = 'space-between') => {
     const isHighlighted = idx === keyboardShortcutHighlightIndex;
