@@ -162,7 +162,8 @@ export default function Dispatches() {
     handleSelectShortcutByIndex,
     handleKeyboardStepEnter,
     handleKeyboardInputKeyDown,
-    getStepValueString
+    getStepValueString,
+    jusoResults
   } = useDispatchKeyboard({
     clients,
     dispatches,
@@ -1022,6 +1023,7 @@ export default function Dispatches() {
                   handleKeyboardStepEnter={handleKeyboardStepEnter}
                   handleKeyboardInputKeyDown={handleKeyboardInputKeyDown}
                   getStepValueString={getStepValueString}
+                  jusoResults={jusoResults}
                   clients={clients}
                   dispatches={dispatches}
                   postcodeContainerRef={postcodeContainerRef}

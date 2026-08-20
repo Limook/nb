@@ -175,6 +175,12 @@ export const useDispatchKeyboard = ({
   const [dateDisplayLabels, setDateDisplayLabels] = useState<{ originDate?: string; destinationDate?: string }>({});
   const [activeLocationListField, setActiveLocationListField] = useState<'origin' | 'destination' | 'both' | null>(null);
   
+  // Juso search states
+  const [jusoResults, setJusoResults] = useState<any[]>([]);
+  const [isSearchingJuso, setIsSearchingJuso] = useState<boolean>(false);
+  const [searchJusoError, setSearchJusoError] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
   const lastStepTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -204,6 +210,76 @@ export const useDispatchKeyboard = ({
     { name: '화물품목', field: 'cargoItem', guide: '화물품목을 입력하세요 (또는 우측 번호 입력)', optional: false, defaultValue: '' },
     { name: '메모', field: 'memo', guide: '메모를 입력하세요 (없으면 엔터)', optional: true, defaultValue: '' }
   ], [showWaypoints, formData.settleMethod, formData.waypoints]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(keyboardInputValue);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [keyboardInputValue]);
+
+  useEffect(() => {
+    setDebouncedSearchQuery(keyboardInputValue);
+    setJusoResults([]);
+    setSearchJusoError('');
+  }, [keyboardStep]);
+
+  useEffect(() => {
+    const currentStepObj = keyboardSteps[keyboardStep];
+    const field = currentStepObj ? currentStepObj.field : '';
+    const isAddr = field === 'origin' || field === 'destination' || field.startsWith('waypoint_');
+
+    if (!isAddr || debouncedSearchQuery.trim().length < 2) {
+      setJusoResults([]);
+      setIsSearchingJuso(false);
+      setSearchJusoError('');
+      return;
+    }
+
+    setIsSearchingJuso(true);
+    setSearchJusoError('');
+
+    const callbackName = `jusoCallback_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    
+    const cleanup = () => {
+      delete (window as any)[callbackName];
+      const script = document.getElementById(callbackName);
+      if (script) script.remove();
+    };
+
+    (window as any)[callbackName] = (data: any) => {
+      cleanup();
+      setIsSearchingJuso(false);
+      const errCode = data?.results?.common?.errorCode;
+      const errMsg = data?.results?.common?.errorMessage;
+      if (errCode === '0') {
+        setJusoResults(data?.results?.juso || []);
+      } else {
+        if (errCode === 'E0006') {
+          setJusoResults([]);
+        } else {
+          setSearchJusoError(errMsg || '검색 중 오류가 발생했습니다.');
+          setJusoResults([]);
+        }
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id = callbackName;
+    script.src = `https://business.juso.go.kr/addrlink/addrLinkApiJsonp.do?confmKey=TESTJUSOGOKR&keyword=${encodeURIComponent(debouncedSearchQuery.trim())}&resultType=json&callback=${callbackName}`;
+    script.async = true;
+    script.onerror = () => {
+      cleanup();
+      setIsSearchingJuso(false);
+      setSearchJusoError('네트워크 오류가 발생했습니다.');
+    };
+
+    document.body.appendChild(script);
+
+    return () => {
+      cleanup();
+    };
+  }, [debouncedSearchQuery, keyboardStep, keyboardSteps]);
 
   const isAddressField = useCallback((stepIdx: number) => {
     if (stepIdx < 0 || stepIdx >= keyboardSteps.length) return false;
@@ -388,11 +464,19 @@ export const useDispatchKeyboard = ({
         resolvedValue = client.name;
       }
     } else if (field === 'origin') {
-      const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
-      const selected = recentOrigins[idx];
-      if (selected) {
-        setFormData(prev => ({ ...prev, origin: selected }));
-        resolvedValue = selected;
+      if (jusoResults && jusoResults.length > 0) {
+        const selected = jusoResults[idx]?.roadAddr;
+        if (selected) {
+          setFormData(prev => ({ ...prev, origin: selected }));
+          resolvedValue = selected;
+        }
+      } else {
+        const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
+        const selected = recentOrigins[idx];
+        if (selected) {
+          setFormData(prev => ({ ...prev, origin: selected }));
+          resolvedValue = selected;
+        }
       }
     } else if (field === 'originDate') {
       const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
@@ -409,26 +493,46 @@ export const useDispatchKeyboard = ({
       }
     } else if (field.startsWith('waypoint_')) {
       const wIdx = parseInt(field.split('_')[1], 10);
-      const recentLocations = Array.from(new Set([
-        ...dispatches.map(d => d.origin),
-        ...dispatches.map(d => d.destination),
-        ...(dispatches.flatMap(d => d.waypoints || []))
-      ])).filter(Boolean).slice(0, 6);
-      const selected = recentLocations[idx];
-      if (selected) {
-        setFormData(prev => {
-          const wps = [...(prev.waypoints || [])];
-          wps[wIdx] = selected;
-          return { ...prev, waypoints: wps };
-        });
-        resolvedValue = selected;
+      if (jusoResults && jusoResults.length > 0) {
+        const selected = jusoResults[idx]?.roadAddr;
+        if (selected) {
+          setFormData(prev => {
+            const wps = [...(prev.waypoints || [])];
+            wps[wIdx] = selected;
+            return { ...prev, waypoints: wps };
+          });
+          resolvedValue = selected;
+        }
+      } else {
+        const recentLocations = Array.from(new Set([
+          ...dispatches.map(d => d.origin),
+          ...dispatches.map(d => d.destination),
+          ...(dispatches.flatMap(d => d.waypoints || []))
+        ])).filter(Boolean).slice(0, 6);
+        const selected = recentLocations[idx];
+        if (selected) {
+          setFormData(prev => {
+            const wps = [...(prev.waypoints || [])];
+            wps[wIdx] = selected;
+            return { ...prev, waypoints: wps };
+          });
+          resolvedValue = selected;
+        }
       }
     } else if (field === 'destination') {
-      const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
-      const selected = recentDests[idx];
-      if (selected) {
-        setFormData(prev => ({ ...prev, destination: selected }));
-        resolvedValue = selected;
+      if (jusoResults && jusoResults.length > 0) {
+        const selected = jusoResults[idx]?.roadAddr;
+        if (selected) {
+          setFormData(prev => ({ ...prev, destination: selected }));
+          resolvedValue = selected;
+        }
+      } else {
+        const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+        const selected = recentDests[idx];
+        if (selected) {
+          setFormData(prev => ({ ...prev, destination: selected }));
+          resolvedValue = selected;
+        }
       }
     } else if (field === 'destinationDate') {
       const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
@@ -652,7 +756,7 @@ export const useDispatchKeyboard = ({
         if (input) input.focus();
       }, 50);
     }
-  }, [keyboardStep, keyboardSteps, clients, dispatches, formData, setDispatches, setHistoryPool, triggerNotification, getShortcutsData]);
+  }, [keyboardStep, keyboardSteps, clients, dispatches, formData, setDispatches, setHistoryPool, triggerNotification, getShortcutsData, jusoResults]);
 
   const handleKeyboardStepEnter = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     const currentStepObj = keyboardSteps[keyboardStep];
@@ -674,8 +778,10 @@ export const useDispatchKeyboard = ({
       }
     }
 
+    const isAddr = field === 'origin' || field === 'destination' || field.startsWith('waypoint_');
+
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      const items = getShortcutsData(field);
+      const items = (isAddr && jusoResults && jusoResults.length > 0) ? jusoResults : getShortcutsData(field);
       if (items.length > 0) {
         e.preventDefault();
         setKeyboardShortcutHighlightIndex(prev => {
@@ -694,6 +800,11 @@ export const useDispatchKeyboard = ({
 
     if (keyboardShortcutHighlightIndex >= 0) {
       handleSelectShortcutByIndex(keyboardShortcutHighlightIndex, e.shiftKey);
+      return;
+    }
+
+    if (isAddr && jusoResults && jusoResults.length > 0) {
+      handleSelectShortcutByIndex(0, e.shiftKey);
       return;
     }
 
@@ -1054,7 +1165,7 @@ export const useDispatchKeyboard = ({
         if (input) input.focus();
       }, 50);
     }
-  }, [keyboardStep, keyboardSteps, clients, dispatches, formData, setDispatches, setHistoryPool, triggerNotification, handleSelectShortcutByIndex, getShortcutsData, keyboardShortcutHighlightIndex, keyboardInputValue]);
+  }, [keyboardStep, keyboardSteps, clients, dispatches, formData, setDispatches, setHistoryPool, triggerNotification, handleSelectShortcutByIndex, getShortcutsData, keyboardShortcutHighlightIndex, keyboardInputValue, jusoResults, historyPool]);
 
   const handleKeyboardInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && e.shiftKey && keyboardInputValue === '') {
@@ -1150,7 +1261,10 @@ export const useDispatchKeyboard = ({
     handleSelectShortcutByIndex,
     handleKeyboardStepEnter,
     handleKeyboardInputKeyDown,
-    getStepValueString
+    getStepValueString,
+    jusoResults,
+    isSearchingJuso,
+    searchJusoError
   };
 };
 

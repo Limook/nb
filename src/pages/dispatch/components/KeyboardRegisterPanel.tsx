@@ -19,6 +19,7 @@ export interface KeyboardRegisterPanelProps {
   handleKeyboardStepEnter: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   handleKeyboardInputKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   getStepValueString: (field: string) => string;
+  jusoResults?: any[];
 
   // From parent page
   clients: Client[];
@@ -40,6 +41,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   handleKeyboardStepEnter,
   handleKeyboardInputKeyDown,
   getStepValueString,
+  jusoResults = [],
   clients,
   dispatches,
   postcodeContainerRef
@@ -145,6 +147,30 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       );
     }
     if (field === 'origin' || field.startsWith('waypoint_')) {
+      if (keyboardInputValue.trim() !== '' && jusoResults.length > 0) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            {jusoResults.map((loc, idx) => {
+              const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
+              const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
+              const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
+              return renderShortcutWrapper(idx, (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
+                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                    {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
+                  </span>
+                  {jibunAddr && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
+                      [지번] {jibunAddr}
+                    </span>
+                  )}
+                </div>
+              ), 'flex-start');
+            })}
+          </div>
+        );
+      }
       const recentOrigins = Array.from(new Set([
         ...dispatches.map(d => d.origin),
         ...dispatches.map(d => d.destination),
@@ -187,6 +213,30 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       );
     }
     if (field === 'destination') {
+      if (keyboardInputValue.trim() !== '' && jusoResults.length > 0) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            {jusoResults.map((loc, idx) => {
+              const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
+              const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
+              const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
+              return renderShortcutWrapper(idx, (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
+                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                    {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
+                  </span>
+                  {jibunAddr && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
+                      [지번] {jibunAddr}
+                    </span>
+                  )}
+                </div>
+              ), 'flex-start');
+            })}
+          </div>
+        );
+      }
       const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
@@ -375,11 +425,11 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
         }} className="hide-scrollbar">
           {isAddressField(keyboardStep) ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {/* Top part: Recent locations shortcuts */}
+              {/* Top part: Recent locations shortcuts / search results */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    ⚡ {currentStep.name}
+                    ⚡ {keyboardInputValue.trim() !== '' && jusoResults.length > 0 ? `${currentStep.name} 검색 결과` : `최근 이용 ${currentStep.name}`}
                   </span>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                     (번호 입력 + Enter)
