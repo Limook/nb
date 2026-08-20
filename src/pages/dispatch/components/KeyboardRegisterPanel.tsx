@@ -575,8 +575,8 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
                   {groupSteps.map((step) => {
                     const idx = step.originalIdx;
                     const isActive = idx === keyboardStep;
-                    const isCompleted = idx < keyboardStep;
                     const stepValue = getStepValueString(step.field);
+                    const isFilled = !!stepValue;
 
                     return (
                       <div
@@ -590,7 +590,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
                           backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
                           border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
                           transition: 'all var(--transition-fast)',
-                          opacity: isActive || isCompleted ? 1 : 0.5,
+                          opacity: isActive || isFilled ? 1 : 0.5,
                           cursor: 'pointer'
                         }}
                       >
@@ -602,7 +602,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
                           gap: '0.4rem'
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flexShrink: 0 }}>
-                            {isCompleted ? (
+                            {isFilled ? (
                               <Check size={12} style={{ color: 'var(--success)', flexShrink: 0 }} />
                             ) : isActive ? (
                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 4px var(--primary)', flexShrink: 0 }} />
@@ -612,17 +612,17 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
                             <span style={{
                               fontSize: '0.74rem',
                               fontWeight: isActive ? 800 : 600,
-                              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                              color: isActive ? 'var(--primary)' : (isFilled ? 'var(--text-primary)' : 'var(--text-secondary)'),
                               whiteSpace: 'nowrap'
                             }}>
                               {step.name}
                             </span>
                           </div>
-                          {isCompleted && stepValue && (
+                          {stepValue && (
                             <span style={{
                               fontSize: '0.72rem',
-                              color: 'var(--text-primary)',
-                              fontWeight: 700,
+                              color: isActive ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+                              fontWeight: isActive ? 700 : 'normal',
                               textAlign: 'right',
                               marginLeft: 'auto',
                               textOverflow: 'ellipsis',
