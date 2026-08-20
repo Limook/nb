@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from '../../../components/ui';
 import { Check } from 'lucide-react';
-import type { Dispatch, KeyboardStep } from '../types';
+import type { KeyboardStep } from '../types';
 
 export interface KeyboardRegisterPanelProps {
   // From useDispatchKeyboard hook
@@ -23,7 +23,6 @@ export interface KeyboardRegisterPanelProps {
   searchJusoError?: string;
 
   // From parent page
-  dispatches: Dispatch[];
 }
 
 export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
@@ -42,8 +41,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   getStepValueString,
   jusoResults = [],
   isSearchingJuso = false,
-  searchJusoError = '',
-  dispatches
+  searchJusoError = ''
 }) => {
   const currentStep = keyboardSteps[keyboardStep];
   const stepField = currentStep ? currentStep.field : '';
@@ -110,7 +108,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
         </div>
       );
     }
-    if (field === 'origin' || field.startsWith('waypoint_')) {
+    if (field === 'origin' || field.startsWith('waypoint_') || field === 'destination') {
       if (keyboardInputValue.trim() !== '') {
         if (isSearchingJuso) {
           return (
@@ -156,24 +154,51 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
           </div>
         );
       }
-      const recentOrigins = Array.from(new Set([
-        ...dispatches.map(d => d.origin),
-        ...dispatches.map(d => d.destination),
-        ...(dispatches.flatMap(d => d.waypoints || []))
-      ])).filter(Boolean).slice(0, 6);
+
+      const items = getShortcutsData(field);
+      const recentItems = items.slice(0, 3);
+      const majorItems = items.slice(3);
+
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {recentOrigins.map((loc, idx) => renderShortcutWrapper(idx, (
-            <span key={idx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {loc}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {/* 주요 상하차지 목록 (위쪽) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.15rem' }}>
+              📍 주요 상하차지 (20개)
             </span>
-          ), 'flex-start'))}
-          {recentOrigins.length === 0 && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-              최근 이용 주소 없음
-            </div>
-          )}
+            {majorItems.map((loc, idx) => {
+              const actualIdx = idx + 3;
+              return renderShortcutWrapper(actualIdx, (
+                <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {loc}
+                </span>
+              ), 'flex-start');
+            })}
+          </div>
+          
+          {/* Divider */}
+          <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.2rem 0' }} />
+          
+          {/* 최근 이용 상하차지 목록 (아래쪽) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>
+              ⚡ 최근 이용 {field === 'destination' ? '하차지' : '상차지'}
+            </span>
+            {recentItems.map((loc, idx) => {
+              const actualIdx = idx;
+              return renderShortcutWrapper(actualIdx, (
+                <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{actualIdx + 1}</span>
+                  {loc}
+                </span>
+              ), 'flex-start');
+            })}
+            {recentItems.length === 0 && (
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem' }}>
+                최근 이용 내역 없음
+              </div>
+            )}
+          </div>
         </div>
       );
     }
@@ -194,69 +219,6 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
               )}
             </React.Fragment>
           )))}
-        </div>
-      );
-    }
-    if (field === 'destination') {
-      if (keyboardInputValue.trim() !== '') {
-        if (isSearchingJuso) {
-          return (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '1rem', textAlign: 'center' }}>
-              ⏳ 주소 검색 중...
-            </div>
-          );
-        }
-        if (searchJusoError) {
-          return (
-            <div style={{ fontSize: '0.8rem', color: '#ef4444', padding: '1rem', textAlign: 'center' }}>
-              ❌ {searchJusoError}
-            </div>
-          );
-        }
-        if (jusoResults.length > 0) {
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              {jusoResults.map((loc, idx) => {
-                const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
-                const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
-                const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
-                return renderShortcutWrapper(idx, (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
-                      <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                      {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
-                    </span>
-                    {jibunAddr && (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
-                        [지번] {jibunAddr}
-                      </span>
-                    )}
-                  </div>
-                ), 'flex-start');
-              })}
-            </div>
-          );
-        }
-        return (
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', padding: '1rem', textAlign: 'center', fontStyle: 'italic' }}>
-            검색 결과가 없습니다.
-          </div>
-        );
-      }
-      const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {recentDests.map((loc, idx) => renderShortcutWrapper(idx, (
-            <span key={idx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-              {loc}
-            </span>
-          ), 'flex-start'))}
-          {recentDests.length === 0 && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-              최근 이용 하차지 없음
-            </div>
-          )}
         </div>
       );
     }

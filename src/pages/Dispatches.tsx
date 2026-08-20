@@ -1025,7 +1025,6 @@ export default function Dispatches() {
                   handleKeyboardInputKeyDown={handleKeyboardInputKeyDown}
                   getStepValueString={getStepValueString}
                   jusoResults={jusoResults}
-                  dispatches={dispatches}
                 />
               ) : (
                 <>

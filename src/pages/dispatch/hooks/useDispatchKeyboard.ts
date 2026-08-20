@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Dispatch, Client, KeyboardStep, FormDataState, DispatchStatus } from '../types';
-import { tonnages, carTypes } from '../constants';
+import { tonnages, carTypes, majorLocations } from '../constants';
 
 export interface UseDispatchKeyboardProps {
   clients: Client[];
@@ -296,17 +296,19 @@ export const useDispatchKeyboard = ({
       return clients.filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
     }
     if (stepField === 'origin' || stepField.startsWith('waypoint_')) {
-      return Array.from(new Set([
+      const recent = Array.from(new Set([
         ...dispatches.map(d => d.origin),
         ...dispatches.map(d => d.destination),
         ...(dispatches.flatMap(d => d.waypoints || []))
-      ])).filter(Boolean).slice(0, 6);
+      ])).filter(Boolean).slice(0, 3);
+      return [...recent, ...majorLocations];
     }
     if (stepField === 'originDate') {
       return ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
     }
     if (stepField === 'destination') {
-      return Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
+      const recent = Array.from(new Set(dispatches.map(d => d.destination))).filter(Boolean).slice(0, 3);
+      return [...recent, ...majorLocations];
     }
     if (stepField === 'destinationDate') {
       return ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
@@ -910,11 +912,13 @@ export const useDispatchKeyboard = ({
           }
         }
       } else if (field === 'origin') {
-        const recentOrigins = Array.from(new Set(dispatches.map(d => d.origin))).slice(0, 6);
-        const selected = recentOrigins[shortcutNum - 1];
-        if (selected) {
-          setFormData(prev => ({ ...prev, origin: selected }));
-          resolvedValue = selected;
+        if (shortcutNum <= 3) {
+          const shortcuts = getShortcutsData('origin');
+          const selected = shortcuts[shortcutNum - 1];
+          if (selected) {
+            setFormData(prev => ({ ...prev, origin: selected }));
+            resolvedValue = selected;
+          }
         }
       } else if (field === 'originDate') {
         const shortcuts = ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
@@ -930,27 +934,27 @@ export const useDispatchKeyboard = ({
           }
         }
       } else if (field.startsWith('waypoint_')) {
-        const wIdx = parseInt(field.split('_')[1], 10);
-        const recentLocations = Array.from(new Set([
-          ...dispatches.map(d => d.origin),
-          ...dispatches.map(d => d.destination),
-          ...(dispatches.flatMap(d => d.waypoints || []))
-        ])).filter(Boolean).slice(0, 6);
-        const selected = recentLocations[shortcutNum - 1];
-        if (selected) {
-          setFormData(prev => {
-            const wps = [...(prev.waypoints || [])];
-            wps[wIdx] = selected;
-            return { ...prev, waypoints: wps };
-          });
-          resolvedValue = selected;
+        if (shortcutNum <= 3) {
+          const wIdx = parseInt(field.split('_')[1], 10);
+          const shortcuts = getShortcutsData(field);
+          const selected = shortcuts[shortcutNum - 1];
+          if (selected) {
+            setFormData(prev => {
+              const wps = [...(prev.waypoints || [])];
+              wps[wIdx] = selected;
+              return { ...prev, waypoints: wps };
+            });
+            resolvedValue = selected;
+          }
         }
       } else if (field === 'destination') {
-        const recentDests = Array.from(new Set(dispatches.map(d => d.destination))).slice(0, 6);
-        const selected = recentDests[shortcutNum - 1];
-        if (selected) {
-          setFormData(prev => ({ ...prev, destination: selected }));
-          resolvedValue = selected;
+        if (shortcutNum <= 3) {
+          const shortcuts = getShortcutsData('destination');
+          const selected = shortcuts[shortcutNum - 1];
+          if (selected) {
+            setFormData(prev => ({ ...prev, destination: selected }));
+            resolvedValue = selected;
+          }
         }
       } else if (field === 'destinationDate') {
         const shortcuts = ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
