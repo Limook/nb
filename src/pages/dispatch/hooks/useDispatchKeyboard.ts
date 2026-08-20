@@ -266,7 +266,8 @@ export const useDispatchKeyboard = ({
 
     const script = document.createElement('script');
     script.id = callbackName;
-    script.src = `https://business.juso.go.kr/addrlink/addrLinkApiJsonp.do?confmKey=TESTJUSOGOKR&keyword=${encodeURIComponent(debouncedSearchQuery.trim())}&resultType=json&callback=${callbackName}`;
+    const confmKey = import.meta.env.VITE_JUSO_CONFIRM_KEY || 'TESTJUSOGOKR';
+    script.src = `https://business.juso.go.kr/addrlink/addrLinkApiJsonp.do?confmKey=${confmKey}&keyword=${encodeURIComponent(debouncedSearchQuery.trim())}&resultType=json&callback=${callbackName}`;
     script.async = true;
     script.onerror = () => {
       cleanup();
