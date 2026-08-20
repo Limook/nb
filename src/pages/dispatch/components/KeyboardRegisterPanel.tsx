@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from '../../../components/ui';
 import { Check } from 'lucide-react';
-import type { Client, Dispatch, KeyboardStep } from '../types';
+import type { Dispatch, KeyboardStep } from '../types';
 import { PostcodeIframe } from './PostcodeIframe';
 
 export interface KeyboardRegisterPanelProps {
@@ -24,7 +24,6 @@ export interface KeyboardRegisterPanelProps {
   searchJusoError?: string;
 
   // From parent page
-  clients: Client[];
   dispatches: Dispatch[];
   postcodeContainerRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -46,7 +45,6 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   jusoResults = [],
   isSearchingJuso = false,
   searchJusoError = '',
-  clients,
   dispatches,
   postcodeContainerRef
 }) => {
@@ -134,9 +132,10 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
 
   const renderKeyboardShortcuts = (field: string) => {
     if (field === 'clientName') {
+      const shortcuts = getShortcutsData('clientName');
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          {clients.slice(0, 8).map((client, idx) => renderShortcutWrapper(idx, (
+          {shortcuts.map((client: any, idx: number) => renderShortcutWrapper(idx, (
             <React.Fragment key={client.id}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
@@ -147,6 +146,11 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
               </span>
             </React.Fragment>
           )))}
+          {shortcuts.length === 0 && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', padding: '1rem', textAlign: 'center', fontStyle: 'italic' }}>
+              검색 결과가 없습니다.
+            </div>
+          )}
         </div>
       );
     }
@@ -499,7 +503,7 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                  ⚡ {currentStep.name}
+                  ⚡ {stepField === 'clientName' && keyboardInputValue.trim() !== '' ? `${currentStep.name} 검색 결과` : currentStep.name}
                 </span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                   (번호 입력 + Enter)

@@ -290,7 +290,13 @@ export const useDispatchKeyboard = ({
 
   const getShortcutsData = useCallback((stepField: string): any[] => {
     if (stepField === 'clientName') {
-      return clients.slice(0, 8);
+      const query = keyboardInputValue.trim();
+      if (!query) {
+        return clients.slice(0, 8);
+      }
+      return clients
+        .filter(c => c.name.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 8);
     }
     if (stepField === 'origin' || stepField.startsWith('waypoint_')) {
       return Array.from(new Set([
@@ -352,7 +358,7 @@ export const useDispatchKeyboard = ({
       ];
     }
     return [];
-  }, [clients, dispatches, formData.clientName]);
+  }, [clients, dispatches, formData.clientName, keyboardInputValue]);
 
   const handleResetForm = useCallback(() => {
     const dates = getInitialDates();
@@ -454,7 +460,8 @@ export const useDispatchKeyboard = ({
     let resolvedValue = '';
 
     if (field === 'clientName') {
-      const client = clients[idx];
+      const shortcuts = getShortcutsData('clientName');
+      const client = shortcuts[idx];
       if (client) {
         setFormData(prev => ({
           ...prev,
@@ -824,7 +831,8 @@ export const useDispatchKeyboard = ({
     const shortcutNum = parseInt(val, 10);
     if (!isNaN(shortcutNum) && shortcutNum > 0 && /^\d+$/.test(val)) {
       if (field === 'clientName') {
-        const client = clients[shortcutNum - 1];
+        const shortcuts = getShortcutsData('clientName');
+        const client = shortcuts[shortcutNum - 1];
         if (client) {
           setFormData(prev => ({
             ...prev,

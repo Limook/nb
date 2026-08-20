@@ -1024,7 +1024,6 @@ export default function Dispatches() {
                   handleKeyboardInputKeyDown={handleKeyboardInputKeyDown}
                   getStepValueString={getStepValueString}
                   jusoResults={jusoResults}
-                  clients={clients}
                   dispatches={dispatches}
                   postcodeContainerRef={postcodeContainerRef}
                 />
