@@ -160,44 +160,75 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       const majorItems = items.slice(3);
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          {/* 주요 상하차지 목록 (위쪽) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.15rem' }}>
-              📍 주요 상하차지 (20개)
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          height: '100%',
+          overflow: 'hidden'
+        }}>
+          {/* 주요 상하차지 목록 (위쪽 50%) */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.35rem',
+            overflowY: 'auto',
+            minHeight: 0,
+            paddingRight: '0.2rem'
+          }} className="hide-scrollbar">
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.1rem', position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1, paddingBottom: '0.1rem' }}>
+              📍 주요 상하차지 ({formData.clientName || '거래처 전용'})
             </span>
-            {majorItems.map((loc, idx) => {
-              const actualIdx = idx + 3;
-              return renderShortcutWrapper(actualIdx, (
-                <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {loc}
-                </span>
-              ), 'flex-start');
-            })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              {majorItems.map((loc, idx) => {
+                const actualIdx = idx + 3;
+                return renderShortcutWrapper(actualIdx, (
+                  <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {loc}
+                  </span>
+                ), 'flex-start');
+              })}
+              {majorItems.length === 0 && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                  등록된 거래처 주요 상하차지 없음
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Divider */}
-          <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.2rem 0' }} />
+          <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.1rem 0', flexShrink: 0 }} />
           
-          {/* 최근 이용 상하차지 목록 (아래쪽) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>
-              ⚡ 최근 이용 {field === 'destination' ? '하차지' : '상차지'}
+          {/* 최근 이용 상하차지 목록 (아래쪽 50%) */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.35rem',
+            overflowY: 'auto',
+            minHeight: 0,
+            paddingRight: '0.2rem'
+          }} className="hide-scrollbar">
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.1rem', position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1, paddingBottom: '0.1rem' }}>
+              ⚡ 최근 이용 {field === 'destination' ? '하차지' : '상차지'} (1~3번)
             </span>
-            {recentItems.map((loc, idx) => {
-              const actualIdx = idx;
-              return renderShortcutWrapper(actualIdx, (
-                <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{actualIdx + 1}</span>
-                  {loc}
-                </span>
-              ), 'flex-start');
-            })}
-            {recentItems.length === 0 && (
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem' }}>
-                최근 이용 내역 없음
-              </div>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              {recentItems.map((loc, idx) => {
+                const actualIdx = idx;
+                return renderShortcutWrapper(actualIdx, (
+                  <span key={actualIdx} style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{actualIdx + 1}</span>
+                    {loc}
+                  </span>
+                ), 'flex-start');
+              })}
+              {recentItems.length === 0 && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                  최근 이용 내역 없음
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Dispatch, Client, KeyboardStep, FormDataState, DispatchStatus } from '../types';
-import { tonnages, carTypes, majorLocations } from '../constants';
+import { tonnages, carTypes } from '../constants';
 
 export interface UseDispatchKeyboardProps {
   clients: Client[];
@@ -301,14 +301,22 @@ export const useDispatchKeyboard = ({
         ...dispatches.map(d => d.destination),
         ...(dispatches.flatMap(d => d.waypoints || []))
       ])).filter(Boolean).slice(0, 3);
-      return [...recent, ...majorLocations];
+      
+      const clientName = formData.clientName.trim();
+      const matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+      const clientLocations = matchedClient ? (matchedClient.origins || []) : [];
+      return [...recent, ...clientLocations];
     }
     if (stepField === 'originDate') {
       return ['지금', '오늘', '내일', '월요일', '1시간뒤', '2시간뒤', '3시간뒤'];
     }
     if (stepField === 'destination') {
       const recent = Array.from(new Set(dispatches.map(d => d.destination))).filter(Boolean).slice(0, 3);
-      return [...recent, ...majorLocations];
+      
+      const clientName = formData.clientName.trim();
+      const matchedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+      const clientLocations = matchedClient ? (matchedClient.destinations || []) : [];
+      return [...recent, ...clientLocations];
     }
     if (stepField === 'destinationDate') {
       return ['오늘', '내일', '월요일', '3시간뒤', '4시간뒤', '5시간뒤', '6시간뒤'];
