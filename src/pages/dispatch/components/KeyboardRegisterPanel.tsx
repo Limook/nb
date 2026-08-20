@@ -20,6 +20,8 @@ export interface KeyboardRegisterPanelProps {
   handleKeyboardInputKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   getStepValueString: (field: string) => string;
   jusoResults?: any[];
+  isSearchingJuso?: boolean;
+  searchJusoError?: string;
 
   // From parent page
   clients: Client[];
@@ -42,6 +44,8 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
   handleKeyboardInputKeyDown,
   getStepValueString,
   jusoResults = [],
+  isSearchingJuso = false,
+  searchJusoError = '',
   clients,
   dispatches,
   postcodeContainerRef
@@ -147,27 +151,48 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       );
     }
     if (field === 'origin' || field.startsWith('waypoint_')) {
-      if (keyboardInputValue.trim() !== '' && jusoResults.length > 0) {
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-            {jusoResults.map((loc, idx) => {
-              const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
-              const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
-              const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
-              return renderShortcutWrapper(idx, (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
-                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                    {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
-                  </span>
-                  {jibunAddr && (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
-                      [지번] {jibunAddr}
+      if (keyboardInputValue.trim() !== '') {
+        if (isSearchingJuso) {
+          return (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '1rem', textAlign: 'center' }}>
+              ⏳ 주소 검색 중...
+            </div>
+          );
+        }
+        if (searchJusoError) {
+          return (
+            <div style={{ fontSize: '0.8rem', color: '#ef4444', padding: '1rem', textAlign: 'center' }}>
+              ❌ {searchJusoError}
+            </div>
+          );
+        }
+        if (jusoResults.length > 0) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {jusoResults.map((loc, idx) => {
+                const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
+                const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
+                const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
+                return renderShortcutWrapper(idx, (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
+                      <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                      {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
                     </span>
-                  )}
-                </div>
-              ), 'flex-start');
-            })}
+                    {jibunAddr && (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
+                        [지번] {jibunAddr}
+                      </span>
+                    )}
+                  </div>
+                ), 'flex-start');
+              })}
+            </div>
+          );
+        }
+        return (
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', padding: '1rem', textAlign: 'center', fontStyle: 'italic' }}>
+            검색 결과가 없습니다.
           </div>
         );
       }
@@ -213,27 +238,48 @@ export const KeyboardRegisterPanel: React.FC<KeyboardRegisterPanelProps> = ({
       );
     }
     if (field === 'destination') {
-      if (keyboardInputValue.trim() !== '' && jusoResults.length > 0) {
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-            {jusoResults.map((loc, idx) => {
-              const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
-              const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
-              const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
-              return renderShortcutWrapper(idx, (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
-                    <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
-                    {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
-                  </span>
-                  {jibunAddr && (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
-                      [지번] {jibunAddr}
+      if (keyboardInputValue.trim() !== '') {
+        if (isSearchingJuso) {
+          return (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '1rem', textAlign: 'center' }}>
+              ⏳ 주소 검색 중...
+            </div>
+          );
+        }
+        if (searchJusoError) {
+          return (
+            <div style={{ fontSize: '0.8rem', color: '#ef4444', padding: '1rem', textAlign: 'center' }}>
+              ❌ {searchJusoError}
+            </div>
+          );
+        }
+        if (jusoResults.length > 0) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {jusoResults.map((loc, idx) => {
+                const roadAddr = typeof loc === 'string' ? loc : (loc?.roadAddr || '');
+                const jibunAddr = typeof loc === 'string' ? '' : (loc?.jibunAddr || '');
+                const zipNo = typeof loc === 'string' ? '' : (loc?.zipNo || '');
+                return renderShortcutWrapper(idx, (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>
+                      <span style={{ color: 'var(--primary)', marginRight: '0.5rem', fontWeight: 900 }}>{idx + 1}</span>
+                      {roadAddr} {zipNo && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>({zipNo})</span>}
                     </span>
-                  )}
-                </div>
-              ), 'flex-start');
-            })}
+                    {jibunAddr && (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', marginTop: '0.1rem', textAlign: 'left' }}>
+                        [지번] {jibunAddr}
+                      </span>
+                    )}
+                  </div>
+                ), 'flex-start');
+              })}
+            </div>
+          );
+        }
+        return (
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', padding: '1rem', textAlign: 'center', fontStyle: 'italic' }}>
+            검색 결과가 없습니다.
           </div>
         );
       }
